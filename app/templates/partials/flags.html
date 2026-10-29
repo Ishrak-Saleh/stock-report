@@ -1,0 +1,6 @@
+{% set f = row.forecast %}
+{% if f.out_of_stock %}<span class="badge bad">Out of stock</span>{% endif %}
+{% if f.reorder_now %}<span class="badge bad">Reorder now{% if f.ordered_not_enough %} (ordered units not enough){% endif %}</span>{% endif %}
+{% if f.low == "urgent" %}<span class="badge bad">Urgent &lt;21d</span>
+{% elif f.low == "watch" %}<span class="badge warn">Watch &lt;45d</span>{% endif %}
+{% if not (f.out_of_stock or f.reorder_now or f.low) %}<span class="badge ok">OK</span>{% endif %}

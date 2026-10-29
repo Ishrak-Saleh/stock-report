@@ -1,0 +1,18 @@
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }
+.cards article { margin: 0; }
+dl.grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem 1rem; margin: 0; }
+dl.grid dt { font-size: .75rem; color: var(--pico-muted-color); }
+dl.grid dd { margin: 0; font-weight: 600; }
+.calc { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .5rem; }
+.calc i { font-style: normal; color: var(--pico-muted-color); font-weight: 600; }
+.chip { display: flex; flex-direction: column; align-items: center; min-width: 4.2rem; padding: .35rem .6rem;
+        border-radius: .6rem; background: var(--pico-card-sectioning-background-color);
+        border: 1px solid var(--pico-muted-border-color); line-height: 1.15; }
+.chip b { font-size: 1.05rem; }
+.chip span { font-size: .65rem; color: var(--pico-muted-color); text-align: center; }
+.chip.new { border-color: var(--pico-primary); }
+.chip.result { background: var(--pico-primary); border-color: var(--pico-primary); }
+.chip.result b, .chip.result span { color: var(--pico-primary-inverse); }
+.muted { color: var(--pico-muted-color); }
+.badge { display: inline-block; padding: .1rem .5rem; border-radius: 1rem; font-size: .75rem; color: #fff; margin: .1rem .2rem .1rem 0; }
+.badge.bad { background: #c62828; } .badge.warn { background: #b26a00; } .badge.ok { background: #2e7d32; }

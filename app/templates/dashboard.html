@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<hgroup>
+  <h2>Stock report</h2>
+  <p>As of {{ today|short_date }} (America/Denver) · lead {{ settings.lead_time }}d · safety {{ settings.safety_days }}d · target {{ settings.target_days }}d</p>
+</hgroup>
+<div class="cards">
+{% for row in rows %}{% set f = row.forecast %}
+  <article>
+    <header>
+      <strong>{{ row.product.name }}</strong> <small>{{ row.product.code }}</small>
+      <div>{% include "partials/flags.html" %}</div>
+    </header>
+    <dl class="grid">
+      <div><dt>In warehouse</dt><dd>{{ row.product.stock }}</dd></div>
+      <div><dt>Sold, not shipped</dt><dd>{{ row.product.unshipped }}</dd></div>
+      <div><dt>Sold 7d</dt><dd>{{ f.sold_7 }}</dd></div>
+      <div><dt>Burn / day</dt><dd>{{ f.adjusted_burn }} <small>{{ "↑" if f.trend > 1 else "↓" if f.trend < 1 else "→" }} ×{{ "%.2f"|format(f.trend) }}</small></dd></div>
+      <div><dt>Days of stock</dt><dd>{{ f.days_of_stock|days }}</dd></div>
+      <div><dt>Days incl. ordered</dt><dd>{{ f.days_with_ordered|days }}</dd></div>
+      <div><dt>Ordered (placed / prod / way)</dt><dd>{{ row.placed }} / {{ row.in_production }} / {{ row.on_the_way }}</dd></div>
+      <div><dt>Sells out</dt><dd>{{ f.sells_out_on|short_date }}</dd></div>
+      <div><dt>Reorder by</dt><dd>{{ f.reorder_by|short_date }}</dd></div>
+      <div><dt>Suggested order</dt><dd>{{ f.suggested_order }}</dd></div>
+    </dl>
+    <footer>
+      <label>Try an order (units)
+        <input type="number" min="0" name="units" placeholder="e.g. 200"
+               hx-get="/products/{{ row.product.id }}/try" hx-trigger="input changed delay:200ms"
+               hx-target="next .try" hx-include="this">
+      </label>
+      <div class="try"></div>
+    </footer>
+  </article>
+{% endfor %}
+</div>
+{% endblock %}

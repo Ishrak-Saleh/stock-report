@@ -1,0 +1,11 @@
+{% if days is none %}<small>No sales, so days can't be computed.</small>
+{% else %}
+<div class="calc" role="group" aria-label="Try an order calculation">
+  <div class="chip"><b>{{ stock }}</b><span>in warehouse</span></div><i>+</i>
+  <div class="chip"><b>{{ ordered }}</b><span>already ordered</span></div><i>+</i>
+  <div class="chip new"><b>{{ units }}</b><span>new</span></div><i>÷</i>
+  <div class="chip"><b>{{ burn }}</b><span>per day</span></div><i>=</i>
+  <div class="chip result"><b>{{ days|days }}</b><span>days of stock</span></div>
+</div>
+<small class="muted">Nothing is saved.</small>
+{% endif %}
