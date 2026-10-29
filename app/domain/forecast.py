@@ -1,7 +1,7 @@
 """Section 4 forecast rules. Pure functions: no DB, no HTTP, `today` is injected."""
 from dataclasses import dataclass
 from datetime import date, timedelta
-from math import floor
+from math import ceil, floor
 
 URGENT_DAYS = 21
 WATCH_DAYS = 45
@@ -77,3 +77,68 @@ def compute(daily: dict[date, int], stock: int, ordered: int, today: date, p: Pa
         ordered_not_enough=reorder_now and ordered > 0,
         low=low,
     )
+
+
+# ---- what the Stock page shows: one main flag per product, and the order size options ----
+
+LEVEL_RANK = {"crit": 0, "serious": 1, "warn": 2, "good": 3}
+
+
+@dataclass(frozen=True)
+class Flag:
+    level: str  # crit | serious | warn | good
+    label: str
+    note: str
+
+
+def main_flag(f: Forecast) -> Flag:
+    """The one badge a product gets, plus a quiet note for the rest."""
+    if f.out_of_stock:
+        level, label = "crit", "Out of stock"
+    elif f.low == "urgent":
+        level, label = "crit", "Under 21 days"
+    elif f.reorder_now:
+        level, label = "serious", "Reorder now"
+    elif f.low == "watch":
+        level, label = "warn", "Under 45 days"
+    else:
+        level, label = "good", "Healthy"
+    notes = []
+    if f.reorder_now:
+        if label != "Reorder now":
+            notes.append("Reorder now.")
+        notes.append("Ordered units not enough." if f.ordered_not_enough else "Nothing is on order.")
+    if f.adjusted_burn == 0:
+        notes.append("No sales yet.")
+    return Flag(level, label, " ".join(notes))
+
+
+@dataclass(frozen=True)
+class Option:
+    key: str
+    label: str
+    units: int
+    days_incl: float | None
+    tag: str
+    note: str
+
+
+def _units_to_cover(days: float, burn: float, covered: int) -> int:
+    return max(0, ceil(round(days * burn - covered, 6)))
+
+
+def order_options(stock: int, ordered: int, f: Forecast, p: Params) -> list[Option]:
+    """Three order sizes and the days of stock each one ends with (stock plus everything on order plus the new units).
+    The SOP's suggested size uses warehouse stock only, so it does not subtract units already on order."""
+    burn = f.adjusted_burn
+    if burn <= 0:
+        return []
+    covered = stock + ordered
+    raw = [
+        ("point", "Reorder point", _units_to_cover(p.lead_time + p.safety_days, burn, covered), "",
+         f"Reaches the {p.lead_time + p.safety_days}-day reorder line"),
+        ("sop", "SOP suggestion", f.suggested_order, "Suggested",
+         f"Target {p.target_days} days plus {p.lead_time} days lead time. Uses warehouse stock only."),
+        ("cover", "Cover 90 days", _units_to_cover(90, burn, covered), "", "Longest cover from one order"),
+    ]
+    return [Option(k, label, units, days_of(covered + units, burn), tag, note) for k, label, units, tag, note in raw]

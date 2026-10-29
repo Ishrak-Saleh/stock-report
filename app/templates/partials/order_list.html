@@ -1,23 +1,17 @@
-{% if not rows %}<p class="muted">No orders match.</p>{% else %}
-<div class="overflow-auto">
-<table>
-  <thead><tr>
-    <th>Order</th><th>Product</th><th>Supplier</th><th>Status</th>
-    <th>Units</th><th>Placed</th><th>In prod.</th><th>On the way</th><th>Arrived</th><th>Age</th>
-  </tr></thead>
-  <tbody>
-  {% for r in rows %}{% set o = r.order %}{% set s = r.stages %}
-    <tr>
-      <td><a href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a></td>
-      <td>{{ o.product.name }}</td>
-      <td>{{ o.supplier.name }}</td>
-      <td><span class="badge status-{{ s.status|replace(' ', '-') }}">{{ s.status|capitalize }}</span></td>
-      <td>{{ o.units }}</td>
-      <td>{{ s.placed }}</td><td>{{ s.in_production }}</td><td>{{ s.on_the_way }}</td><td>{{ s.arrived }}</td>
-      <td>{{ (now - o.created_at).days }}d</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+{% from "_macros.html" import status_badge, next_step, order_bar, stage_legend, dialog_link %}
+{{ stage_legend() }}
+<div class="lhead"><span>Order</span><span>Next step</span><span>Stages</span><span style="text-align:right">Arrived</span><span style="text-align:right">Age</span><span>Supplier</span></div>
+{% for r in rows %}{% set o = r.order %}{% set st = r.stages %}
+<div class="orow link" role="link" tabindex="0" data-href="/orders/{{ o.id }}">
+  <div class="pname"><a href="/orders/{{ o.id }}" style="color:inherit;text-decoration:none"><strong>{{ o.name }}</strong></a><span class="code">{{ o.product.name }}</span>
+    <div class="flags">{{ status_badge(st.status) }}</div></div>
+  <div class="cell"><span class="lab">Next step</span>{{ next_step(r) }}</div>
+  <div class="cell"><span class="lab">Stages</span>{{ order_bar(o, st) }}<div class="small">{{ o.units|num }} units</div></div>
+  <div class="cell num"><span class="lab">Arrived</span>{{ st.arrived|num }} of {{ o.units|num }}</div>
+  <div class="cell num"><span class="lab">Age</span>{{ r.age }}d</div>
+  <div class="cell"><span class="lab">Supplier</span>{{ o.supplier.name }}</div>
 </div>
-{% endif %}
+{% else %}
+<div class="empty">{{ icon("package", 24) }}<strong>No orders match these filters</strong><span class="meta">Choose All, or create an order.</span>
+  <div class="row"><a class="btn small" href="/orders">Show all orders</a>{{ dialog_link("/orders/new", "New order", "btn small") }}</div></div>
+{% endfor %}

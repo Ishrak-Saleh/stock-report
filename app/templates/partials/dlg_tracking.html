@@ -1,0 +1,17 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Add tracking">
+  <div class="mbody">
+    {{ dialog_head("Add tracking", o.name ~ " · " ~ (left|num) ~ " of " ~ (o.units|num) ~ " units have no tracking") }}
+    <form method="post" action="/orders/{{ o.id }}/tracking">
+      <div class="grid2">
+        <label class="field">Tracking number<input name="number" required maxlength="64" placeholder="1Z999AA10123456784" autocomplete="off"></label>
+        <label class="field">Units<input name="units" type="number" min="1" max="{{ left }}" value="{{ left }}" required></label>
+      </div>
+      <label class="field">Carrier
+        <select name="carrier"><option value="">Detect from the number</option>{% for c in carriers %}<option>{{ c }}</option>{% endfor %}</select>
+      </label>
+      <div class="callout info">{{ icon("circle-alert") }}<span>{{ left|num }} units are left to track. You can add more tracking numbers later.</span></div>
+      <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Add tracking</button></div></div>
+    </form>
+  </div>
+</dialog>

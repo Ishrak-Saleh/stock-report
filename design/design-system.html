@@ -1,0 +1,704 @@
+<title>Stock Report Design System</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout concept: a reference sheet that is also a specimen. Version 2 shows the dark-first look:
+   top bar, a story-ordered Stock page with micro-charts, the runway chart, the order modal with plan cards.
+   Dark is the default (a deliberate dark-first design); light is available through the theme setting or the preview switch.
+   Chart colors passed the dataviz validator against #1F1F1F and #ffffff. */
+:root, .force-dark {
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-control: 6px; --r-panel: 10px; --r-pill: 999px;
+  --page: #181818; --panel: #1F1F1F; --raised: #272727; --line: #313131;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --danger: #ec7070;
+  --accent: #3987e5; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --s-good: #0ca30c; --s-warn: #fab219; --s-serious: #ec835a; --s-crit: #d03b3b;
+  --ser-a: #3987e5; --ser-b: #d95926;
+  --st1: #184f95; --st2: #2a78d6; --st3: #5598e7; --st4: #86b6ef;
+  --ring: 0 0 0 1px var(--line);
+  --hover: oklch(1 0 0 / .05);
+  --scrim: oklch(0 0 0 / .55);
+  color-scheme: dark;
+}
+:root[data-theme="light"], .force-light {
+  --page: #f6f6f4; --panel: #ffffff; --raised: #f0efec; --line: #e1e0d9;
+  --ink: #0b0b0b; --ink2: #52514e; --muted: #75736e; --danger: #b42323;
+  --accent: #2a78d6; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --ser-a: #2a78d6; --ser-b: #eb6834;
+  --st1: #86b6ef; --st2: #5598e7; --st3: #2a78d6; --st4: #1c5cab;
+  --hover: oklch(0 0 0 / .04);
+  --scrim: oklch(0 0 0 / .35);
+  color-scheme: light;
+}
+.force-light, .force-dark { background: var(--page); color: var(--ink); }
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink); font: 400 14px/20px var(--font);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+h1, h2 { font-size: 20px; line-height: 28px; }
+h3 { font-size: 16px; line-height: 24px; }
+p { margin: 0; max-width: 70ch; text-wrap: pretty; }
+.muted { color: var(--ink2); }
+.meta { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.faint { color: var(--muted); }
+code, .tok { font: 12px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--raised); padding: 0 4px; border-radius: 4px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-control); }
+.ic { flex-shrink: 0; display: inline-block; vertical-align: middle; }
+.sec { display: flex; flex-direction: column; gap: 16px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; align-items: start; }
+.nav-jump { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.nav-jump a { color: var(--ink2); text-decoration: none; }
+.nav-jump a:hover { color: var(--ink); }
+
+/* The stage is the app surface */
+.stage { background: var(--page); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; container-type: inline-size; container-name: stage; }
+.panel { background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; min-width: 0; }
+.phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.phead h3 { font-size: 16px; }
+.phead .sub { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.plink { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; font-weight: 500; font-size: 12px; background: none; border: 0; cursor: pointer; font-family: var(--font); padding: 4px 0; }
+
+/* Controls */
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line);
+  background: transparent; color: var(--ink); cursor: pointer; transition: transform 120ms var(--ease), background-color 120ms var(--ease); touch-action: manipulation; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-ink); }
+.btn.quiet { color: var(--ink2); }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.small { padding: 4px 8px; font-size: 12px; line-height: 16px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) { .btn:hover:not(.primary):not(:disabled) { background: var(--hover); } .btn.primary:hover { filter: brightness(1.08); } }
+.seg { display: inline-flex; background: var(--raised); border-radius: var(--r-control); padding: 2px; gap: 2px; }
+.seg button { font: 500 12px/16px var(--font); padding: 4px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--ring); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.field select, .field input, .field textarea { font: 400 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line); background: var(--page); color: var(--ink); width: 100%; }
+
+/* Status badge: icon carries the color, label stays in ink */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-pill); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; color: var(--ink);
+  background: color-mix(in srgb, var(--c) 16%, var(--panel)); }
+.badge .ic { color: var(--c); }
+.badge.crit { --c: var(--s-crit); } .badge.serious { --c: var(--s-serious); } .badge.warn { --c: var(--s-warn); } .badge.good { --c: var(--s-good); }
+.badge.plain { --c: var(--muted); }
+
+/* Top bar */
+.topbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: relative; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.brand .logo { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-fill); color: #fff; display: grid; place-items: center; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--r-control); color: var(--ink2); text-decoration: none; border: 0; background: none; font: 500 14px/20px var(--font); cursor: pointer; }
+.tab[aria-current="page"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+@media (hover: hover) and (pointer: fine) { .tab:hover { background: var(--hover); } }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.avatar { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--raised); color: var(--ink); display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 0; cursor: pointer; box-shadow: var(--ring); }
+.pop { position: absolute; z-index: 5; background: var(--raised); border-radius: var(--r-panel); box-shadow: var(--ring), 0 8px 24px oklch(0 0 0 / .35); padding: 4px; min-width: 200px; display: flex; flex-direction: column; }
+.pop[hidden] { display: none; }
+.pop a, .pop button { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); color: var(--ink); text-decoration: none; background: none; border: 0; font: 400 14px/20px var(--font); cursor: pointer; text-align: left; }
+.pop .count { margin-left: auto; }
+@media (hover: hover) and (pointer: fine) { .pop a:hover, .pop button:hover { background: var(--hover); } }
+
+/* Headline (the story's first line) */
+.headline { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.headline .sentence { font-size: 20px; line-height: 28px; font-weight: 600; max-width: 44ch; text-wrap: balance; }
+.headline .sentence span { color: var(--ink2); font-weight: 400; }
+.hl-meta { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+
+/* Ranked list */
+.lhead, .prow { display: grid; grid-template-columns: minmax(176px, 1.3fr) 196px 148px 164px 72px 144px; gap: 16px; align-items: center; }
+.lhead { padding: 0 0 8px; font-size: 12px; line-height: 16px; color: var(--ink2); border-bottom: 1px solid var(--line); }
+.prow { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.prow:last-child { border-bottom: 0; }
+.pname strong { font-weight: 600; }
+.pname .code { color: var(--muted); font-size: 12px; margin-left: 4px; }
+.pname .flags { margin-top: 4px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.pname .note { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.cell .big { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cell .small { font-size: 12px; line-height: 16px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.cell .lab { display: none; font-size: 12px; line-height: 16px; color: var(--muted); }
+.cell.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cell.act { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.cell.act .sugg { font-weight: 600; font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; line-height: 16px; color: var(--ink2); align-items: center; margin-bottom: 8px; }
+.legend i { display: inline-block; vertical-align: middle; }
+.k-fill { width: 16px; height: 8px; border-radius: 4px; background: var(--s-serious); }
+.k-tick { width: 2px; height: 12px; background: var(--ink); }
+.k-ring { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--ink2); background: var(--panel); box-sizing: content-box; }
+.k-st { width: 12px; height: 8px; border-radius: 2px; }
+.mc { display: block; overflow: visible; }
+@container stage (max-width: 820px) {
+  .lhead { display: none; }
+  .prow { grid-template-columns: 1fr 1fr; gap: 8px 16px; padding: 12px 0; }
+  .prow .pname, .prow .cell.act { grid-column: 1 / -1; }
+  .cell .lab { display: block; }
+  .cell.num { text-align: left; }
+  .cell.act { justify-content: flex-start; }
+  .legend { display: none; }
+}
+
+/* Charts */
+.cwrap { position: relative; }
+.cwrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tip { position: absolute; pointer-events: none; background: var(--raised); box-shadow: var(--ring), 0 4px 12px oklch(0 0 0 / .3); border-radius: var(--r-control); padding: 8px 12px; font-size: 12px; line-height: 16px; min-width: 180px; z-index: 3; }
+.tip b { font-weight: 600; }
+.tip .tr { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.tip .sw { width: 12px; height: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+svg text { font-family: var(--font); fill: var(--muted); font-size: 11px; }
+svg .t2 { fill: var(--ink2); font-size: 12px; }
+svg .ti { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.gridl { stroke: var(--line); stroke-width: 1; }
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); font-size: 12px; line-height: 16px; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { color: var(--ink2); font-weight: 500; }
+details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-height: 16px; padding: 8px 0; }
+
+/* Chase rows */
+.crow { display: grid; grid-template-columns: 96px minmax(120px, 1fr) 176px 112px; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.crow:last-child { border-bottom: 0; }
+@container stage (max-width: 700px) { .crow { grid-template-columns: 1fr 1fr; gap: 8px 16px; } .crow > :nth-child(3), .crow > :nth-child(4) { grid-column: 1 / -1; } }
+
+/* Modal with plan cards */
+.scrim { background: var(--scrim); border-radius: var(--r-panel); padding: 24px 16px; display: grid; place-items: center; }
+.modal { background: var(--panel); box-shadow: var(--ring), 0 16px 48px oklch(0 0 0 / .4); border-radius: var(--r-panel); width: 100%; max-width: 760px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.plan { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: var(--r-panel); background: var(--page); box-shadow: var(--ring); cursor: pointer; }
+.plan input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.plan:has(input:checked) { box-shadow: 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.plan:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.plan .title { font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.plan .units { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.plan ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.plan li { display: flex; gap: 8px; align-items: flex-start; }
+.plan li .ic { color: var(--muted); margin-top: 0; }
+.tag { font-size: 12px; line-height: 16px; padding: 0 8px; border-radius: var(--r-pill); background: var(--accent-fill); color: var(--accent-ink); font-weight: 500; }
+.callout { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-warn) 14%, var(--panel)); font-size: 12px; line-height: 16px; }
+.callout .ic { color: var(--s-warn); }
+.mfoot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+/* Phone */
+.phone { width: 100%; max-width: 390px; margin: 0 auto; }
+
+/* Misc */
+.swgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 12px; }
+.sw { display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.sw i { display: block; height: 40px; border-radius: var(--r-control); box-shadow: var(--ring); }
+.scale { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 8px 16px; align-items: baseline; }
+.tablewrap { overflow-x: auto; }
+.dtbl { width: 100%; border-collapse: collapse; }
+.dtbl th, .dtbl td { padding: 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); font-size: 14px; line-height: 20px; }
+.dtbl th { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink2); white-space: nowrap; }
+.icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.icons div { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; border-radius: var(--r-control); background: var(--raised); font-size: 12px; line-height: 16px; color: var(--ink2); }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 12px; text-align: center; }
+.skel { height: 12px; border-radius: 4px; background: var(--raised); }
+.banner { display: flex; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-crit) 16%, var(--panel)); }
+.banner .ic { color: var(--s-crit); margin-top: 2px; }
+.dd { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.dd ul { margin: 8px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; }
+.switchrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } .btn:active { transform: none; } }
+</style>
+
+<main>
+  <div class="sec">
+    <div class="head">
+      <h1>Stock Report design system, version 2</h1>
+      <p class="muted">Dark first, compact, built for staff who reorder stock once a week. The Stock page tells a story: what is at risk, why, and what to order. Numbers sit next to small charts so the trend is visible without reading a table.</p>
+    </div>
+    <div class="nav-jump meta">
+      <a href="#story">Story and layout</a><a href="#charts">Charts</a><a href="#modal">Order modal</a><a href="#nav">Navigation</a><a href="#color">Color</a><a href="#type">Type and space</a><a href="#icons">Icons</a><a href="#states">States</a><a href="#rules">Rules</a>
+    </div>
+    <div class="row"><span class="meta">Preview theme</span>
+      <span class="seg" role="group" aria-label="Preview theme">
+        <button type="button" id="th-page" aria-pressed="true">Page</button>
+        <button type="button" id="th-dark" aria-pressed="false">Dark</button>
+        <button type="button" id="th-light" aria-pressed="false">Light</button>
+      </span>
+    </div>
+  </div>
+
+  <div id="specimens" style="display:flex;flex-direction:column;gap:40px">
+
+  <section class="sec" id="story">
+    <div class="head"><h2>The Stock page, in story order</h2>
+      <p class="muted">Read it like an F. The headline is the top bar of the F. The ranked list is the stem, most urgent first. The action sits on the right edge of each row. Setup, tension, insight, action.</p></div>
+    <div class="stage" id="stock-stage">
+      <div class="topbar" id="topbar1"></div>
+      <div class="panel headline">
+        <div class="sentence">3 products need a reorder, and Gadget Pro is out. <span>Suggested order: 1,963 units.</span></div>
+        <div class="hl-meta"><button class="btn primary" type="button">Review suggested orders</button><span class="meta">Sales through Oct 28, the last full day · lead time 45 days</span></div>
+      </div>
+      <div class="panel">
+        <div class="phead">
+          <div><h3>Products</h3><div class="sub">Most urgent first</div></div>
+          <span class="seg" role="group" aria-label="Filter"><button type="button" aria-pressed="true">All 6</button><button type="button" aria-pressed="false">Critical 2</button><button type="button" aria-pressed="false">Reorder now 1</button><button type="button" aria-pressed="false">Healthy 3</button></span>
+        </div>
+        <div class="legend">
+          <span><i class="k-fill"></i> Days of stock left</span>
+          <span><i class="k-tick"></i> Reorder line, 59 days (lead time plus safety)</span>
+          <span><i class="k-ring"></i> Days including everything on order</span>
+          <span><i class="k-st" style="background:var(--st1)"></i> Placed <i class="k-st" style="background:var(--st2)"></i> In production <i class="k-st" style="background:var(--st3)"></i> On the way</span>
+        </div>
+        <div class="lhead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span style="text-align:right">In stock</span><span style="text-align:right">Suggested order</span></div>
+        <div id="plist"></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><div><h3>Orders to chase</h3><div class="sub">5 orders need a message</div></div><a class="plink" href="#story">Open chase list <span id="ic-chev1"></span></a></div>
+        <div id="chase"></div>
+        <p class="meta" style="margin-top:8px">Each dot is how long the order has waited. The tick is the SOP limit: confirm at 2 days, send tracking at 10, and where is it once an order has been on the way more than 10.</p>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="panel"><h3>What changed from version 1</h3>
+        <ul class="muted" style="margin:8px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:4px">
+          <li>Eleven columns became six. Sales speed, trend, days left and the order stages are now small charts.</li>
+          <li>No KPI tiles. A count would only repeat the table, so the headline sentence says it once.</li>
+          <li>One main badge per product, with the status color on the icon and the label in plain ink.</li>
+          <li>The only filled button on the page is the reorder.</li>
+          <li>Filters and drill-downs come last: the segmented control above the list, then a row opens the runway chart below.</li>
+        </ul></div>
+      <div class="panel"><h3>Phone, same story</h3>
+        <div class="phone stage" style="padding:12px;margin-top:8px"><div id="plist-phone"></div></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="charts">
+    <div class="head"><h2>Charts and what each one answers</h2>
+      <p class="muted">The chart type follows the question. Marks are thin, bars are capped at 24px with 4px rounded ends, gaps are 2px, and the data is the loudest thing on screen. The sparklines here use illustrative earlier days; the last 7 days match the seed data.</p></div>
+    <div class="panel">
+      <div class="phead">
+        <div><h3>Gizmo Mini runway</h3><div class="sub">Opens when you click a row. Stock projected at the current burn of 10.9 a day. Arrivals are assumed on the order date plus the 45-day lead time, because the SOP has no expected-date field.</div></div>
+        <span class="seg" role="group" aria-label="Horizon" id="hz"><button type="button" data-h="30" aria-pressed="false">30 days</button><button type="button" data-h="60" aria-pressed="false">60 days</button><button type="button" data-h="90" aria-pressed="true">90 days</button></span>
+      </div>
+      <div class="legend" style="margin-bottom:12px"><span><i style="width:16px;height:2px;background:var(--ser-a)"></i> Current orders only</span><span><i style="width:16px;height:2px;background:var(--ser-b)"></i> If you order 1,044 today</span></div>
+      <div class="cwrap" id="runway"></div>
+      <details><summary>Show as a table</summary><div class="tablewrap" id="runway-table"></div></details>
+      <p class="meta" style="margin-top:8px"><b style="color:var(--ink)">Insight.</b> An order placed today lands on day 45. Even if GIZ-001 and GIZ-002 arrive on schedule, Gizmo Mini is out of stock for about 22 days, from day 9 to 15 and from day 26 to 42. Ordering now cannot close those gaps, so the useful move is to chase the two open orders.</p>
+    </div>
+    <div class="panel tablewrap">
+      <table class="dtbl">
+        <thead><tr><th>Question</th><th>Chart</th><th>Why this one</th><th>Not</th></tr></thead>
+        <tbody>
+          <tr><td>How many days of stock does each product have?</td><td>Bullet bar against the 59-day line</td><td>One value per product on one scale, with the threshold drawn where the decision is made</td><td>Pie or gauge: slices and dials cannot show a threshold</td></tr>
+          <tr><td>Is it selling faster or slower?</td><td>Sparkline, last 3 days highlighted</td><td>The trend rule compares the last 3 days to the 4 before, so those days get the accent</td><td>A trend arrow alone: it hides how big the move is</td></tr>
+          <tr><td>How is an order split by stage?</td><td>Single stacked bar, one blue family</td><td>Stages are ordered, so one hue stepping from light to dark reads as progress</td><td>Donut: parts of a bar compare more easily</td></tr>
+          <tr><td>When does stock run out, and does an order help?</td><td>Projection line with a second line for the what-if</td><td>Time on the x axis, units on the y axis, two series only</td><td>Dual axis or smoothed curve</td></tr>
+          <tr><td>Which order has waited too long?</td><td>Dot plot with the SOP rule as a tick</td><td>Each order compares its wait to its own rule</td><td>A colored table cell with no scale</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec" id="modal">
+    <div class="head"><h2>Creating an order is a modal with plan cards</h2>
+      <p class="muted">No separate page. The Order button opens this over the Stock page. The three options differ in one thing that matters, the days of stock you end up with, and the SOP suggestion is preselected.</p></div>
+    <div class="stage">
+      <div class="scrim">
+        <div class="modal" role="dialog" aria-labelledby="mt">
+          <header><div><h3 id="mt">New order for Gizmo Mini</h3><div class="meta">Stock 100 · already ordered 270 · selling 10.9 a day</div></div><button class="btn quiet small" type="button" aria-label="Close"><span id="ic-x1"></span></button></header>
+          <div class="plans" id="plans" role="radiogroup" aria-label="Order size"></div>
+          <div class="callout"><span id="ic-warn1"></span><span>The SOP's suggested size uses warehouse stock only. It does not subtract the 270 units already on order, so on a product with orders in transit it can overshoot.</span></div>
+          <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))">
+            <label class="field" for="m-sup">Supplier<select id="m-sup"><option>Acme Manufacturing</option><option>Nova Imports</option></select></label>
+            <label class="field" for="m-units">Units<input id="m-units" type="number" min="1" value="1044"></label>
+          </div>
+          <label class="field" for="m-notes">Notes for the supplier (optional)<textarea id="m-notes" rows="2" placeholder="Rush if possible"></textarea></label>
+          <div class="mfoot"><span class="meta" id="m-sum"></span><div class="row"><button class="btn quiet" type="button">Cancel</button><button class="btn primary" type="button">Create order</button></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="nav">
+    <div class="head"><h2>Navigation without a sidebar</h2>
+      <p class="muted">Three primary tabs stay visible. Everything occasional sits in a popover, so the bar never grows.</p></div>
+    <div class="stage" style="min-height:240px">
+      <div class="topbar" id="topbar2"></div>
+      <p class="meta">Click More, or the avatar. Press Escape or click away to close.</p>
+    </div>
+  </section>
+
+  </div>
+
+  <section class="sec" id="color">
+    <div class="head"><h2>Color</h2>
+      <p class="muted">Neutral surfaces, one blue accent, four status colors. Status color is never the only signal: each one comes with an icon and a label. Series colors checked with the dataviz validator against the real panel colors.</p></div>
+    <div class="cols">
+      <div class="panel force-dark"><h3 style="margin-bottom:12px">Dark (default)</h3>
+        <div class="swgrid">
+          <div class="sw"><i style="background:#181818"></i>Page #181818</div><div class="sw"><i style="background:#1F1F1F"></i>Panel #1F1F1F</div>
+          <div class="sw"><i style="background:#272727"></i>Raised #272727</div><div class="sw"><i style="background:#313131"></i>Line #313131</div>
+          <div class="sw"><i style="background:#f0efec"></i>Ink #f0efec</div><div class="sw"><i style="background:#3987e5"></i>Accent #3987e5</div>
+        </div></div>
+      <div class="panel force-light"><h3 style="margin-bottom:12px">Light</h3>
+        <div class="swgrid">
+          <div class="sw"><i style="background:#f6f6f4"></i>Page #f6f6f4</div><div class="sw"><i style="background:#ffffff"></i>Panel #ffffff</div>
+          <div class="sw"><i style="background:#f0efec"></i>Raised #f0efec</div><div class="sw"><i style="background:#e1e0d9"></i>Line #e1e0d9</div>
+          <div class="sw"><i style="background:#0b0b0b"></i>Ink #0b0b0b</div><div class="sw"><i style="background:#2a78d6"></i>Accent #2a78d6</div>
+        </div></div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-bottom:12px">Status</h3>
+      <div class="row" style="gap:12px">
+        <span class="badge crit" id="b1"></span><span class="badge serious" id="b2"></span><span class="badge warn" id="b3"></span><span class="badge good" id="b4"></span>
+      </div>
+      <p class="meta" style="margin-top:8px">Critical: out of stock or under 21 days. Serious: reorder now. Warning: under 45 days. Good: healthy. Colors #d03b3b, #ec835a, #fab219, #0ca30c.</p>
+      <h3 style="margin:16px 0 8px">Series and stages</h3>
+      <div class="row" style="gap:16px">
+        <span class="meta"><i class="k-fill" style="background:var(--ser-a);display:inline-block;vertical-align:middle"></i> Series A</span>
+        <span class="meta"><i class="k-fill" style="background:var(--ser-b);display:inline-block;vertical-align:middle"></i> Series B</span>
+        <span class="meta"><i class="k-st" style="background:var(--st1);display:inline-block;vertical-align:middle"></i> Placed</span>
+        <span class="meta"><i class="k-st" style="background:var(--st2);display:inline-block;vertical-align:middle"></i> In production</span>
+        <span class="meta"><i class="k-st" style="background:var(--st3);display:inline-block;vertical-align:middle"></i> On the way</span>
+        <span class="meta"><i class="k-st" style="background:var(--st4);display:inline-block;vertical-align:middle"></i> Arrived</span>
+      </div>
+      <p class="meta" style="margin-top:8px">Validator results. Blue and orange pair: passes color-blind separation and contrast in both themes. Stage ramp: one blue hue with even steps, passes in both themes. In light the steps run #86b6ef to #1c5cab. In dark they run #184f95 to #86b6ef.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="type">
+    <div class="head"><h2>Type and space</h2><p class="muted">IBM Plex Sans only. Sizes 12, 14, 16 and 20. Weights 400, 500 and 600. Spacing steps of 0, 2, 4, 8, 12, 16, 24, 32, 40 and 48 px. Corners 6px on controls, 10px on panels, pills on badges.</p></div>
+    <div class="cols">
+      <div class="panel"><div class="scale">
+        <span class="meta">20 / 28</span><span style="font-size:20px;line-height:28px;font-weight:600">3 products need a reorder</span>
+        <span class="meta">16 / 24</span><span style="font-size:16px;line-height:24px;font-weight:600">Gizmo Mini, 1,044 units</span>
+        <span class="meta">14 / 20</span><span>Body text and controls</span>
+        <span class="meta">12 / 16</span><span style="font-size:12px;line-height:16px">Labels, badges, axis text</span>
+      </div></div>
+      <div class="panel"><p class="muted">Numbers use tabular figures in lists and axes so columns line up. Large standalone numbers use normal figures. Axis text is 11px, the one size outside the scale, used only inside charts.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" id="icons">
+    <div class="head"><h2>Icons</h2><p class="muted">Lucide, inlined, 16px, 2px stroke, in ink or a status color. No emoji anywhere.</p></div>
+    <div class="icons panel" id="icongrid"></div>
+  </section>
+
+  <section class="sec" id="states">
+    <div class="head"><h2>States</h2><p class="muted">Every list and form has a designed empty, loading, error and not-found state.</p></div>
+    <div class="cols">
+      <div class="panel"><h3 style="margin-bottom:8px">Empty</h3><div class="empty"><span id="ic-pkg"></span><strong>No orders match these filters</strong><span class="meta">Clear a filter, or create an order for this product.</span><button class="btn small" type="button">New order</button></div></div>
+      <div class="panel"><h3 style="margin-bottom:8px">Loading</h3><div style="display:flex;flex-direction:column;gap:8px"><div class="skel" style="width:60%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:75%"></div></div><p class="meta" style="margin-top:8px">Placeholder shaped like the result.</p></div>
+      <div class="panel"><h3 style="margin-bottom:8px">Error</h3><div class="banner" role="alert"><span id="ic-err"></span><span>Tracking units can't go over the order. Only 40 units are left to track.</span></div></div>
+      <div class="panel"><h3 style="margin-bottom:8px">Page not found</h3><div class="empty"><strong>That page doesn't exist</strong><span class="meta">The address may be old, or the order was deleted.</span><div class="row"><button class="btn primary small" type="button">Stock</button><button class="btn small" type="button">Orders</button></div></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="rules">
+    <div class="head"><h2>Rules</h2></div>
+    <div class="dd">
+      <div class="panel"><h3>Do</h3><ul>
+        <li>Start each screen with the decision and one sentence of takeaway.</li>
+        <li>Rank by urgency and keep the action on the right.</li>
+        <li>Use a chart when the trend or the threshold matters, a number when it does not.</li>
+        <li>Put create flows in modals and secondary pages in popovers.</li>
+        <li>Add filters and drill-downs after the story reads clearly.</li>
+      </ul></div>
+      <div class="panel"><h3>Don't</h3><ul>
+        <li>Add KPI tiles that repeat a table count.</li>
+        <li>Use pie, donut, gauge, dual-axis or smoothed lines.</li>
+        <li>Color text with a series or status color.</li>
+        <li>Use gradients, glow, glass, skew or emoji on data screens.</li>
+        <li>Fill more than one button per view.</li>
+      </ul></div>
+    </div>
+    <p class="meta">Motion: press scale 0.98 over 120ms, modal 160ms, only transform and opacity, nothing on hover or on anything staff do many times a day. Reduced motion removes the movement.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var IC = {
+    "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+    "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+    "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    "circle-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+    "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+    "trending-up": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+    "trending-down": '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+    "ellipsis": '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+    "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    "search": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    "settings": '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    "copy": '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>'
+  };
+  function icon(n, s) {
+    s = s || 16;
+    return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>';
+  }
+  function fmt(n) { return n.toLocaleString("en-US"); }
+  var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function dateAt(d) { var t = new Date(2026, 9, 29 + d); return MON[t.getMonth()] + " " + t.getDate(); }
+
+  /* ---------- data (same shape as the seed data) ---------- */
+  var P = [
+    { code: "GAD", name: "Gadget Pro", stock: 0, burn: 7.4, trend: 1.01, days: 0.0, incl: 40.5, out: "Oct 29", by: "Aug 31", st: [0, 300, 0], sugg: 777, level: "crit", flag: "Out of stock", note: "Reorder now. Ordered units not enough.", l3: [7, 7, 8], p4: [7, 7, 7, 8], base: 7 },
+    { code: "GIZ", name: "Gizmo Mini", stock: 100, burn: 10.9, trend: 1.50, days: 9.2, incl: 33.9, out: "Nov 07", by: "Sep 09", st: [150, 0, 120], sugg: 1044, level: "crit", flag: "Under 21 days", note: "Reorder now. Ordered units not enough.", l3: [9, 9, 9], p4: [6, 6, 6, 6], base: 6 },
+    { code: "DOO", name: "Doohickey Set", stock: 120, burn: 2.5, trend: 0.89, days: 48.0, incl: 48.0, out: "Dec 16", by: "Oct 18", st: [0, 0, 0], sugg: 142, level: "serious", flag: "Reorder now", note: "Nothing is on order.", l3: [3, 3, 2], p4: [3, 3, 3, 3], base: 3 },
+    { code: "WID", name: "Widget Classic", stock: 320, burn: 4.3, trend: 0.96, days: 74.4, incl: 120.9, out: "Jan 11", by: "Nov 13", st: [0, 200, 0], sugg: 132, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [5, 4, 5, 4], base: 5 },
+    { code: "THI", name: "Thingamajig XL", stock: 900, burn: 5.0, trend: 1.33, days: 180.0, incl: 230.0, out: "Apr 27", by: "Feb 27", st: [0, 0, 250], sugg: 0, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [3, 3, 4, 3], base: 4 },
+    { code: "SPR", name: "Sprocket Spare", stock: 50, burn: 0, trend: 1, days: null, incl: null, out: null, by: null, st: [0, 0, 0], sugg: 0, level: "good", flag: "Healthy", note: "No sales yet.", l3: [0, 0, 0], p4: [0, 0, 0, 0], base: 0 }
+  ];
+  var LEVEL_ICON = { crit: "circle-alert", serious: "triangle-alert", warn: "clock", good: "circle-check" };
+  function series(p) {
+    var pat = [0, 1, -1, 0, 1, 0, -1], out = [], i;
+    for (i = 33; i >= 1; i--) out.push(p.base === 0 ? 0 : Math.max(0, p.base + pat[i % 7] - (p.base > 4 ? 1 : 0)));
+    return out.concat(p.p4, p.l3);
+  }
+
+  /* ---------- micro-charts ---------- */
+  function spark(p) {
+    var s = series(p), W = 112, H = 28, n = s.length, mx = Math.max.apply(null, s.concat([1])), i;
+    function X(k) { return 4 + (k / (n - 1)) * (W - 8); }
+    function Y(v) { return H - 4 - (v / mx) * (H - 10); }
+    var older = "", recent = "", area = "";
+    for (i = 0; i < n; i++) { var pt = X(i).toFixed(1) + "," + Y(s[i]).toFixed(1); if (i <= n - 4) older += pt + " "; if (i >= n - 4) recent += pt + " "; area += pt + " "; }
+    area += X(n - 1).toFixed(1) + "," + (H - 4) + " " + X(0).toFixed(1) + "," + (H - 4);
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Daily sales over 40 days for ' + p.name + ', last 3 days highlighted">' +
+      '<polygon points="' + area + '" style="fill:var(--ser-a);fill-opacity:.1"/>' +
+      '<polyline points="' + older + '" fill="none" style="stroke:var(--muted)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<polyline points="' + recent + '" fill="none" style="stroke:var(--ser-a)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(s[n - 1]).toFixed(1) + '" r="6" style="fill:var(--panel)"/>' +
+      '<circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(s[n - 1]).toFixed(1) + '" r="4" style="fill:var(--ser-a)"/></svg>';
+  }
+  function bullet(p) {
+    var W = 164, H = 20, M = 90;
+    function X(d) { return 4 + (Math.min(d, M) / M) * (W - 8); }
+    if (p.days === null) return '<svg class="mc" width="' + W + '" height="' + H + '" role="img" aria-label="No sales, so days left cannot be worked out"><rect x="4" y="6" width="' + (W - 8) + '" height="8" rx="4" style="fill:var(--line)"/></svg>';
+    var col = p.level === "crit" ? "var(--s-crit)" : p.level === "serious" ? "var(--s-serious)" : p.days < 45 ? "var(--s-warn)" : "var(--accent)";
+    var fw = Math.max(X(p.days) - 4, 4);
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + p.days.toFixed(1) + ' days left, ' + p.incl.toFixed(1) + ' days including orders, reorder line at 59 days">' +
+      '<rect x="4" y="6" width="' + (W - 8) + '" height="8" rx="4" style="fill:var(--line)"/>' +
+      '<rect x="4" y="6" width="' + fw.toFixed(1) + '" height="8" rx="4" style="fill:' + col + '"/>' +
+      '<rect x="' + (X(59) - 1).toFixed(1) + '" y="1" width="2" height="18" rx="1" style="fill:var(--ink)"/>' +
+      '<circle cx="' + X(p.incl).toFixed(1) + '" cy="10" r="6" style="fill:var(--panel)"/>' +
+      '<circle cx="' + X(p.incl).toFixed(1) + '" cy="10" r="4" style="fill:var(--panel);stroke:var(--ink2);stroke-width:2"/></svg>';
+  }
+  function stagebar(p) {
+    var W = 140, H = 12, tot = p.st[0] + p.st[1] + p.st[2], i, x = 0, out = "", cols = ["var(--st1)", "var(--st2)", "var(--st3)"];
+    if (!tot) return '<svg class="mc" width="' + W + '" height="' + H + '" role="img" aria-label="Nothing on order"><rect x="0" y="2" width="' + W + '" height="8" rx="4" style="fill:var(--line)"/></svg>';
+    var scale = (W - 4) / 300, segs = p.st.filter(function (v) { return v > 0; }).length, gap = 2;
+    for (i = 0; i < 3; i++) { if (!p.st[i]) continue; var w = Math.max(p.st[i] * scale - 0, 4); out += '<rect x="' + x.toFixed(1) + '" y="2" width="' + w.toFixed(1) + '" height="8" rx="2" style="fill:' + cols[i] + '"/>'; x += w + gap; }
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + tot + ' units on order: ' + p.st[0] + ' placed, ' + p.st[1] + ' in production, ' + p.st[2] + ' on the way">' + out + '</svg>';
+  }
+  function trendIcon(p) { return p.trend > 1.005 ? icon("trending-up", 16) : p.trend < 0.995 ? icon("trending-down", 16) : ""; }
+
+  /* ---------- ranked list ---------- */
+  function badge(level, text) { return '<span class="badge ' + level + '">' + icon(LEVEL_ICON[level], 16) + text + '</span>'; }
+  function rowHTML(p) {
+    var tot = p.st[0] + p.st[1] + p.st[2];
+    var daysTxt = p.days === null ? "No sales yet" : p.days.toFixed(1) + " days left";
+    var dates = p.out ? "Out " + p.out + " · reorder by " + p.by : "Nothing to forecast";
+    var tone = p.level === "crit" ? "color:var(--ink)" : "";
+    return '<div class="prow">' +
+      '<div class="pname"><strong>' + p.name + '</strong><span class="code">' + p.code + '</span><div class="flags">' + badge(p.level, p.flag) + (p.note ? '<span class="note">' + p.note + '</span>' : "") + '</div></div>' +
+      '<div class="cell"><span class="lab">Runway</span>' + bullet(p) + '<div class="small"><span class="big" style="' + tone + '">' + daysTxt + '</span> · ' + dates + '</div></div>' +
+      '<div class="cell"><span class="lab">Sales, 40 days</span>' + spark(p) + '<div class="small">' + (p.burn ? p.burn.toFixed(1) + " a day " + trendIcon(p) : "0 a day") + '</div></div>' +
+      '<div class="cell"><span class="lab">Ordered</span>' + stagebar(p) + '<div class="small">' + (tot ? fmt(tot) + " on order" : "Nothing on order") + '</div></div>' +
+      '<div class="cell num"><span class="lab">In stock</span><span class="big">' + fmt(p.stock) + '</span></div>' +
+      '<div class="cell act"><span class="lab">Suggested</span><span class="sugg">' + (p.sugg ? fmt(p.sugg) : "None") + '</span><button class="btn small' + (p.sugg ? "" : " quiet") + '" type="button">Order</button></div>' +
+      '</div>';
+  }
+  document.getElementById("plist").innerHTML = P.map(rowHTML).join("");
+  document.getElementById("plist-phone").innerHTML = rowHTML(P[1]);
+
+  /* ---------- top bars ---------- */
+  function topbar(id) {
+    var el = document.getElementById(id);
+    el.innerHTML = '<span class="brand"><span class="logo">' + icon("package", 16) + '</span>Stock Report</span>' +
+      '<nav class="tabs" aria-label="Primary"><a class="tab" href="#story" aria-current="page">Stock</a><a class="tab" href="#story">Orders</a><a class="tab" href="#story">Arrivals</a>' +
+      '<button class="tab" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="more">More ' + icon("chevron-down", 16) + '</button></nav>' +
+      '<div class="right"><span class="meta">Today, Oct 29</span><button class="avatar" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="me" aria-label="Account">SM</button></div>' +
+      '<div class="pop" role="menu" data-for="more" hidden style="top:100%;left:176px;margin-top:4px"><a role="menuitem" href="#story">' + icon("mail", 16) + 'Chase list <span class="badge crit count" style="padding:0 8px">5</span></a><a role="menuitem" href="#story">' + icon("settings", 16) + 'Settings</a><a role="menuitem" href="#story">' + icon("mail", 16) + 'Outbox</a></div>' +
+      '<div class="pop" role="menu" data-for="me" hidden style="top:100%;right:0;margin-top:4px"><span class="meta" style="padding:8px 12px">Viewing as</span><button type="button" role="menuitemradio" aria-checked="true">' + icon("circle-check", 16) + 'Staff</button><button type="button" role="menuitemradio" aria-checked="false"><span style="width:16px"></span>Supplier: Acme Manufacturing</button></div>';
+  }
+  topbar("topbar1"); topbar("topbar2");
+  function closePops() { document.querySelectorAll(".pop").forEach(function (p) { p.hidden = true; }); document.querySelectorAll("[data-pop]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-pop]");
+    if (!b) { if (!e.target.closest(".pop")) closePops(); return; }
+    var bar = b.closest(".topbar"), pop = bar.querySelector('.pop[data-for="' + b.dataset.pop + '"]'), was = !pop.hidden;
+    closePops();
+    if (!was) { pop.hidden = false; b.setAttribute("aria-expanded", "true"); }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePops(); });
+
+  /* ---------- chase dot plot ---------- */
+  var CH = [
+    { n: "THI-001", sup: "Nova Imports", rule: "Where is it? On the way 25 days", d: 25, t: 10 },
+    { n: "WID-001", sup: "Nova Imports", rule: "Send tracking. Confirmed 18 days ago", d: 18, t: 10 },
+    { n: "GIZ-001", sup: "Acme Manufacturing", rule: "Where is it? On the way 14 days", d: 14, t: 10 },
+    { n: "GAD-001", sup: "Acme Manufacturing", rule: "Send tracking. Confirmed 11 days ago", d: 11, t: 10 },
+    { n: "GIZ-002", sup: "Acme Manufacturing", rule: "Confirm the order. Placed 3 days ago", d: 3, t: 2 }
+  ];
+  function dotplot(c) {
+    var W = 176, H = 20, M = 30;
+    function X(d) { return 4 + (Math.min(d, M) / M) * (W - 8); }
+    var col = c.d - c.t >= 8 ? "var(--s-serious)" : "var(--s-warn)";
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Waited ' + c.d + ' days, rule is ' + c.t + ' days">' +
+      '<line x1="4" x2="' + (W - 4) + '" y1="10" y2="10" class="gridl"/>' +
+      '<rect x="' + (X(c.t) - 1).toFixed(1) + '" y="2" width="2" height="16" rx="1" style="fill:var(--ink)"/>' +
+      '<circle cx="' + X(c.d).toFixed(1) + '" cy="10" r="6" style="fill:var(--panel)"/>' +
+      '<circle cx="' + X(c.d).toFixed(1) + '" cy="10" r="4" style="fill:' + col + '"/></svg>';
+  }
+  document.getElementById("chase").innerHTML = CH.map(function (c) {
+    return '<div class="crow"><strong>' + c.n + '</strong><div><div>' + c.sup + '</div><div class="meta">' + c.rule + '</div></div>' + dotplot(c) + '<button class="btn small" type="button">' + icon("copy", 16) + 'Copy message</button></div>';
+  }).join("");
+  document.getElementById("ic-chev1").innerHTML = icon("chevron-right", 16);
+
+  /* ---------- runway chart ---------- */
+  var BURN = 10.9, ARR = [{ d: 15, u: 120, n: "GIZ-001" }, { d: 42, u: 150, n: "GIZ-002" }], NEW = { d: 45, u: 1044 };
+  function simulate(withNew) {
+    var pts = [[0, 100]], s = 100, d, k;
+    for (d = 1; d <= 90; d++) {
+      var before = Math.max(0, s - BURN);
+      if (s > 0 && before === 0 && s - BURN < 0) { pts.push([d - 1 + s / BURN, 0]); }
+      s = before;
+      pts.push([d, s]);
+      var add = 0;
+      for (k = 0; k < ARR.length; k++) if (ARR[k].d === d) add += ARR[k].u;
+      if (withNew && NEW.d === d) add += NEW.u;
+      if (add) { s += add; pts.push([d, s]); }
+    }
+    return pts;
+  }
+  var A = simulate(false), B = simulate(true), HZ = 90;
+  function valueAt(pts, d) { var v = pts[0][1], i; for (i = 0; i < pts.length; i++) { if (pts[i][0] <= d) v = pts[i][1]; else break; } return v; }
+  function zeroBands(pts, limit) {
+    var out = [], start = null, i;
+    for (i = 0; i < pts.length; i++) {
+      var x = pts[i][0], y = pts[i][1];
+      if (y === 0 && start === null) start = x;
+      else if (y > 0 && start !== null) { out.push([start, x]); start = null; }
+    }
+    if (start !== null) out.push([start, 90]);
+    return out.filter(function (b) { return b[0] < limit; }).map(function (b) { return [b[0], Math.min(b[1], limit)]; });
+  }
+  function niceMax(m) { var raw = m / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), c = [1, 2, 2.5, 5, 10], i; for (i = 0; i < c.length; i++) if (c[i] * mag >= raw) return c[i] * mag; return 10 * mag; }
+  function drawRunway() {
+    var W = 720, H = 280, L = 52, R = 16, T = 20, Bm = 36, pw = W - L - R, ph = H - T - Bm;
+    var vis = function (pts) { return pts.filter(function (p) { return p[0] <= HZ; }); };
+    var a = vis(A), b = vis(B), mx = 0;
+    a.concat(b).forEach(function (p) { if (p[1] > mx) mx = p[1]; });
+    var step = niceMax(mx), top = step * 4;
+    function X(d) { return L + (d / HZ) * pw; }
+    function Y(v) { return T + ph - (v / top) * ph; }
+    function path(pts) { return pts.map(function (p, i) { return (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join(" "); }
+    var g = "", i;
+    for (i = 0; i <= 4; i++) { var yv = step * i; g += '<line class="gridl" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(yv).toFixed(1) + '" y2="' + Y(yv).toFixed(1) + '"/><text x="' + (L - 8) + '" y="' + (Y(yv) + 4).toFixed(1) + '" text-anchor="end">' + (yv >= 1000 ? (yv / 1000) + "K" : yv) + '</text>'; }
+    var tickEvery = HZ === 30 ? 5 : HZ === 60 ? 10 : 15, dx;
+    for (dx = 0; dx <= HZ; dx += tickEvery) g += '<text x="' + X(dx).toFixed(1) + '" y="' + (H - 12) + '" text-anchor="middle">' + (dx === 0 ? "Today" : dateAt(dx)) + '</text>';
+    var band = "";
+    zeroBands(A, Math.min(NEW.d, HZ)).forEach(function (z) {
+      band += '<rect x="' + X(z[0]).toFixed(1) + '" y="' + T + '" width="' + (X(z[1]) - X(z[0])).toFixed(1) + '" height="' + ph + '" style="fill:var(--s-crit);fill-opacity:.12"/>';
+      if (X(z[1]) - X(z[0]) >= 96) band += '<text class="t2" x="' + ((X(z[0]) + X(z[1])) / 2).toFixed(1) + '" y="' + (T + 14) + '" text-anchor="middle">Out of stock</text>';
+    });
+    var ev = "";
+    ARR.forEach(function (r) { if (r.d <= HZ) ev += '<circle cx="' + X(r.d).toFixed(1) + '" cy="' + Y(valueAt(A, r.d)).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(r.d).toFixed(1) + '" cy="' + Y(valueAt(A, r.d)).toFixed(1) + '" r="4" style="fill:var(--ser-a)"/><text class="t2" x="' + X(r.d).toFixed(1) + '" y="' + (Y(valueAt(A, r.d)) - 12).toFixed(1) + '" text-anchor="middle">+' + r.u + '</text>'; });
+    var lead = "";
+    if (NEW.d <= HZ) lead = '<line x1="' + X(NEW.d).toFixed(1) + '" x2="' + X(NEW.d).toFixed(1) + '" y1="' + T + '" y2="' + (T + ph) + '" style="stroke:var(--ink2)" stroke-width="1"/><text class="t2" x="' + X(NEW.d).toFixed(1) + '" y="' + (T - 8) + '" text-anchor="middle">Order placed today lands</text>';
+    var endA = a[a.length - 1], endB = b[b.length - 1];
+    var ends = '<circle cx="' + X(endA[0]).toFixed(1) + '" cy="' + Y(endA[1]).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(endA[0]).toFixed(1) + '" cy="' + Y(endA[1]).toFixed(1) + '" r="4" style="fill:var(--ser-a)"/>' +
+      '<circle cx="' + X(endB[0]).toFixed(1) + '" cy="' + Y(endB[1]).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(endB[0]).toFixed(1) + '" cy="' + Y(endB[1]).toFixed(1) + '" r="4" style="fill:var(--ser-b)"/>';
+    var html = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Projected stock for Gizmo Mini over ' + HZ + ' days. Out of stock from day 9 to 15 and day 26 to 42 even if both shipments arrive on time. Ordering 1,044 units today lifts stock from day 45.">' +
+      g + band + lead +
+      '<path d="' + path(a) + '" fill="none" style="stroke:var(--ser-a)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '<path d="' + path(b) + '" fill="none" style="stroke:var(--ser-b)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.95"/>' +
+      ev + ends +
+      '<line id="rx" x1="0" x2="0" y1="' + T + '" y2="' + (T + ph) + '" style="stroke:var(--ink2)" stroke-width="1" visibility="hidden"/>' +
+      '<circle id="rda" r="4" style="fill:var(--ser-a);stroke:var(--panel);stroke-width:2" visibility="hidden"/><circle id="rdb" r="4" style="fill:var(--ser-b);stroke:var(--panel);stroke-width:2" visibility="hidden"/>' +
+      '<rect id="rhit" x="' + L + '" y="' + T + '" width="' + pw + '" height="' + ph + '" fill="transparent"/></svg>' +
+      '<div class="tip" id="rtip" hidden></div>';
+    var wrap = document.getElementById("runway");
+    wrap.innerHTML = html;
+    var hit = document.getElementById("rhit"), tip = document.getElementById("rtip"), rx = document.getElementById("rx"), da = document.getElementById("rda"), db = document.getElementById("rdb");
+    function move(ev2) {
+      var r = wrap.querySelector("svg").getBoundingClientRect(), sc = W / r.width, px = (ev2.clientX - r.left) * sc;
+      var d = Math.max(0, Math.min(HZ, Math.round(((px - L) / pw) * HZ)));
+      var va = valueAt(A, d), vb = valueAt(B, d);
+      rx.setAttribute("x1", X(d)); rx.setAttribute("x2", X(d)); rx.setAttribute("visibility", "visible");
+      da.setAttribute("cx", X(d)); da.setAttribute("cy", Y(va)); da.setAttribute("visibility", "visible");
+      db.setAttribute("cx", X(d)); db.setAttribute("cy", Y(vb)); db.setAttribute("visibility", "visible");
+      tip.hidden = false;
+      tip.innerHTML = '<b>' + (d === 0 ? "Today, " : "Day " + d + ", ") + dateAt(d) + '</b><div class="tr"><span><i class="sw" style="background:var(--ser-a)"></i>Current orders</span><b>' + fmt(Math.round(va)) + '</b></div><div class="tr"><span><i class="sw" style="background:var(--ser-b)"></i>If you order 1,044</span><b>' + fmt(Math.round(vb)) + '</b></div>';
+      var tx = (X(d) / W) * r.width + 12; if (tx + 200 > r.width) tx = (X(d) / W) * r.width - 212;
+      tip.style.left = Math.max(0, tx) + "px"; tip.style.top = "24px";
+    }
+    function leave() { rx.setAttribute("visibility", "hidden"); da.setAttribute("visibility", "hidden"); db.setAttribute("visibility", "hidden"); tip.hidden = true; }
+    hit.addEventListener("pointermove", move); hit.addEventListener("pointerleave", leave);
+    var rows = "", every = HZ === 30 ? 5 : 10;
+    for (dx = 0; dx <= HZ; dx += every) rows += "<tr><td>" + (dx === 0 ? "Today" : dateAt(dx)) + "</td><td>" + fmt(Math.round(valueAt(A, dx))) + "</td><td>" + fmt(Math.round(valueAt(B, dx))) + "</td></tr>";
+    document.getElementById("runway-table").innerHTML = '<table class="tbl"><thead><tr><th>Date</th><th>Current orders</th><th>If you order 1,044</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  document.getElementById("hz").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-h]"); if (!b) return;
+    HZ = +b.dataset.h;
+    this.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    drawRunway();
+  });
+  drawRunway();
+
+  /* ---------- order modal with plan cards ---------- */
+  var STOCK = 100, ORD = 270, LEAD = 45;
+  var opts = [
+    { id: "p1", title: "Reorder point", units: Math.ceil(59 * BURN - (STOCK + ORD)), bullets: ["Reaches the 59-day reorder line", "Smallest order that stops the Reorder now flag"] },
+    { id: "p2", title: "SOP suggestion", units: 1044, tag: "Suggested", bullets: ["Target 60 days plus 45 days lead time", "Uses warehouse stock only"] },
+    { id: "p3", title: "Cover 90 days", units: Math.ceil(90 * BURN - (STOCK + ORD)), bullets: ["Longest cover for one order", "Fewer orders to place this quarter"] }
+  ];
+  opts.forEach(function (o) { o.incl = (STOCK + ORD + o.units) / BURN; });
+  var plansEl = document.getElementById("plans");
+  plansEl.innerHTML = opts.map(function (o) {
+    return '<label class="plan"><input type="radio" name="plan" value="' + o.id + '"' + (o.id === "p2" ? " checked" : "") + '>' +
+      '<span class="title">' + o.title + (o.tag ? '<span class="tag">' + o.tag + '</span>' : "") + '</span>' +
+      '<span class="units">' + fmt(o.units) + ' units</span>' +
+      '<span class="meta">' + o.incl.toFixed(1) + ' days of stock including everything on order</span>' +
+      '<ul>' + o.bullets.map(function (t) { return "<li>" + icon("circle-check", 16) + "<span>" + t + "</span></li>"; }).join("") + '</ul></label>';
+  }).join("");
+  function sum(o) { document.getElementById("m-units").value = o.units; document.getElementById("m-sum").textContent = "Order " + fmt(o.units) + " units, lands about " + dateAt(LEAD) + ", " + o.incl.toFixed(1) + " days incl. ordered."; }
+  plansEl.addEventListener("change", function (e) { var o = opts.filter(function (x) { return x.id === e.target.value; })[0]; if (o) sum(o); });
+  sum(opts[1]);
+  document.getElementById("m-units").addEventListener("input", function () { var u = +this.value || 0; document.getElementById("m-sum").textContent = "Order " + fmt(u) + " units, lands about " + dateAt(LEAD) + ", " + ((STOCK + ORD + u) / BURN).toFixed(1) + " days incl. ordered."; });
+  document.getElementById("ic-x1").innerHTML = icon("x", 16);
+  document.getElementById("ic-warn1").innerHTML = icon("triangle-alert", 16);
+
+  /* ---------- badges, icon grid, states ---------- */
+  document.getElementById("b1").innerHTML = icon("circle-alert", 16) + "Out of stock";
+  document.getElementById("b2").innerHTML = icon("triangle-alert", 16) + "Reorder now";
+  document.getElementById("b3").innerHTML = icon("clock", 16) + "Under 45 days";
+  document.getElementById("b4").innerHTML = icon("circle-check", 16) + "Healthy";
+  document.getElementById("icongrid").innerHTML = Object.keys(IC).map(function (k) { return "<div>" + icon(k, 24) + k + "</div>"; }).join("");
+  document.getElementById("ic-pkg").innerHTML = icon("package", 24);
+  document.getElementById("ic-err").innerHTML = icon("circle-alert", 16);
+
+  /* ---------- theme preview switch ---------- */
+  var box = document.getElementById("specimens");
+  var tb = { page: document.getElementById("th-page"), dark: document.getElementById("th-dark"), light: document.getElementById("th-light") };
+  function setTheme(m) {
+    box.classList.remove("force-light", "force-dark");
+    if (m !== "page") box.classList.add("force-" + m);
+    Object.keys(tb).forEach(function (k) { tb[k].setAttribute("aria-pressed", String(k === m)); });
+    try { localStorage.setItem("sr-ds2-theme", m); } catch (e) {}
+  }
+  Object.keys(tb).forEach(function (k) { tb[k].addEventListener("click", function () { setTheme(k); }); });
+  var saved = "page"; try { saved = localStorage.getItem("sr-ds2-theme") || "page"; } catch (e) {}
+  setTheme(saved);
+})();
+</script>

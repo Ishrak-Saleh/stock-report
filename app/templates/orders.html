@@ -1,23 +1,31 @@
 {% extends "base.html" %}
+{% from "_macros.html" import dialog_link %}
 {% block title %}Orders · Stock Report{% endblock %}
 {% block content %}
-<hgroup>
-  <h2>Supplier orders</h2>
-  <p><a href="/orders/new" role="button">New order</a></p>
-</hgroup>
-<form class="filters" hx-get="/orders" hx-target="#order-list" hx-trigger="change" hx-push-url="true">
-  <label>Product
-    <select name="product">
-      <option value="">All products</option>
-      {% for p in products %}<option value="{{ p.id }}" {{ "selected" if p.id == product }}>{{ p.name }}</option>{% endfor %}
-    </select>
-  </label>
-  <label>Stage
-    <select name="status">
-      <option value="">All stages</option>
-      {% for s in statuses %}<option value="{{ s }}" {{ "selected" if s == status }}>{{ s|capitalize }}</option>{% endfor %}
-    </select>
-  </label>
-</form>
-<div id="order-list">{% include "partials/order_list.html" %}</div>
+<div class="panel headline">
+  <div class="sentence">{{ headline }} <span>Longest waits first.</span></div>
+  {{ dialog_link("/orders/new", "New order", "btn primary", "plus") }}
+</div>
+<div class="panel">
+  <div class="phead"><div><h3>Orders</h3><div class="sub">Needs attention first</div></div></div>
+  <form class="filters" hx-get="/orders" hx-target="#order-list" hx-trigger="change" hx-push-url="true">
+    <span class="seg" role="group" aria-label="Show">
+      <label><input type="radio" name="chase" value="" {{ "checked" if not chase_only }}>All</label>
+      <label><input type="radio" name="chase" value="1" {{ "checked" if chase_only }}>Needs a message</label>
+    </span>
+    <label class="field">Product
+      <select name="product">
+        <option value="">All products</option>
+        {% for p in products %}<option value="{{ p.id }}" {{ "selected" if p.id == product }}>{{ p.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="field">Stage
+      <select name="status">
+        <option value="">All stages</option>
+        {% for s in statuses %}<option value="{{ s }}" {{ "selected" if s == status }}>{{ s|capitalize }}</option>{% endfor %}
+      </select>
+    </label>
+  </form>
+  <div id="order-list">{% include "partials/order_list.html" %}</div>
+</div>
 {% endblock %}

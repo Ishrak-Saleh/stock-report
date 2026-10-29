@@ -1,5 +1,6 @@
 """Order stages and overall status (section 4). Pure functions."""
 from dataclasses import dataclass
+from datetime import date, timedelta
 
 
 @dataclass(frozen=True)
@@ -53,3 +54,8 @@ def stages(units: int, *, marked_confirmed: bool, tracking_units: int, arrived: 
 
 def tracking_fits(order_units: int, existing: int, new: int) -> bool:
     return new > 0 and existing + new <= order_units
+
+
+def expected_arrival(created: date, lead_time: int) -> date:
+    """Order date plus the lead time. An assumption: the SOP has no expected-date field."""
+    return created + timedelta(days=lead_time)

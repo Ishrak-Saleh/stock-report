@@ -1,0 +1,304 @@
+<title>Stock Report System Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout concept: a technical map in the version 2 look (dark first). One claim per figure, caption underneath,
+   then the reference tables. Diagram strokes and text take their colors from the same tokens as the design system sheet. */
+:root {
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r-control: 6px; --r-panel: 10px; --r-pill: 999px;
+  --page: #181818; --panel: #1F1F1F; --raised: #272727; --line: #313131;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+  --accent: #3987e5;
+  --s-good: #0ca30c; --s-warn: #fab219; --s-serious: #ec835a; --s-crit: #d03b3b;
+  --st2: #2a78d6; --st3: #5598e7; --st4: #86b6ef;
+  --ring: 0 0 0 1px var(--line);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #f6f6f4; --panel: #ffffff; --raised: #f0efec; --line: #e1e0d9;
+  --ink: #0b0b0b; --ink2: #52514e; --muted: #75736e;
+  --accent: #2a78d6;
+  --st2: #5598e7; --st3: #2a78d6; --st4: #1c5cab;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink); font: 400 14px/20px var(--font);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; text-wrap: balance; }
+p { margin: 0; max-width: 70ch; text-wrap: pretty; }
+.muted { color: var(--ink2); }
+.src { font-size: 12px; line-height: 16px; color: var(--ink2); }
+code, .tok { font: 12px var(--mono); background: var(--raised); padding: 0 4px; border-radius: 4px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-control); }
+.sec { display: flex; flex-direction: column; gap: 12px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.fig { background: var(--panel); box-shadow: var(--ring); border-radius: var(--r-panel); padding: 16px; overflow-x: auto; }
+.fig svg { display: block; width: 100%; min-width: 640px; height: auto; color: var(--ink); }
+figcaption { font-size: 12px; line-height: 16px; color: var(--ink2); max-width: 80ch; }
+figcaption b { color: var(--ink); font-weight: 600; }
+
+svg text { font-family: var(--font); fill: var(--ink); font-size: 12px; }
+svg .m { fill: var(--ink2); font-size: 11px; }
+svg .b { font-weight: 600; }
+svg .c { text-anchor: middle; }
+svg .e { text-anchor: end; }
+svg .n { fill: var(--panel); stroke: var(--line); stroke-width: 1; }
+svg .core { fill: var(--panel); stroke: var(--accent); stroke-width: 2; }
+svg .dash { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+svg .used { fill: var(--panel); stroke: var(--ink2); stroke-width: 1; }
+svg .seeded { fill: var(--panel); stroke: var(--s-warn); stroke-width: 1.5; }
+svg .unused { fill: var(--panel); stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+svg .ln { stroke: var(--ink2); stroke-width: 1; fill: none; }
+svg .ln2 { stroke: var(--muted); stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+svg .sa { fill: var(--st4); stroke: none; }
+svg .sb { fill: var(--st3); stroke: none; }
+svg .out { fill: none; stroke: var(--ink2); stroke-width: 1; }
+svg .arrowfill { fill: var(--ink2); }
+
+.tbl { background: var(--panel); box-shadow: var(--ring); border-radius: var(--r-panel); padding: 4px 16px; overflow-x: auto; }
+.tbl table { min-width: 680px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+tbody tr:last-child td { border-bottom: 0; }
+th { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink2); white-space: nowrap; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-pill); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; color: var(--ink);
+  background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); }
+.badge svg { color: var(--c, var(--muted)); flex-shrink: 0; }
+.badge.good { --c: var(--s-good); } .badge.warn { --c: var(--s-warn); } .badge.plain { --c: var(--muted); }
+.gaps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.gap { background: var(--panel); box-shadow: var(--ring); border-radius: var(--r-panel); padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.gap b { font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+</style>
+
+<main>
+  <div class="sec">
+    <h1>Stock Report system map</h1>
+    <p class="muted">How the pieces fit, what each part owns, and what is still missing. Four figures, then the rule-to-function table. Matches version 2 of the design system, and shows the state of the code at the last commit plus the uncommitted styling work.</p>
+    <div class="row src"><span>Design system and screen flow are separate links in this set.</span></div>
+  </div>
+
+  <div class="sec">
+    <h2>1. Where each kind of work lives</h2>
+    <figure>
+      <div class="fig">
+        <svg viewBox="0 0 880 450" role="img" aria-label="Five layers: browser, routers, services, then the pure domain rules and the SQLite database side by side. Rules only live in the domain layer.">
+          <defs><marker id="a1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrowfill" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+          <rect class="n" x="20" y="16" width="840" height="76" rx="10"/>
+          <text class="b" x="36" y="38">Browser</text>
+          <text x="36" y="56">Jinja pages and HTMX. Forms post. Filters and what-if boxes swap one fragment. Create flows open as modals.</text>
+          <text class="m" x="36" y="76">Screens built: Stock, Orders, New order, Order detail</text>
+
+          <line class="ln" x1="440" y1="92" x2="440" y2="122" marker-end="url(#a1)"/>
+          <text class="m" x="452" y="111">form POST, HTMX GET</text>
+
+          <rect class="n" x="20" y="124" width="840" height="76" rx="10"/>
+          <text class="b" x="36" y="146">Routers  <tspan class="m">app/routers</tspan></text>
+          <text x="36" y="164">Thin. Read the request, call a service, choose the template.</text>
+          <text class="m" x="36" y="184">Built: dashboard, orders. Not built: arrivals, stock, settings, chase, login.</text>
+
+          <line class="ln" x1="440" y1="200" x2="440" y2="230" marker-end="url(#a1)"/>
+          <text class="m" x="452" y="219">calls</text>
+
+          <rect class="n" x="20" y="232" width="840" height="76" rx="10"/>
+          <text class="b" x="36" y="254">Services  <tspan class="m">app/services</tspan></text>
+          <text x="36" y="272">Load rows, call the domain, save the change and write its history line.</text>
+          <text class="m" x="36" y="292">Built: products, orders. Not built: arrivals, stock, alerts, email.</text>
+
+          <line class="ln" x1="200" y1="308" x2="200" y2="346" marker-end="url(#a1)"/>
+          <text class="m" x="212" y="332">numbers in, answers out</text>
+          <line class="ln" x1="720" y1="308" x2="720" y2="346" marker-end="url(#a1)"/>
+          <text class="m" x="732" y="332">reads, writes</text>
+
+          <rect class="core" x="20" y="348" width="520" height="88" rx="10"/>
+          <text class="b" x="36" y="370">Domain  <tspan class="m">app/domain</tspan></text>
+          <text x="36" y="388">Pure functions. No database, no web. Today's date is passed in.</text>
+          <text x="36" y="404">Every rule from SOP section 4 lives here and nowhere else.</text>
+          <text class="m" x="36" y="424">Built: forecast, orders, carriers. Not built: matching, chase, messages, expected arrival.</text>
+
+          <rect class="n" x="580" y="348" width="280" height="88" rx="10"/>
+          <text class="b" x="596" y="370">SQLite  <tspan class="m">stock.db</tspan></text>
+          <text x="596" y="388">13 tables, seeded once by seed.py.</text>
+          <text class="m" x="596" y="408">Orders and tracking: written by the app.</text>
+          <text class="m" x="596" y="424">Arrivals and stock history: seed only.</text>
+        </svg>
+      </div>
+      <figcaption><b>One rule, one place.</b> Routers and templates never work out a number. If a screen needs a forecast, a status, a carrier link or an expected arrival date, it asks the domain layer. That is why the 24 tests cover the real behavior.</figcaption>
+    </figure>
+  </div>
+
+  <div class="sec">
+    <h2>2. What happens when an arrival is recorded</h2>
+    <figure>
+      <div class="fig">
+        <svg viewBox="0 0 880 300" role="img" aria-label="An arrival of 120 units is split oldest order first: 60 units complete GIZ-001, the other 60 go to GIZ-002, which stays partial. Stock, stock history and order history are then written.">
+          <defs><marker id="a2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrowfill" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+          <text class="b" x="40" y="20">Arrival recorded</text>
+          <text class="m" x="40" y="36">Gizmo Mini, 120 units, Oct 29</text>
+          <text class="m c" x="100" y="54">60 to GIZ-001</text>
+          <text class="m c" x="220" y="54">60 to GIZ-002</text>
+          <rect class="sa" x="40" y="60" width="118" height="28" rx="2"/>
+          <rect class="sb" x="162" y="60" width="118" height="28" rx="2"/>
+
+          <text class="b" x="40" y="126">Open orders for Gizmo Mini, oldest first</text>
+          <text class="m" x="40" y="150">GIZ-001, 30 days old, 60 still to come</text>
+          <rect class="sa" x="40" y="158" width="120" height="26" rx="2"/>
+          <text x="172" y="176">complete: status becomes received</text>
+          <text class="m" x="40" y="214">GIZ-002, 3 days old, 150 still to come</text>
+          <rect class="sb" x="40" y="222" width="120" height="26" rx="2"/>
+          <rect class="out" x="40" y="222" width="300" height="26" rx="2"/>
+          <text x="352" y="240">partial: 90 still to come</text>
+
+          <line class="ln" x1="288" y1="74" x2="516" y2="74" marker-end="url(#a2)"/>
+          <text class="m c" x="400" y="66">recorded as</text>
+
+          <rect class="n" x="520" y="34" width="340" height="48" rx="10"/>
+          <text class="b" x="536" y="54">Product stock</text><text class="m" x="536" y="72">+120 units, from 100 to 220</text>
+          <rect class="n" x="520" y="92" width="340" height="48" rx="10"/>
+          <text class="b" x="536" y="112">Stock history</text><text class="m" x="536" y="130">arrival +120, matched GIZ-001 60, GIZ-002 60</text>
+          <rect class="n" x="520" y="150" width="340" height="48" rx="10"/>
+          <text class="b" x="536" y="170">Order history</text><text class="m" x="536" y="188">one line on each order: arrival matched</text>
+          <rect class="n" x="520" y="208" width="340" height="48" rx="10"/>
+          <text class="b" x="536" y="228">Unmatched list</text><text class="m" x="536" y="246">0 units left over, so nothing to deal with</text>
+        </svg>
+      </div>
+      <figcaption><b>Oldest open order first, spilling into the next.</b> Extra units that fit no order stay on the unmatched list until someone assigns them. Fixing by hand means splitting one arrival across several orders, or marking units "not from an order". This opens from the Arrivals screen as a "Record arrival" modal with a live preview of the split. Not built yet.</figcaption>
+    </figure>
+  </div>
+
+  <div class="sec">
+    <h2>3. How an order moves</h2>
+    <figure>
+      <div class="fig">
+        <svg viewBox="0 0 860 330" role="img" aria-label="Open order stages in sequence: placed, in production, on the way, partial, received. Close and cancel leave the open group and reopen returns to it.">
+          <defs><marker id="a3" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrowfill" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+          <rect class="dash" x="8" y="56" width="844" height="132" rx="10"/>
+          <text class="m" x="20" y="78">Open: these orders count toward the "ordered" numbers on the Stock page</text>
+
+          <rect class="n" x="20" y="96" width="100" height="56" rx="10"/><text class="b c" x="70" y="120">Placed</text><text class="m c" x="70" y="138">not confirmed</text>
+          <rect class="n" x="200" y="96" width="100" height="56" rx="10"/><text class="b c" x="250" y="120">In production</text><text class="m c" x="250" y="138">confirmed</text>
+          <rect class="n" x="380" y="96" width="100" height="56" rx="10"/><text class="b c" x="430" y="120">On the way</text><text class="m c" x="430" y="138">has tracking</text>
+          <rect class="n" x="560" y="96" width="100" height="56" rx="10"/><text class="b c" x="610" y="120">Partial</text><text class="m c" x="610" y="138">some arrived</text>
+          <rect class="n" x="740" y="96" width="100" height="56" rx="10"/><text class="b c" x="790" y="120">Received</text><text class="m c" x="790" y="138">nothing left</text>
+
+          <line class="ln" x1="120" y1="124" x2="198" y2="124" marker-end="url(#a3)"/><text class="m c" x="160" y="116">confirm</text>
+          <line class="ln" x1="300" y1="124" x2="378" y2="124" marker-end="url(#a3)"/><text class="m c" x="340" y="116">tracking</text>
+          <line class="ln" x1="480" y1="124" x2="558" y2="124" marker-end="url(#a3)"/><text class="m c" x="520" y="116">arrival</text>
+          <line class="ln" x1="660" y1="124" x2="738" y2="124" marker-end="url(#a3)"/><text class="m c" x="700" y="116">all arrived</text>
+
+          <rect class="n" x="230" y="250" width="130" height="50" rx="10"/><text class="b c" x="295" y="272">Closed</text><text class="m c" x="295" y="288">no more coming</text>
+          <rect class="n" x="500" y="250" width="130" height="50" rx="10"/><text class="b c" x="565" y="272">Cancelled</text><text class="m c" x="565" y="288">order dropped</text>
+
+          <line class="ln" x1="280" y1="188" x2="280" y2="248" marker-end="url(#a3)"/><text class="m e" x="272" y="222">close</text>
+          <line class="ln2" x1="310" y1="248" x2="310" y2="190" marker-end="url(#a3)"/><text class="m" x="318" y="222">reopen</text>
+          <line class="ln" x1="550" y1="188" x2="550" y2="248" marker-end="url(#a3)"/><text class="m e" x="542" y="222">cancel</text>
+          <line class="ln2" x1="580" y1="248" x2="580" y2="190" marker-end="url(#a3)"/><text class="m" x="588" y="222">reopen</text>
+        </svg>
+      </div>
+      <figcaption><b>Status is worked out, not stored.</b> Each time, the system looks at the order's facts (marked confirmed, tracking units, arrived units, closed, cancelled) and the first match wins: cancelled, closed, received, partial, on the way, in production, placed. An order also counts as confirmed once it has tracking or any arrival. Tracking units can never add up to more than the order. The expected arrival of an open order is also worked out, as the order date plus the lead time. That is an assumption, because the SOP has no expected-date field, and the runway chart uses it.</figcaption>
+    </figure>
+  </div>
+
+  <div class="sec">
+    <h2>4. The 13 tables</h2>
+    <figure>
+      <div class="fig">
+        <svg viewBox="0 0 940 560" role="img" aria-label="Table relationships. Product has sales, stock history, arrivals and orders. Orders have tracking, history, alerts and matched arrival units. Supplier has orders and users. Settings and Outbox stand alone.">
+          <line class="ln" x1="200" y1="208" x2="250" y2="208"/>
+          <line class="ln" x1="430" y1="208" x2="480" y2="208"/>
+          <line class="ln" x1="570" y1="106" x2="570" y2="170"/>
+          <line class="ln" x1="710" y1="68" x2="660" y2="68"/>
+          <line class="ln" x1="660" y1="190" x2="710" y2="190"/>
+          <polyline class="ln" points="660,226 690,226 690,348 710,348"/>
+          <polyline class="ln" points="640,246 640,488 710,488"/>
+          <line class="ln" x1="570" y1="246" x2="570" y2="310"/>
+          <line class="ln" x1="430" y1="348" x2="480" y2="348"/>
+          <line class="ln" x1="380" y1="246" x2="380" y2="310"/>
+          <polyline class="ln" points="110,310 110,278 290,278 290,246"/>
+          <text class="m" x="203" y="203">*</text><text class="m" x="238" y="203">1</text>
+          <text class="m" x="433" y="203">1</text><text class="m" x="468" y="203">*</text>
+          <text class="m" x="576" y="122">1</text><text class="m" x="576" y="164">*</text>
+          <text class="m" x="663" y="63">1</text><text class="m" x="696" y="63">*</text>
+          <text class="m" x="663" y="185">1</text><text class="m" x="696" y="185">*</text>
+          <text class="m" x="663" y="221">1</text>
+          <text class="m" x="576" y="262">0..1</text><text class="m" x="576" y="305">*</text>
+          <text class="m" x="433" y="343">1</text><text class="m" x="468" y="343">*</text>
+          <text class="m" x="386" y="262">1</text><text class="m" x="386" y="305">*</text>
+
+          <rect class="used" x="20" y="170" width="180" height="76" rx="6"/><text class="b" x="30" y="188">DailySale</text><text class="m" x="30" y="206">product_id, day</text><text class="m" x="30" y="222">units</text>
+          <rect class="used" x="250" y="170" width="180" height="76" rx="6"/><text class="b" x="260" y="188">Product</text><text class="m" x="260" y="206">code, stock, unshipped</text><text class="m" x="260" y="222">lead, safety, target (opt.)</text>
+          <rect class="used" x="480" y="170" width="180" height="76" rx="6"/><text class="b" x="490" y="188">Order</text><text class="m" x="490" y="206">name, units, notes</text><text class="m" x="490" y="222">confirmed_at, closed, cancelled</text>
+          <rect class="used" x="480" y="30" width="180" height="76" rx="6"/><text class="b" x="490" y="48">Supplier</text><text class="m" x="490" y="66">name</text><text class="m" x="490" y="82">email</text>
+          <rect class="unused" x="710" y="30" width="180" height="76" rx="6"/><text class="b" x="720" y="48">User</text><text class="m" x="720" y="66">email, role</text><text class="m" x="720" y="82">supplier_id (optional)</text>
+          <rect class="used" x="710" y="152" width="180" height="76" rx="6"/><text class="b" x="720" y="170">Tracking</text><text class="m" x="720" y="188">number, carrier</text><text class="m" x="720" y="204">units</text>
+          <rect class="used" x="710" y="310" width="180" height="76" rx="6"/><text class="b" x="720" y="328">OrderEvent</text><text class="m" x="720" y="346">action, detail</text><text class="m" x="720" y="362">by, at</text>
+          <rect class="unused" x="710" y="450" width="180" height="76" rx="6"/><text class="b" x="720" y="468">AlertLog</text><text class="m" x="720" y="486">kind</text><text class="m" x="720" y="502">last_sent_at</text>
+          <rect class="seeded" x="20" y="310" width="180" height="76" rx="6"/><text class="b" x="30" y="328">StockMovement</text><text class="m" x="30" y="346">kind, delta, note</text><text class="m" x="30" y="362">at, by</text>
+          <rect class="seeded" x="250" y="310" width="180" height="76" rx="6"/><text class="b" x="260" y="328">Arrival</text><text class="m" x="260" y="346">units, day</text><text class="m" x="260" y="362">note</text>
+          <rect class="seeded" x="480" y="310" width="140" height="76" rx="6"/><text class="b" x="490" y="328">Allocation</text><text class="m" x="490" y="346">arrival, order?</text><text class="m" x="490" y="362">units</text>
+          <rect class="seeded" x="20" y="450" width="180" height="76" rx="6"/><text class="b" x="30" y="468">Settings</text><text class="m" x="30" y="486">lead 45, safety 14</text><text class="m" x="30" y="502">target 60, alerts</text>
+          <rect class="unused" x="250" y="450" width="180" height="76" rx="6"/><text class="b" x="260" y="468">Outbox</text><text class="m" x="260" y="486">to, subject</text><text class="m" x="260" y="502">body, at</text>
+        </svg>
+      </div>
+      <figcaption><b>Product and Order are the hubs.</b> Product owns sales, stock history and arrivals. Order owns tracking, history and alerts. Allocation joins Arrival to Order; an empty order there means "not from an order". Gray outline: a screen reads or writes it. Amber outline: filled by the seed data and read, but no screen writes it yet. Dashed: nothing uses it yet. Settings is read for the forecast defaults but cannot be edited yet. Expected arrival is not a column: it is worked out from the order date and the lead time.</figcaption>
+    </figure>
+  </div>
+
+  <div class="sec">
+    <h2>SOP section 4 rules and where they live</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Rule</th><th>Function</th><th>File</th><th>Checked by</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>Sold 7 days, burn, trend (0.5 to 2), adjusted burn</td><td><span class="tok">adjusted_burn</span></td><td><span class="tok">domain/forecast.py</span></td><td>test_trend_and_burn, test_trend_clamped_and_no_prior</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Days of stock, days with everything ordered, blank at zero burn</td><td><span class="tok">days_of</span>, <span class="tok">compute</span></td><td><span class="tok">domain/forecast.py</span></td><td>test_forecast_numbers_and_flags, test_zero_burn_blank</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Sells out on, reorder by, suggested order</td><td><span class="tok">compute</span></td><td><span class="tok">domain/forecast.py</span></td><td>test_forecast_numbers_and_flags</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Out of stock, reorder now, under 21 days, under 45 days</td><td><span class="tok">compute</span></td><td><span class="tok">domain/forecast.py</span></td><td>test_reorder_now_even_with_ordered</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Try an order</td><td><span class="tok">try_order</span></td><td><span class="tok">domain/forecast.py</span></td><td>test_try_order</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Stage units, confirmed, overall status</td><td><span class="tok">stages</span></td><td><span class="tok">domain/orders.py</span></td><td>test_status_precedence</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Tracking units cannot exceed the order</td><td><span class="tok">tracking_fits</span>, <span class="tok">add_tracking</span></td><td><span class="tok">domain/orders.py</span>, <span class="tok">services/orders.py</span></td><td>test_tracking_cap, test_tracking_cap_and_later_entry</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Carrier detection and tracking links (UPS, FedEx, USPS, DHL)</td><td><span class="tok">detect_carrier</span>, <span class="tok">tracking_url</span></td><td><span class="tok">domain/carriers.py</span></td><td>test_detect_carrier, test_tracking_url</td><td><span class="badge good" data-i="ok">Built</span></td></tr>
+          <tr><td>Match arrivals to the oldest open order, spill over</td><td>not written</td><td><span class="tok">domain/matching.py</span></td><td>to write</td><td><span class="badge plain" data-i="todo">Not built</span></td></tr>
+          <tr><td>Chase rules: confirm when not confirmed 2 or more days after ordering; tracking when confirmed 10 or more days ago with untracked units; where is it when on the way more than 10 days; repeat at most every 2 days</td><td>not written</td><td><span class="tok">domain/chase.py</span></td><td>to write</td><td><span class="badge plain" data-i="todo">Not built</span></td></tr>
+          <tr><td>Order message and follow-up text</td><td>not written</td><td><span class="tok">domain/messages.py</span></td><td>to write</td><td><span class="badge plain" data-i="todo">Not built</span></td></tr>
+          <tr><td>Expected arrival of an open order: order date plus lead time (assumption, not in the SOP; used by the runway chart)</td><td>not written</td><td><span class="tok">domain/orders.py</span></td><td>to write</td><td><span class="badge plain" data-i="todo">Not built</span></td></tr>
+          <tr><td>Bundle variants count as more units (buy 2 get 2 is 4)</td><td>not written</td><td>sales import</td><td>to write</td><td><span class="badge warn" data-i="warn">Data only</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="src">"Last 7 days" means the 7 complete days before today, because today's sales are still partial. The SOP does not say, so this is a choice to state in the design note.</p>
+  </div>
+
+  <div class="sec">
+    <h2>What the map says is missing</h2>
+    <div class="gaps">
+      <div class="gap"><b>Arrivals and matching</b><span>Nothing raises warehouse stock yet, so "Out of stock" can never clear. This is the next real feature.</span></div>
+      <div class="gap"><b>Stock history and adjustments</b><span>The history table is only seeded. No screen shows it, and there is no way to log a manual sale or correction.</span></div>
+      <div class="gap"><b>Chase list</b><span>The three alert rules and the follow-up messages are not written.</span></div>
+      <div class="gap"><b>Settings and login</b><span>Lead time, safety days and target days are read but not editable. Staff and supplier logins do not exist, so anyone with the address can change or delete orders.</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  var P = {
+    ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    todo: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
+  };
+  document.querySelectorAll(".badge[data-i]").forEach(function (b) {
+    b.insertAdjacentHTML("afterbegin", '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[b.dataset.i] + '</svg>');
+  });
+})();
+</script>

@@ -1,10 +1,14 @@
 from dataclasses import dataclass
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import now
+from app.config import today as store_today
 from app.domain.carriers import clean, detect_carrier
+from app.domain.chase import Chase, chase_of
+from app.domain.messages import chase_step, quiet_step
 from app.domain.orders import Stages, stages, tracking_fits
 from app.models import Order, OrderEvent, Product, Tracking
 
@@ -15,10 +19,42 @@ class OrderError(ValueError):
     """A rule the user broke; the message is shown on the page."""
 
 
+DONE = ("received", "closed", "cancelled")
+
+
 @dataclass
 class OrderRow:
     order: Order
     stages: Stages
+    chase: Chase | None
+    age: int  # days since it was placed
+
+    @property
+    def attention(self) -> int:
+        """Rank key: the most overdue first, waiting orders next, finished orders last."""
+        return -2 if self.stages.status in DONE else (self.chase.over if self.chase else -1)
+
+    @property
+    def step(self) -> tuple[str, str, str]:
+        """(tone, what to do, why)"""
+        if self.chase:
+            what, why = chase_step(self.chase, self.order.supplier.name)
+            return ("serious" if self.chase.over >= 8 else "warn"), what, why
+        return quiet_step(self.stages.status)
+
+
+def chase_for(o: Order, st: Stages, today: date) -> Chase | None:
+    shipped = [(today - t.shipped_at.date()).days for t in o.trackings if t.shipped_at]
+    return chase_of(
+        is_open=is_open(o), remaining=o.units - st.arrived, confirmed=st.confirmed,
+        created_days=(today - o.created_at.date()).days,
+        confirmed_days=None if o.confirmed_at is None else (today - o.confirmed_at.date()).days,
+        untracked=o.units - tracked_units(o), on_the_way=st.on_the_way, oldest_shipped_days=max(shipped, default=0))
+
+
+def build_row(o: Order, today: date) -> OrderRow:
+    st = order_stages(o)
+    return OrderRow(o, st, chase_for(o, st, today), (today - o.created_at.date()).days)
 
 
 def order_stages(o: Order) -> Stages:
@@ -40,12 +76,48 @@ def tracked_units(o: Order) -> int:
     return sum(t.units for t in o.trackings)
 
 
-def list_orders(db: Session, product_id: int | None = None, status: str | None = None) -> list[OrderRow]:
-    q = select(Order).order_by(Order.created_at.desc())
+def list_orders(db: Session, product_id: int | None = None, status: str | None = None, only_chase: bool = False,
+                today: date | None = None) -> list[OrderRow]:
+    """Orders that need attention first (most overdue on top), finished orders last."""
+    today = today or store_today()
+    q = select(Order)
     if product_id:
         q = q.where(Order.product_id == product_id)
-    rows = [OrderRow(o, order_stages(o)) for o in db.scalars(q)]
-    return [r for r in rows if not status or r.stages.status == status]
+    rows = [build_row(o, today) for o in db.scalars(q)]
+    rows = [r for r in rows if (not status or r.stages.status == status) and (not only_chase or r.chase)]
+    return sorted(rows, key=lambda r: (-r.attention, -r.age))
+
+
+def orders_headline(rows: list[OrderRow]) -> str:
+    n = sum(1 for r in rows if r.chase)
+    text = "No order needs a message." if not n else f"{n} order{'s' if n != 1 else ''} need{'s' if n == 1 else ''} a message."
+    done = [r.order.name for r in rows if r.stages.status == "received"]
+    return text + (f" {', '.join(done)} {'is' if len(done) == 1 else 'are'} complete." if done else "")
+
+
+@dataclass
+class Step:
+    label: str
+    done: bool
+    current: bool
+    sub: str
+    icon: str
+
+
+def _d(d: date) -> str:
+    return f"{d:%b} {d.day}"
+
+
+def order_steps(o: Order, st: Stages) -> list[Step]:
+    tracked = tracked_units(o)
+    raw = [
+        ("Placed", True, _d(o.created_at.date()), "clock"),
+        ("Confirmed", st.confirmed, (_d(o.confirmed_at.date()) if o.confirmed_at else "has tracking") if st.confirmed else "waiting", "package"),
+        ("Shipped", tracked > 0, f"{tracked:,} of {o.units:,} units" if tracked else "no tracking yet", "truck"),
+        ("Arrived", o.units - st.arrived == 0, f"{st.arrived:,} of {o.units:,} units" if st.arrived else "nothing yet", "circle-check"),
+    ]
+    first_open = next((i for i, r in enumerate(raw) if not r[1]), -1)
+    return [Step(label, done, is_open(o) and i == first_open, sub, icon) for i, (label, done, sub, icon) in enumerate(raw)]
 
 
 def add_event(o: Order, action: str, detail: str = "", by: str = "staff") -> None:

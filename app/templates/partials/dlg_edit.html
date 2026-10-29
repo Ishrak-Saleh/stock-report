@@ -1,0 +1,17 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Edit order">
+  <div class="mbody">
+    {{ dialog_head("Edit " ~ o.name) }}
+    <form method="post" action="/orders/{{ o.id }}/edit">
+      <div class="grid2">
+        <label class="field">Supplier
+          <select name="supplier_id">{% for s in suppliers %}<option value="{{ s.id }}" {{ "selected" if s.id == o.supplier_id }}>{{ s.name }}</option>{% endfor %}</select>
+        </label>
+        <label class="field">Units<input name="units" type="number" min="{{ floor }}" max="1000000" value="{{ o.units }}" required></label>
+      </div>
+      <div class="hint">Units cannot go below {{ floor|num }}, which is already on tracking or has arrived.</div>
+      <label class="field">Notes<textarea name="notes" rows="2" maxlength="500">{{ o.notes }}</textarea></label>
+      <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Save changes</button></div></div>
+    </form>
+  </div>
+</dialog>

@@ -1,0 +1,223 @@
+<title>Stock Report Screen Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout concept: one flow figure up top, then tables that answer the same question from different angles:
+   which screens exist and what is next to design, which SOP questions they answer, which SOP requirements are met.
+   Version 2 look (dark first), same tokens as the design system sheet. */
+:root {
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r-control: 6px; --r-panel: 10px; --r-pill: 999px;
+  --page: #181818; --panel: #1F1F1F; --raised: #272727; --line: #313131;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781;
+  --accent: #3987e5;
+  --s-good: #0ca30c; --s-warn: #fab219; --s-serious: #ec835a; --s-crit: #d03b3b;
+  --ring: 0 0 0 1px var(--line);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #f6f6f4; --panel: #ffffff; --raised: #f0efec; --line: #e1e0d9;
+  --ink: #0b0b0b; --ink2: #52514e; --muted: #75736e;
+  --accent: #2a78d6;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink); font: 400 14px/20px var(--font);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; text-wrap: balance; }
+p { margin: 0; max-width: 70ch; text-wrap: pretty; }
+.muted { color: var(--ink2); }
+.src { font-size: 12px; line-height: 16px; color: var(--ink2); }
+code, .tok { font: 12px var(--mono); background: var(--raised); padding: 0 4px; border-radius: 4px; }
+a { color: var(--accent); }
+.sec { display: flex; flex-direction: column; gap: 12px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.fig { background: var(--panel); box-shadow: var(--ring); border-radius: var(--r-panel); padding: 16px; overflow-x: auto; }
+.fig svg { display: block; width: 100%; min-width: 720px; height: auto; color: var(--ink); }
+figcaption { font-size: 12px; line-height: 16px; color: var(--ink2); max-width: 80ch; }
+figcaption b { color: var(--ink); font-weight: 600; }
+svg text { font-family: var(--font); fill: var(--ink); font-size: 12px; }
+svg .m { fill: var(--ink2); font-size: 11px; }
+svg .b { font-weight: 600; }
+svg .c { text-anchor: middle; }
+svg .built { fill: var(--panel); stroke: var(--ink2); stroke-width: 1.5; }
+svg .part { fill: var(--panel); stroke: var(--s-warn); stroke-width: 1.5; }
+svg .miss { fill: var(--panel); stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+svg .ln { stroke: var(--ink2); stroke-width: 1; fill: none; }
+svg .arrowfill { fill: var(--ink2); }
+.tbl { background: var(--panel); box-shadow: var(--ring); border-radius: var(--r-panel); padding: 4px 16px; overflow-x: auto; }
+.tbl table { min-width: 680px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+tbody tr:last-child td { border-bottom: 0; }
+th { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink2); white-space: nowrap; }
+tr.grp td { background: var(--raised); font-weight: 600; padding-block: 4px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-pill); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; color: var(--ink);
+  background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); }
+.badge svg { color: var(--c, var(--muted)); flex-shrink: 0; }
+.badge.good { --c: var(--s-good); } .badge.warn { --c: var(--s-warn); } .badge.plain { --c: var(--muted); }
+.tier { font-size: 12px; font-weight: 600; color: var(--ink2); }
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.sum > div { background: var(--panel); box-shadow: var(--ring); border-radius: var(--r-panel); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.sum b { font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>
+
+<main>
+  <div class="sec">
+    <h1>Stock Report screen flow</h1>
+    <p class="muted">Every screen the system needs, how a person moves between them, which of the SOP's ten questions each answers, where each requirement stands, and which pages are designed next. Matches version 2 of the design system.</p>
+  </div>
+
+  <div class="sec">
+    <h2>How people move through the screens</h2>
+    <figure>
+      <div class="fig">
+        <svg viewBox="0 0 920 510" role="img" aria-label="Screen flow. Login leads to Stock. Stock leads to Orders, Product history and, from the More menu, Settings. Orders lead to Order detail and the Chase list. Arrivals and the Chase list lead to Order detail. The supplier view opens Order detail for its own orders only.">
+          <defs><marker id="f1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="arrowfill" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+
+          <line class="ln" x1="150" y1="196" x2="198" y2="196" marker-end="url(#f1)"/><text class="m c" x="174" y="188">sign in</text>
+          <line class="ln" x1="340" y1="196" x2="388" y2="196" marker-end="url(#f1)"/><text class="m c" x="364" y="188">tab</text>
+          <line class="ln" x1="530" y1="196" x2="578" y2="196" marker-end="url(#f1)"/><text class="m c" x="554" y="188">open</text>
+          <line class="ln" x1="768" y1="196" x2="722" y2="196" marker-end="url(#f1)"/><text class="m c" x="745" y="188">scoped</text>
+          <polyline class="ln" points="270,160 270,76 388,76" marker-end="url(#f1)"/><text class="m" x="278" y="68">row link</text>
+          <line class="ln" x1="270" y1="232" x2="270" y2="278" marker-end="url(#f1)"/><text class="m" x="278" y="260">More menu</text>
+          <line class="ln" x1="460" y1="232" x2="460" y2="278" marker-end="url(#f1)"/><text class="m" x="468" y="260">badge</text>
+          <polyline class="ln" points="530,316 565,316 565,222 578,222" marker-end="url(#f1)"/><text class="m" x="571" y="266">open order</text>
+          <line class="ln" x1="660" y1="280" x2="660" y2="234" marker-end="url(#f1)"/><text class="m" x="668" y="262">matched order</text>
+
+          <rect class="miss" x="10" y="160" width="140" height="72" rx="10"/><text class="b" x="22" y="182">Login</text><text class="m" x="22" y="200">Staff or supplier</text><text class="m" x="22" y="218">Hero visual here</text>
+          <rect class="part" x="200" y="160" width="140" height="72" rx="10"/><text class="b" x="212" y="182">Stock</text><text class="m" x="212" y="200">Q1 to Q6, Q8 panel</text><text class="m" x="212" y="218">Modal: New order</text>
+          <rect class="part" x="390" y="160" width="140" height="72" rx="10"/><text class="b" x="402" y="182">Orders</text><text class="m" x="402" y="200">Q7, filters</text><text class="m" x="402" y="218">Modal: New order</text>
+          <rect class="part" x="580" y="160" width="140" height="72" rx="10"/><text class="b" x="592" y="182">Order detail</text><text class="m" x="592" y="200">Q7, Q9, Q10</text><text class="m" x="592" y="218">Modals: tracking, msg</text>
+          <rect class="miss" x="770" y="160" width="140" height="72" rx="10"/><text class="b" x="782" y="182">Supplier view</text><text class="m" x="782" y="200">Own orders only</text><text class="m" x="782" y="218">Modal: Add tracking</text>
+          <rect class="miss" x="390" y="40" width="140" height="72" rx="10"/><text class="b" x="402" y="62">Product history</text><text class="m" x="402" y="80">Q10, runway chart</text><text class="m" x="402" y="98">Modal: Log adjustment</text>
+          <rect class="miss" x="200" y="280" width="140" height="72" rx="10"/><text class="b" x="212" y="302">Settings, Outbox</text><text class="m" x="212" y="320">Defaults, products</text><text class="m" x="212" y="338">In the More menu</text>
+          <rect class="miss" x="390" y="280" width="140" height="72" rx="10"/><text class="b" x="402" y="302">Chase list</text><text class="m" x="402" y="320">Q8</text><text class="m" x="402" y="338">Modal: Message</text>
+          <rect class="miss" x="580" y="280" width="140" height="72" rx="10"/><text class="b" x="592" y="302">Arrivals</text><text class="m" x="592" y="320">Q9, unmatched</text><text class="m" x="592" y="338">Modals: record, fix</text>
+          <rect class="miss" x="770" y="280" width="140" height="72" rx="10"/><text class="b" x="782" y="302">Error pages</text><text class="m" x="782" y="320">404, empty, failed</text><text class="m" x="782" y="338">Any address</text>
+
+          <rect class="built" x="10" y="450" width="20" height="14" rx="3"/><text class="m" x="38" y="461">built</text>
+          <rect class="part" x="90" y="450" width="20" height="14" rx="3"/><text class="m" x="118" y="461">built, needs the version 2 look or has missing parts</text>
+          <rect class="miss" x="400" y="450" width="20" height="14" rx="3"/><text class="m" x="428" y="461">not built</text>
+        </svg>
+      </div>
+      <figcaption><b>Stock is the home screen.</b> Everything staff do starts from a product that needs attention, goes to an order, and ends in an arrival. Three tabs stay in the top bar (Stock, Orders, Arrivals). The Chase list, Settings and Outbox sit in the More menu, and the staff and supplier switch sits under the avatar. Create flows are modals, so they are listed inside the screen that opens them. A row on Stock opens the runway chart below it, and a "history" link goes to Product history.</figcaption>
+    </figure>
+  </div>
+
+  <div class="sec">
+    <h2>Pages to design next</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Page</th><th>In design system version 2</th><th>Still to design</th></tr></thead>
+        <tbody>
+          <tr><td>Stock</td><td><span class="badge good" data-i="ok">Yes</span> headline, ranked list, runway chart, chase panel</td><td>Empty and loading states, the filter row, mobile card detail</td></tr>
+          <tr><td>New order modal</td><td><span class="badge good" data-i="ok">Yes</span> plan cards</td><td>Validation errors, opening from Orders</td></tr>
+          <tr><td>Orders</td><td><span class="badge plain" data-i="todo">No</span></td><td>List with stage bars, filters, chase badge, empty state</td></tr>
+          <tr><td>Order detail</td><td><span class="badge plain" data-i="todo">No</span></td><td>Stage bar, tracking, history, actions, tracking and message modals</td></tr>
+          <tr><td>Arrivals</td><td><span class="badge plain" data-i="todo">No</span></td><td>Record arrival modal with live match preview, fix match, unmatched list</td></tr>
+          <tr><td>Chase list</td><td><span class="badge warn" data-i="warn">Panel only</span></td><td>Full list, message modal, sent and next-due state</td></tr>
+          <tr><td>Product history</td><td><span class="badge plain" data-i="todo">No</span></td><td>Stock over time, ledger, log adjustment modal</td></tr>
+          <tr><td>Settings and Outbox</td><td><span class="badge plain" data-i="todo">No</span></td><td>Forecast defaults and overrides, products, suppliers, alert emails, outbox</td></tr>
+          <tr><td>Login</td><td><span class="badge plain" data-i="todo">No</span></td><td>The one polished entry page, with a skewed hero visual</td></tr>
+          <tr><td>Supplier view</td><td><span class="badge plain" data-i="todo">No</span></td><td>Scoped orders, confirm and add tracking only</td></tr>
+          <tr><td>Error and empty pages</td><td><span class="badge good" data-i="ok">Basic</span> not found, empty, error</td><td>Per-page versions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>Which screen answers which SOP question</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Question</th><th>Answered by</th><th>State</th></tr></thead>
+        <tbody>
+          <tr><td>1. How many units are in the warehouse right now?</td><td>Stock</td><td><span class="badge good" data-i="ok">Answered</span></td></tr>
+          <tr><td>2. How many units are sold but not shipped?</td><td>Stock</td><td><span class="badge good" data-i="ok">Answered</span></td></tr>
+          <tr><td>3. How fast is each product selling, and is that speeding up or slowing down?</td><td>Stock (sales chart and burn per day)</td><td><span class="badge good" data-i="ok">Answered</span></td></tr>
+          <tr><td>4. How many days until each product runs out?</td><td>Stock (runway bar, sells out on)</td><td><span class="badge good" data-i="ok">Answered</span></td></tr>
+          <tr><td>5. Which products need reordering now, counting what is already ordered?</td><td>Stock (reorder now flag, days incl. ordered)</td><td><span class="badge good" data-i="ok">Answered</span></td></tr>
+          <tr><td>6. If I order X more units today, how many days will I have?</td><td>Stock (try an order), New order modal</td><td><span class="badge good" data-i="ok">Answered</span></td></tr>
+          <tr><td>7. What has been ordered, and where is each order?</td><td>Orders, Order detail</td><td><span class="badge good" data-i="ok">Answered</span></td></tr>
+          <tr><td>8. Which supplier orders need chasing?</td><td>Orders to chase panel on Stock, Chase list</td><td><span class="badge plain" data-i="todo">Not answered</span></td></tr>
+          <tr><td>9. What arrived at the warehouse, and which order did it belong to?</td><td>Arrivals, Order detail</td><td><span class="badge warn" data-i="warn">Per order counts only</span></td></tr>
+          <tr><td>10. What changed in stock, when, and why?</td><td>Product history</td><td><span class="badge plain" data-i="todo">Not answered</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="src">Seven of ten questions are answered. Questions 8, 9 and 10 depend on the Chase list, Arrivals and Product history screens.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Every SOP requirement and where it stands</h2>
+    <div class="sum">
+      <div><b>Required (20)</b><div class="row"><span class="badge good" data-i="ok">10 built</span><span class="badge warn" data-i="warn">2 partial</span><span class="badge plain" data-i="todo">8 not built</span></div></div>
+      <div><b>Extra credit (7)</b><div class="row"><span class="badge good" data-i="ok">1 built</span><span class="badge warn" data-i="warn">1 data only</span><span class="badge plain" data-i="todo">5 not built</span></div></div>
+    </div>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Requirement</th><th>Tier</th><th>State</th><th>Screen</th></tr></thead>
+        <tbody>
+          <tr class="grp"><td colspan="4">Products and stock</td></tr>
+          <tr><td>Product list with name, short code and sales-matching identifiers</td><td class="tier">must</td><td><span class="badge warn" data-i="warn">Partial</span></td><td>Stock lists them; editing is in Settings</td></tr>
+          <tr><td>Warehouse stock, sold-not-shipped and sold per day for each product</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Stock</td></tr>
+          <tr><td>Every section 2 number plus the forecast</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Stock</td></tr>
+          <tr><td>Flag out of stock, reorder now, low</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Stock</td></tr>
+          <tr><td>Try an order, nothing saved</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Stock</td></tr>
+          <tr><td>Count bundle variants correctly (buy 2 get 2 is 4)</td><td class="tier">should</td><td><span class="badge warn" data-i="warn">Data only</span></td><td>Settings, product</td></tr>
+          <tr class="grp"><td colspan="4">Supplier orders</td></tr>
+          <tr><td>Create an order with a readable unique name</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>New order (a page today, a modal in the design)</td></tr>
+          <tr><td>Stages placed, confirmed, shipped, arrived, with partial arrivals</td><td class="tier">must</td><td><span class="badge warn" data-i="warn">Partial</span></td><td>Order detail; arrivals missing</td></tr>
+          <tr><td>Tracking numbers with unit counts, capped at the order, finished later</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Order detail</td></tr>
+          <tr><td>Edit, cancel, close, reopen, delete with confirmation</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Order detail</td></tr>
+          <tr><td>History of who did what and when</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Order detail (the name is "staff" until login exists)</td></tr>
+          <tr><td>Filter orders by product and stage</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Orders</td></tr>
+          <tr><td>Carrier tracking page links (UPS, FedEx, USPS, DHL)</td><td class="tier">should</td><td><span class="badge good" data-i="ok">Built</span></td><td>Order detail</td></tr>
+          <tr><td>Order message to copy or email to the supplier</td><td class="tier">should</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Order detail</td></tr>
+          <tr class="grp"><td colspan="4">Warehouse arrivals</td></tr>
+          <tr><td>Record an arrival: product, units, date</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Arrivals</td></tr>
+          <tr><td>Match to open orders automatically, oldest first, spilling over</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Arrivals</td></tr>
+          <tr><td>Fix a match by hand: split, or "not from an order"</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Arrivals</td></tr>
+          <tr><td>Show arrivals that matched no order</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Arrivals</td></tr>
+          <tr class="grp"><td colspan="4">Stock changes and history</td></tr>
+          <tr><td>Log a manual sale or adjustment with a note</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Product history</td></tr>
+          <tr><td>Stock movement history per product</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Product history</td></tr>
+          <tr class="grp"><td colspan="4">Settings</td></tr>
+          <tr><td>Edit products, suppliers and forecast settings, as defaults and per product</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Settings</td></tr>
+          <tr><td>Reorder alert emails on or off, recipients, send a test</td><td class="tier">should</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Settings</td></tr>
+          <tr class="grp"><td colspan="4">Alerts and follow-ups</td></tr>
+          <tr><td>Show which supplier orders need chasing</td><td class="tier">must</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Chase list, Stock panel</td></tr>
+          <tr><td>Send or prepare the follow-up message</td><td class="tier">should</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Chase list</td></tr>
+          <tr><td>Warn when stock or sales data is old</td><td class="tier">should</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Stock</td></tr>
+          <tr class="grp"><td colspan="4">Access</td></tr>
+          <tr><td>Staff see and manage everything</td><td class="tier">must</td><td><span class="badge good" data-i="ok">Built</span></td><td>Everyone is staff, there is no login yet</td></tr>
+          <tr><td>Supplier login sees only that supplier's orders, can confirm and add tracking</td><td class="tier">should</td><td><span class="badge plain" data-i="todo">Not built</span></td><td>Supplier view</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="src">Also still to do from the SOP's hand-in list: a README that runs in under 5 minutes, a demo link or recording, and the 1 to 2 page design note. Phone layout is restyled in the app but has not been checked at 390px yet.</p>
+  </div>
+</main>
+
+<script>
+(function () {
+  var P = {
+    ok: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    todo: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
+  };
+  document.querySelectorAll(".badge[data-i]").forEach(function (b) {
+    b.insertAdjacentHTML("afterbegin", '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[b.dataset.i] + '</svg>');
+  });
+})();
+</script>

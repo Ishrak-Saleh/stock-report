@@ -1,0 +1,7 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="New order">
+  <div class="mbody">
+    {{ dialog_head("New order", "Pick a size, then adjust the units if you need to") }}
+    {% include "partials/new_order_form.html" %}
+  </div>
+</dialog>

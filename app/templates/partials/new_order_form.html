@@ -1,0 +1,44 @@
+<form method="post" action="/orders">
+  <div class="grid2">
+    <label class="field">Product
+      <select name="product_id" hx-get="/orders/new" hx-include="this" hx-target="#modal-host" hx-swap="innerHTML">
+        {% for p in products %}<option value="{{ p.id }}" {{ "selected" if p.id == product.id }}>{{ p.name }} ({{ p.code }})</option>{% endfor %}
+      </select>
+    </label>
+    <label class="field">Supplier
+      <select name="supplier_id">{% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+    </label>
+  </div>
+
+  {% if options %}
+  <div class="plans" role="radiogroup" aria-label="Order size">
+    {% for x in options %}
+    <label class="plan">
+      <input type="radio" name="plan" value="{{ x.units }}" {{ "checked" if x.key == "sop" and x.units > 0 }} {{ "disabled" if x.units == 0 }}>
+      <span class="title">{{ x.label }}{% if x.tag %}<span class="tag">{{ x.tag }}</span>{% endif %}</span>
+      <span class="units">{{ x.units|num }} units</span>
+      <span class="meta">{{ x.days_incl|days }} days of stock including everything on order</span>
+      <span class="meta">{{ "Already covered" if x.units == 0 else x.note }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <div class="callout">{{ icon("triangle-alert") }}<span>The SOP's suggested size uses warehouse stock only. It does not subtract the {{ ordered|num }} units already on order, so it can overshoot when orders are on the way.</span></div>
+  {% else %}
+  <div class="callout info">{{ icon("circle-alert") }}<span>{{ product.name }} has no sales yet, so there is nothing to size an order against. You can still enter units below.</span></div>
+  {% endif %}
+
+  <div class="grid2">
+    <label class="field">Units
+      <input id="n-units" name="units" type="number" min="1" max="1000000" required value="{{ units or "" }}"
+             hx-get="/products/{{ product.id }}/try" hx-trigger="input changed delay:200ms" hx-target="#n-sum" hx-include="this">
+    </label>
+    <label class="field">Notes (optional)<input name="notes" maxlength="500" placeholder="Rush if possible"></label>
+  </div>
+  <div class="mfoot">
+    <span class="meta" id="n-sum" hx-get="/products/{{ product.id }}/try?units={{ units or 0 }}" hx-trigger="load" hx-target="this"></span>
+    <div class="row">
+      {% if in_dialog %}<button class="btn quiet" type="button" data-close>Cancel</button>{% else %}<a class="btn quiet" href="/orders">Cancel</a>{% endif %}
+      <button class="btn primary" type="submit">Create order</button>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,37 @@
+{% macro badge(cls, icon_name, text) -%}
+<span class="badge {{ cls }}">{{ icon(icon_name) }}{{ text }}</span>
+{%- endmacro %}
+
+{% macro level_badge(level, text) -%}
+{{ badge(level, {"crit": "circle-alert", "serious": "triangle-alert", "warn": "clock", "good": "circle-check"}[level], text) }}
+{%- endmacro %}
+
+{% macro status_badge(status) -%}
+{% set m = {"placed": ["", "clock"], "in production": ["info", "package"], "on the way": ["info", "truck"], "partial": ["info", "truck"],
+            "received": ["good", "circle-check"], "closed": ["", "x"], "cancelled": ["", "x"]}[status] %}
+{{ badge(m[0], m[1], status|capitalize) }}
+{%- endmacro %}
+
+{% macro next_step(r) -%}
+{% set s = r.step %}
+<div class="nx {{ s[0] }}">{{ icon({"warn": "triangle-alert", "serious": "triangle-alert", "ok": "circle-check", "idle": "clock"}[s[0]]) }}<div><b>{{ s[1] }}</b><div class="small">{{ s[2] }}</div></div></div>
+{%- endmacro %}
+
+{# stage bar for an order: placed, in production, on the way, arrived #}
+{% macro order_bar(o, st, width=140) -%}
+{{ charts.stage_bar([(st.placed, 1), (st.in_production, 2), (st.on_the_way, 3), (st.arrived, 4)],
+   o.name ~ ": " ~ st.placed ~ " placed, " ~ st.in_production ~ " in production, " ~ st.on_the_way ~ " on the way, " ~ st.arrived ~ " arrived", width) }}
+{%- endmacro %}
+
+{% macro stage_legend() -%}
+<div class="legend hide-narrow"><span>Stage bar:</span><span><i class="k st1"></i>Placed</span><span><i class="k st2"></i>In production</span><span><i class="k st3"></i>On the way</span><span><i class="k st4"></i>Arrived</span></div>
+{%- endmacro %}
+
+{# opens a dialog: a real link first (works without JavaScript), upgraded by HTMX #}
+{% macro dialog_link(url, label, cls="btn", icon_name=None) -%}
+<a class="{{ cls }}" href="{{ url }}" hx-get="{{ url }}" hx-target="#modal-host" hx-swap="innerHTML">{% if icon_name %}{{ icon(icon_name) }}{% endif %}{{ label }}</a>
+{%- endmacro %}
+
+{% macro dialog_head(title, sub="") -%}
+<header><div><h3>{{ title }}</h3>{% if sub %}<div class="meta">{{ sub }}</div>{% endif %}</div><button type="button" class="btn quiet small" data-close aria-label="Close">{{ icon("x") }}</button></header>
+{%- endmacro %}

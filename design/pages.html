@@ -1,0 +1,725 @@
+<title>Stock Report Pages</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout concept: a page picker over one device frame. Each page opens with a three-part brief (who, what they decide,
+   the one-sentence takeaway), then the page itself in the version 2 look, then its states. The frame switches between
+   laptop and a 390px phone, and the frame is a size container so the phone view is the real card layout.
+   Order stage colors use the validated blue ramp; status colors come with an icon and a label. */
+:root, .force-dark {
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-control: 6px; --r-panel: 10px; --r-pill: 999px;
+  --page: #181818; --panel: #1F1F1F; --raised: #272727; --line: #313131;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --danger: #ec7070;
+  --accent: #3987e5; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --s-good: #0ca30c; --s-warn: #fab219; --s-serious: #ec835a; --s-crit: #d03b3b;
+  --st1: #184f95; --st2: #2a78d6; --st3: #5598e7; --st4: #86b6ef;
+  --ring: 0 0 0 1px var(--line);
+  --hover: oklch(1 0 0 / .05);
+  --scrim: oklch(0 0 0 / .6);
+  color-scheme: dark;
+}
+:root[data-theme="light"], .force-light {
+  --page: #f6f6f4; --panel: #ffffff; --raised: #f0efec; --line: #e1e0d9;
+  --ink: #0b0b0b; --ink2: #52514e; --muted: #75736e; --danger: #b42323;
+  --accent: #2a78d6; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --st1: #86b6ef; --st2: #5598e7; --st3: #2a78d6; --st4: #1c5cab;
+  --hover: oklch(0 0 0 / .04);
+  --scrim: oklch(0 0 0 / .4);
+  color-scheme: light;
+}
+.force-light, .force-dark { background: var(--page); color: var(--ink); }
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink); font: 400 14px/20px var(--font);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+h1, h2 { font-size: 20px; line-height: 28px; }
+h3 { font-size: 16px; line-height: 24px; }
+p { margin: 0; max-width: 70ch; text-wrap: pretty; }
+.muted { color: var(--ink2); }
+.meta { font-size: 12px; line-height: 16px; color: var(--ink2); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-control); }
+.ic { flex-shrink: 0; display: inline-block; vertical-align: middle; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+.picker { display: flex; flex-wrap: wrap; gap: 4px; }
+.pk { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--r-control); color: var(--ink2); background: none; border: 0; font: 500 14px/20px var(--font); cursor: pointer; }
+.pk[aria-selected="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+.pk .next { font-size: 12px; line-height: 16px; color: var(--muted); font-weight: 400; }
+@media (hover: hover) and (pointer: fine) { .pk:hover { background: var(--hover); } }
+
+.seg { display: inline-flex; background: var(--raised); border-radius: var(--r-control); padding: 2px; gap: 2px; }
+.seg button { font: 500 12px/16px var(--font); padding: 4px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--ring); }
+
+#shell { display: flex; flex-direction: column; gap: 16px; padding: 0; border-radius: var(--r-panel); }
+#shell.force-light, #shell.force-dark { padding: 16px; box-shadow: var(--ring); }
+.brief { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px 24px; padding: 16px; background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ring); }
+.brief .bl { font-size: 12px; line-height: 16px; color: var(--muted); }
+.brief .bt { font-size: 14px; line-height: 20px; }
+.device { background: var(--page); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; container-name: dev; width: 100%; max-width: 1160px; margin: 0 auto; min-width: 0; }
+#shell.phone .device { max-width: 390px; padding: 12px; }
+
+/* Controls */
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line);
+  background: transparent; color: var(--ink); cursor: pointer; transition: transform 120ms var(--ease), background-color 120ms var(--ease); touch-action: manipulation; text-decoration: none; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-ink); }
+.btn.quiet { color: var(--ink2); }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.small { padding: 4px 8px; font-size: 12px; line-height: 16px; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
+@media (hover: hover) and (pointer: fine) { .btn:hover:not(.primary):not(:disabled) { background: var(--hover); } .btn.primary:hover { filter: brightness(1.08); } }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.field select, .field input, .field textarea { font: 400 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line); background: var(--page); color: var(--ink); width: 100%; }
+.field.err input { border-color: var(--s-crit); }
+.hint { font-size: 12px; line-height: 16px; color: var(--ink2); }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-pill); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; color: var(--ink);
+  background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); }
+.badge .ic { color: var(--c, var(--muted)); }
+.badge.crit { --c: var(--s-crit); } .badge.serious { --c: var(--s-serious); } .badge.warn { --c: var(--s-warn); } .badge.good { --c: var(--s-good); } .badge.info { --c: var(--accent); } .badge.plain { --c: var(--muted); }
+
+/* Top bar */
+.topbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: relative; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.brand .logo { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-fill); color: #fff; display: grid; place-items: center; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--r-control); color: var(--ink2); text-decoration: none; border: 0; background: none; font: 500 14px/20px var(--font); cursor: pointer; }
+.tab[aria-current="page"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+@media (hover: hover) and (pointer: fine) { .tab:hover { background: var(--hover); } }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.avatar { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--raised); color: var(--ink); display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 0; cursor: pointer; box-shadow: var(--ring); }
+.pop { position: absolute; z-index: 5; background: var(--raised); border-radius: var(--r-panel); box-shadow: var(--ring), 0 8px 24px oklch(0 0 0 / .35); padding: 4px; min-width: 220px; display: flex; flex-direction: column; }
+.pop[hidden] { display: none; }
+.pop a, .pop button { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); color: var(--ink); text-decoration: none; background: none; border: 0; font: 400 14px/20px var(--font); cursor: pointer; text-align: left; }
+.pop button:disabled { opacity: .5; cursor: not-allowed; }
+.pop .dng { color: var(--danger); }
+@media (hover: hover) and (pointer: fine) { .pop a:hover, .pop button:hover:not(:disabled) { background: var(--hover); } }
+.rel { position: relative; }
+
+/* Panels */
+.panel { background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; min-width: 0; }
+.phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.phead .sub { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.plink { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 500; font-size: 12px; background: none; border: 0; cursor: pointer; font-family: var(--font); padding: 4px 0; text-decoration: none; }
+.headline { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.headline .sentence { font-size: 20px; line-height: 28px; font-weight: 600; max-width: 46ch; text-wrap: balance; }
+.headline .sentence span { color: var(--ink2); font-weight: 400; }
+.back { display: inline-flex; align-items: center; gap: 4px; color: var(--ink2); font-size: 12px; background: none; border: 0; padding: 0; cursor: pointer; font-family: var(--font); }
+.back .ic { transform: rotate(180deg); }
+.twocol { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* Lists */
+.lhead, .orow { display: grid; grid-template-columns: minmax(168px, 1.2fr) minmax(188px, 1.2fr) 168px 88px 56px minmax(96px, .8fr); gap: 16px; align-items: center; }
+.lhead, .alhead { padding: 0 0 8px; font-size: 12px; line-height: 16px; color: var(--ink2); border-bottom: 1px solid var(--line); }
+.orow, .arow, .trow { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.orow { cursor: pointer; }
+.orow:last-child, .arow:last-child, .trow:last-child { border-bottom: 0; }
+@media (hover: hover) and (pointer: fine) { .orow:hover { background: var(--hover); } }
+.alhead, .arow { display: grid; grid-template-columns: 72px minmax(152px, 1fr) 64px minmax(232px, 1.6fr) 96px; gap: 16px; align-items: center; }
+.trow { display: grid; grid-template-columns: minmax(200px, 1.6fr) 72px 56px 80px 72px; gap: 12px; align-items: center; }
+.orow.srow, .lhead.shead { grid-template-columns: minmax(168px, 1.2fr) 196px 148px 164px 72px 144px; }
+.crow { display: grid; grid-template-columns: 96px minmax(120px, 1fr) 184px 112px; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.crow:last-child { border-bottom: 0; }
+.pname strong { font-weight: 600; }
+.pname .code { color: var(--muted); font-size: 12px; margin-left: 4px; }
+.pname .flags { margin-top: 4px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.cell .lab { display: none; font-size: 12px; line-height: 16px; color: var(--muted); }
+.cell .big { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cell .small { font-size: 12px; line-height: 16px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.cell.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cell .nx { display: flex; gap: 8px; align-items: flex-start; }
+.nx .ic { margin-top: 2px; }
+.nx.warn .ic { color: var(--s-warn); } .nx.serious .ic { color: var(--s-serious); } .nx.ok .ic { color: var(--s-good); } .nx.idle .ic { color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; line-height: 16px; color: var(--ink2); align-items: center; margin-bottom: 8px; }
+.k { display: inline-block; width: 12px; height: 8px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.mc { display: block; overflow: visible; }
+
+/* Stepper and timeline */
+.stepper { display: grid; grid-template-columns: repeat(4, 1fr); list-style: none; margin: 0; padding: 0; }
+.step { position: relative; display: flex; flex-direction: column; gap: 2px; padding-top: 32px; padding-right: 8px; }
+.step::before { content: ""; position: absolute; top: 11px; left: 0; right: 0; height: 2px; background: var(--line); }
+.step.done::before { background: var(--accent); }
+.step .mk { position: absolute; top: 0; left: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--panel); box-shadow: 0 0 0 2px var(--line); color: var(--muted); z-index: 1; }
+.step.done .mk { background: var(--accent-fill); color: #fff; box-shadow: none; }
+.step.cur .mk { box-shadow: 0 0 0 2px var(--accent); color: var(--accent); }
+.step b { font-weight: 600; }
+.tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tl li { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 12px; padding-bottom: 16px; }
+.tl li::before { content: ""; position: absolute; left: 3.5px; top: 12px; bottom: 0; width: 1px; background: var(--line); }
+.tl li:last-child::before { display: none; }
+.tl .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 6px; }
+.mbar { display: flex; gap: 2px; height: 12px; }
+.mbar i { display: block; height: 12px; border-radius: 2px; }
+.mrow { display: grid; grid-template-columns: 88px minmax(0, 1fr) 72px; gap: 12px; align-items: center; padding: 4px 0; }
+.mrow .track { height: 12px; background: var(--line); border-radius: 2px; display: flex; overflow: hidden; }
+.mrow .track i { display: block; height: 12px; background: var(--st3); }
+
+/* Modal */
+#modals .scrim { position: fixed; inset: 0; z-index: 20; background: var(--scrim); display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+#modals .scrim[hidden] { display: none; }
+.modal { background: var(--panel); color: var(--ink); box-shadow: var(--ring), 0 16px 48px oklch(0 0 0 / .4); border-radius: var(--r-panel); width: 100%; max-width: 640px; padding: 24px; display: flex; flex-direction: column; gap: 16px; animation: pop 160ms var(--ease); }
+#shell.phone .modal { max-width: 390px; padding: 16px; }
+@keyframes pop { from { opacity: 0; transform: scale(.96); } }
+.modal header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.mfoot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 12px; }
+.plan { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: var(--r-panel); background: var(--page); box-shadow: var(--ring); cursor: pointer; }
+.plan input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.plan:has(input:checked) { box-shadow: 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.plan:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.plan:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.plan .title { font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.plan .units { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tag { font-size: 12px; line-height: 16px; padding: 0 8px; border-radius: var(--r-pill); background: var(--accent-fill); color: var(--accent-ink); font-weight: 500; }
+.callout { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--c, var(--s-warn)) 14%, var(--panel)); font-size: 12px; line-height: 16px; }
+.callout .ic { color: var(--c, var(--s-warn)); }
+.callout.crit { --c: var(--s-crit); } .callout.good { --c: var(--s-good); } .callout.info { --c: var(--accent); }
+.msgbox { white-space: pre-wrap; background: var(--page); border-radius: var(--r-control); padding: 12px; box-shadow: var(--ring); font-size: 14px; line-height: 20px; max-height: 240px; overflow: auto; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 12px; text-align: center; }
+.skel { height: 12px; border-radius: 4px; background: var(--raised); }
+.states { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.plist2 { margin: 8px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Phone and narrow layouts, driven by the frame width */
+@container dev (max-width: 760px) {
+  .lhead, .alhead { display: none; }
+  .orow, .arow, .orow.srow { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .crow { grid-template-columns: 1fr 1fr; }
+  .crow > :nth-child(2), .crow > :nth-child(3) { grid-column: 1 / -1; }
+  .orow .pname, .arow .cell.wide { grid-column: 1 / -1; }
+  .cell .lab { display: block; }
+  .cell.num { text-align: left; }
+  .twocol { grid-template-columns: minmax(0, 1fr); }
+  .trow { grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+  .trow > :first-child { grid-column: 1 / -1; }
+  .legend.hide-narrow { display: none; }
+  .headline .sentence { font-size: 16px; line-height: 24px; }
+  .stepper { grid-template-columns: 1fr 1fr; row-gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } .btn:active { transform: none; } .modal { animation: none; } }
+</style>
+
+<main>
+  <div>
+    <h1>Stock Report pages</h1>
+    <p class="muted">Every page in the version 2 look, one at a time. Pick a page, then switch between laptop and phone. Each page starts with who uses it, what they decide, and the one sentence it should leave them with.</p>
+  </div>
+  <div class="controls">
+    <div class="picker" role="tablist" aria-label="Pages" id="picker"></div>
+    <div class="row">
+      <span class="seg" role="group" aria-label="Device" id="devsw"><button type="button" data-d="laptop" aria-pressed="true">Laptop</button><button type="button" data-d="phone" aria-pressed="false">Phone</button></span>
+      <span class="seg" role="group" aria-label="Preview theme" id="thsw"><button type="button" data-t="page" aria-pressed="true">Page</button><button type="button" data-t="dark" aria-pressed="false">Dark</button><button type="button" data-t="light" aria-pressed="false">Light</button></span>
+    </div>
+  </div>
+  <div id="shell">
+    <div class="brief" id="brief"></div>
+    <div class="device" id="device"><div id="app" style="display:flex;flex-direction:column;gap:16px"></div></div>
+    <div id="modals"></div>
+  </div>
+</main>
+
+<script id="domain">
+/* Pure data and rules. No page access here, so Node can run it. Mirrors app/domain (orders.py, forecast.py) and the planned matching and chase modules. */
+var SR = {};
+(function () {
+  var TODAY = new Date(2026, 9, 29), MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function dayStr(off) { var t = new Date(2026, 9, 29 + off); return MON[t.getMonth()] + " " + t.getDate(); }
+  function fmt(n) { return Number(n).toLocaleString("en-US"); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  var SUP = { Acme: "Acme Manufacturing", Nova: "Nova Imports" };
+  var PRODUCTS = [
+    { code: "GAD", name: "Gadget Pro", stock: 0, burn: 7.4, trend: 1.01, days: 0.0, incl: 40.5, out: "Oct 29", by: "Aug 31", st: [0, 300, 0], sugg: 777, level: "crit", flag: "Out of stock", note: "Reorder now. Ordered units not enough.", l3: [7, 7, 8], p4: [7, 7, 7, 8], base: 7 },
+    { code: "GIZ", name: "Gizmo Mini", stock: 100, burn: 10.9, trend: 1.50, days: 9.2, incl: 33.9, out: "Nov 07", by: "Sep 09", st: [150, 0, 120], sugg: 1044, level: "crit", flag: "Under 21 days", note: "Reorder now. Ordered units not enough.", l3: [9, 9, 9], p4: [6, 6, 6, 6], base: 6 },
+    { code: "DOO", name: "Doohickey Set", stock: 120, burn: 2.5, trend: 0.89, days: 48.0, incl: 48.0, out: "Dec 16", by: "Oct 18", st: [0, 0, 0], sugg: 142, level: "serious", flag: "Reorder now", note: "Nothing is on order.", l3: [3, 3, 2], p4: [3, 3, 3, 3], base: 3 },
+    { code: "WID", name: "Widget Classic", stock: 320, burn: 4.3, trend: 0.96, days: 74.4, incl: 120.9, out: "Jan 11", by: "Nov 13", st: [0, 200, 0], sugg: 132, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [5, 4, 5, 4], base: 5 },
+    { code: "THI", name: "Thingamajig XL", stock: 900, burn: 5.0, trend: 1.33, days: 180.0, incl: 230.0, out: "Apr 27", by: "Feb 27", st: [0, 0, 250], sugg: 0, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [3, 3, 4, 3], base: 4 },
+    { code: "SPR", name: "Sprocket Spare", stock: 50, burn: 0, trend: 1, days: null, incl: null, out: null, by: null, st: [0, 0, 0], sugg: 0, level: "good", flag: "Healthy", note: "No sales yet.", l3: [0, 0, 0], p4: [0, 0, 0, 0], base: 0 }
+  ];
+  function product(code) { return PRODUCTS.filter(function (p) { return p.code === code; })[0]; }
+
+  /* The seed orders. createdAgo and the other "Ago" fields are days before today, Oct 29. */
+  var ORDERS = [
+    { name: "GIZ-001", code: "GIZ", sup: "Acme", units: 120, createdAgo: 30, confirmedAgo: 28, trk: [{ n: "1Z999AA10123456784", c: "UPS", u: 120, ago: 14 }], arrived: 0, arrivedAgo: null, notes: "" },
+    { name: "GIZ-002", code: "GIZ", sup: "Acme", units: 150, createdAgo: 3, confirmedAgo: null, trk: [], arrived: 0, arrivedAgo: null, notes: "" },
+    { name: "WID-001", code: "WID", sup: "Nova", units: 200, createdAgo: 20, confirmedAgo: 18, trk: [], arrived: 0, arrivedAgo: null, notes: "" },
+    { name: "THI-001", code: "THI", sup: "Nova", units: 400, createdAgo: 40, confirmedAgo: 38, trk: [{ n: "794644790138", c: "FedEx", u: 400, ago: 25 }], arrived: 150, arrivedAgo: 5, notes: "" },
+    { name: "GAD-001", code: "GAD", sup: "Acme", units: 300, createdAgo: 12, confirmedAgo: 11, trk: [], arrived: 0, arrivedAgo: null, notes: "Rush if possible" },
+    { name: "DOO-001", code: "DOO", sup: "Nova", units: 100, createdAgo: 60, confirmedAgo: 58, trk: [{ n: "9400111899223344556677", c: "USPS", u: 100, ago: 40 }], arrived: 100, arrivedAgo: 20, notes: "" }
+  ];
+  function order(name) { return ORDERS.filter(function (o) { return o.name === name; })[0]; }
+
+  /* app/domain/orders.py stages() */
+  function stagesOf(o, flags) {
+    var closed = !!(flags && flags.closed), cancelled = !!(flags && flags.cancelled);
+    var tracked = o.trk.reduce(function (s, t) { return s + t.u; }, 0), arrived = Math.min(o.arrived, o.units);
+    var rem = o.units - arrived, way = Math.min(tracked, rem), rest = rem - way;
+    var confirmed = o.confirmedAgo !== null || tracked > 0 || arrived > 0;
+    var open = !(closed || cancelled);
+    var status = cancelled ? "cancelled" : closed ? "closed" : rem === 0 ? "received" : arrived > 0 ? "partial" : way > 0 ? "on the way" : confirmed ? "in production" : "placed";
+    return { placed: open && !confirmed ? rest : 0, prod: open && confirmed ? rest : 0, way: open ? way : 0, arrived: arrived, confirmed: confirmed, status: status, rem: rem, tracked: tracked, open: open };
+  }
+
+  /* chase rules (SOP section 4): confirm at 2 or more days, tracking at 10 or more, where is it past 10 */
+  function chaseOf(o, flags) {
+    var st = stagesOf(o, flags);
+    if (!st.open || st.rem === 0) return null;
+    var best = null;
+    function cand(kind, days, thr, ok) { if (ok && days >= thr) { var over = days - thr; if (!best || over > best.over) best = { kind: kind, days: days, thr: thr, over: over }; } }
+    cand("confirm", o.createdAgo, 2, !st.confirmed);
+    cand("tracking", o.confirmedAgo || 0, 10, st.confirmed && o.confirmedAgo !== null && (o.units - st.tracked) > 0);
+    var oldest = o.trk.reduce(function (m, t) { return Math.max(m, t.ago); }, 0);
+    if (st.way > 0 && oldest > 10) { var ov = oldest - 10; if (!best || ov > best.over) best = { kind: "where", days: oldest, thr: 10, over: ov }; }
+    return best;
+  }
+
+  /* expected arrival: order date plus lead time (assumption, the SOP has no field for it) */
+  function expectedOffset(o, lead) { return -o.createdAgo + (lead || 45); }
+
+  /* oldest open order first, spilling over */
+  function openOrdersFor(code) {
+    return ORDERS.filter(function (o) { var s = stagesOf(o); return o.code === code && s.open && s.rem > 0; })
+      .sort(function (a, b) { return b.createdAgo - a.createdAgo; })
+      .map(function (o) { return { name: o.name, rem: stagesOf(o).rem }; });
+  }
+  function fifo(units, open) {
+    var left = units, al = [];
+    open.forEach(function (o) { var take = Math.min(left, o.rem); al.push({ name: o.name, take: take, rem: o.rem }); left -= take; });
+    return { allocs: al, left: left };
+  }
+
+  function detectCarrier(number) {
+    var n = String(number).replace(/[\s-]/g, "").toUpperCase();
+    if (/^1Z[0-9A-Z]{16}$/.test(n)) return "UPS";
+    if (/^[A-Z]{2}\d{9}US$/.test(n) || /^9\d{19,21}$/.test(n)) return "USPS";
+    if (/^(\d{12}|\d{15})$/.test(n)) return "FedEx";
+    if (/^(\d{10,11}|JD\d{18})$/.test(n)) return "DHL";
+    return "";
+  }
+  function trackingUrl(carrier, number) {
+    var n = encodeURIComponent(String(number).replace(/[\s-]/g, "").toUpperCase());
+    var u = { UPS: "https://www.ups.com/track?tracknum=", FedEx: "https://www.fedex.com/fedextrack/?trknbr=", USPS: "https://tools.usps.com/go/TrackConfirmAction?tLabels=", DHL: "https://www.dhl.com/us-en/home/tracking/tracking-express.html?submit=1&tracking-id=" }[carrier];
+    return u ? u + n : null;
+  }
+
+  var ARRIVALS = [
+    { id: "A-2", code: "THI", ago: 5, units: 150, allocs: [{ order: "THI-001", u: 150 }] },
+    { id: "A-1", code: "DOO", ago: 20, units: 100, allocs: [{ order: "DOO-001", u: 100 }] }
+  ];
+  var EXAMPLE_ARRIVAL = { id: "A-3", code: "GAD", ago: 0, units: 330, allocs: [{ order: "GAD-001", u: 300 }], example: true };
+
+  SR.TODAY = TODAY; SR.dayStr = dayStr; SR.fmt = fmt; SR.esc = esc; SR.SUP = SUP; SR.PRODUCTS = PRODUCTS; SR.product = product; SR.ORDERS = ORDERS; SR.order = order;
+  SR.stagesOf = stagesOf; SR.chaseOf = chaseOf; SR.expectedOffset = expectedOffset; SR.openOrdersFor = openOrdersFor; SR.fifo = fifo;
+  SR.detectCarrier = detectCarrier; SR.trackingUrl = trackingUrl; SR.ARRIVALS = ARRIVALS; SR.EXAMPLE_ARRIVAL = EXAMPLE_ARRIVAL;
+})();
+</script>
+
+<script id="ui">
+(function () {
+  var IC = {
+    "chevron-down": '<path d="m6 9 6 6 6-6"/>', "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+    "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    "circle-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+    "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+    "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+    "trending-up": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>', "trending-down": '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+    "ellipsis": '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+    "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+    "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
+    "settings": '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    "copy": '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>'
+  };
+  function icon(n, s) { s = s || 16; return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
+  var fmt = SR.fmt, esc = SR.esc, dayStr = SR.dayStr;
+  var S = { page: "orders", orderName: "GIZ-001", flags: {}, device: "laptop", filter: "all", showExample: false };
+
+  /* ---------- shared pieces ---------- */
+  var STATUS = {
+    "placed": ["plain", "clock"], "in production": ["info", "package"], "on the way": ["info", "truck"], "partial": ["info", "truck"],
+    "received": ["good", "circle-check"], "closed": ["plain", "x"], "cancelled": ["plain", "x"]
+  };
+  function statusBadge(s) { var m = STATUS[s]; return '<span class="badge ' + m[0] + '">' + icon(m[1]) + s.charAt(0).toUpperCase() + s.slice(1) + '</span>'; }
+  function levelBadge(level, icn, text) { return '<span class="badge ' + level + '">' + icon(icn) + text + '</span>'; }
+
+  function stagebar(o, st, W) {
+    W = W || 140; var H = 12, max = 400, sc = (W - 6) / max, segs = [[st.placed, "var(--st1)"], [st.prod, "var(--st2)"], [st.way, "var(--st3)"], [st.arrived, "var(--st4)"]], x = 0, out = "", i;
+    for (i = 0; i < segs.length; i++) { if (!segs[i][0]) continue; var w = Math.max(segs[i][0] * sc, 4); out += '<rect x="' + x.toFixed(1) + '" y="2" width="' + w.toFixed(1) + '" height="8" rx="2" style="fill:' + segs[i][1] + '"/>'; x += w + 2; }
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + o.name + ': ' + st.placed + ' placed, ' + st.prod + ' in production, ' + st.way + ' on the way, ' + st.arrived + ' arrived">' + out + '</svg>';
+  }
+  var STAGE_LEGEND = '<div class="legend"><span><i class="k" style="background:var(--st1)"></i>Placed</span><span><i class="k" style="background:var(--st2)"></i>In production</span><span><i class="k" style="background:var(--st3)"></i>On the way</span><span><i class="k" style="background:var(--st4)"></i>Arrived</span></div>';
+
+  function sup(o) { return SR.SUP[o.sup]; }
+  function nextStep(o, st, ch) {
+    var s = o.sup;
+    if (ch) {
+      var t = ch.kind === "confirm" ? "Ask " + s + " to confirm" : ch.kind === "tracking" ? "Ask " + s + " for tracking" : "Ask " + s + " where it is";
+      var d = ch.kind === "confirm" ? "Placed " + ch.days + " days ago" : ch.kind === "tracking" ? "Confirmed " + ch.days + " days ago, no tracking" : "On the way " + ch.days + " days";
+      return { cls: ch.over >= 8 ? "serious" : "warn", icn: "triangle-alert", text: t, detail: d };
+    }
+    if (st.status === "received") return { cls: "ok", icn: "circle-check", text: "Complete", detail: "All units arrived" };
+    if (st.status === "closed" || st.status === "cancelled") return { cls: "idle", icn: "x", text: st.status === "closed" ? "Closed" : "Cancelled", detail: "No longer counts as ordered" };
+    return { cls: "idle", icn: "clock", text: st.status === "placed" ? "Waiting for confirmation" : st.status === "in production" ? "Waiting for tracking" : "Waiting for arrival", detail: "Nothing to chase yet" };
+  }
+  function attention(o) { var ch = SR.chaseOf(o), st = SR.stagesOf(o); return st.rem === 0 ? -2 : ch ? ch.over : -1; }
+  function ranked() { return SR.ORDERS.slice().sort(function (a, b) { return attention(b) - attention(a) || b.createdAgo - a.createdAgo; }); }
+
+  function topbar(active) {
+    return '<div class="topbar"><span class="brand"><span class="logo">' + icon("package") + '</span>Stock Report</span>' +
+      '<nav class="tabs" aria-label="Primary"><button class="tab" type="button" data-go="stock"' + (active === "stock" ? ' aria-current="page"' : "") + '>Stock</button><button class="tab" type="button" data-go="orders"' + (active === "orders" || active === "order" ? ' aria-current="page"' : "") + '>Orders</button><button class="tab" type="button" data-go="arrivals"' + (active === "arrivals" ? ' aria-current="page"' : "") + '>Arrivals</button>' +
+      '<button class="tab" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="more">More ' + icon("chevron-down") + '</button></nav>' +
+      '<div class="right"><span class="meta">Today, Oct 29</span><button class="avatar" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="me" aria-label="Account">SM</button></div>' +
+      '<div class="pop" role="menu" data-for="more" hidden style="top:100%;left:176px;margin-top:4px"><button type="button" role="menuitem" data-go="chase">' + icon("mail") + 'Chase list <span class="badge crit" style="padding:0 8px;margin-left:auto">5</span></button><button type="button" role="menuitem" data-go="settings">' + icon("settings") + 'Settings</button><button type="button" role="menuitem" data-go="settings">' + icon("mail") + 'Outbox</button></div>' +
+      '<div class="pop" role="menu" data-for="me" hidden style="top:100%;right:0;margin-top:4px"><span class="meta" style="padding:8px 12px">Viewing as</span><button type="button" role="menuitemradio" aria-checked="true">' + icon("circle-check") + 'Staff</button><button type="button" role="menuitemradio" aria-checked="false" data-go="supplier"><span style="width:16px"></span>Supplier: Acme Manufacturing</button></div></div>';
+  }
+
+  /* ---------- Orders ---------- */
+  function ordersHeadline() {
+    var n = SR.ORDERS.filter(function (o) { return SR.chaseOf(o); }).length;
+    var done = SR.ORDERS.filter(function (o) { return SR.stagesOf(o).status === "received"; }).map(function (o) { return o.name; });
+    return n + " orders need a message." + (done.length ? " " + done.join(", ") + " is complete." : "");
+  }
+  function orderRow(o) {
+    var st = SR.stagesOf(o), ch = SR.chaseOf(o), nx = nextStep(o, st, ch), p = SR.product(o.code);
+    return '<div class="orow" role="link" tabindex="0" data-act="open-order" data-id="' + o.name + '">' +
+      '<div class="pname"><strong>' + o.name + '</strong><span class="code">' + p.name + '</span><div class="flags">' + statusBadge(st.status) + '</div></div>' +
+      '<div class="cell"><span class="lab">Next step</span><div class="nx ' + nx.cls + '">' + icon(nx.icn) + '<div><div class="big" style="font-weight:500">' + nx.text + '</div><div class="small">' + nx.detail + '</div></div></div></div>' +
+      '<div class="cell"><span class="lab">Stages</span>' + stagebar(o, st) + '<div class="small">' + fmt(o.units) + ' units</div></div>' +
+      '<div class="cell num"><span class="lab">Arrived</span>' + fmt(st.arrived) + ' of ' + fmt(o.units) + '</div>' +
+      '<div class="cell num"><span class="lab">Age</span>' + o.createdAgo + 'd</div>' +
+      '<div class="cell"><span class="lab">Supplier</span>' + sup(o) + '</div></div>';
+  }
+  function pageOrders() {
+    var list = ranked().filter(function (o) {
+      var st = SR.stagesOf(o), ch = SR.chaseOf(o);
+      return S.filter === "all" || (S.filter === "chase" && ch) || (S.filter === "open" && st.rem > 0) || (S.filter === "done" && st.rem === 0);
+    });
+    var cnt = { all: SR.ORDERS.length, chase: SR.ORDERS.filter(function (o) { return SR.chaseOf(o); }).length, open: SR.ORDERS.filter(function (o) { return SR.stagesOf(o).rem > 0; }).length, done: SR.ORDERS.filter(function (o) { return SR.stagesOf(o).rem === 0; }).length };
+    function sg(k, label) { return '<button type="button" data-act="filter" data-f="' + k + '" aria-pressed="' + (S.filter === k) + '">' + label + ' ' + cnt[k] + '</button>'; }
+    return topbar("orders") +
+      '<div class="panel headline"><div class="sentence">' + ordersHeadline() + ' <span>Oldest waits first.</span></div><button class="btn primary" type="button" data-act="new-order">' + icon("plus") + 'New order</button></div>' +
+      '<div class="panel"><div class="phead"><div><h3>Orders</h3><div class="sub">Needs attention first</div></div>' +
+      '<span class="seg" role="group" aria-label="Filter orders">' + sg("all", "All") + sg("chase", "Needs a message") + sg("open", "Open") + sg("done", "Complete") + '</span></div>' +
+      '<div class="legend hide-narrow"><span>Stage bar:</span><span><i class="k" style="background:var(--st1)"></i>Placed</span><span><i class="k" style="background:var(--st2)"></i>In production</span><span><i class="k" style="background:var(--st3)"></i>On the way</span><span><i class="k" style="background:var(--st4)"></i>Arrived</span></div>' +
+      '<div class="lhead"><span>Order</span><span>Next step</span><span>Stages</span><span style="text-align:right">Arrived</span><span style="text-align:right">Age</span><span>Supplier</span></div>' +
+      (list.length ? list.map(orderRow).join("") : '<div class="empty"><span>' + icon("package", 24) + '</span><strong>No orders match this filter</strong><span class="meta">Choose All, or create an order.</span><button class="btn small" type="button" data-act="filter" data-f="all">Show all orders</button></div>') +
+      '</div>' +
+      '<div class="states"><div class="panel"><h3>Empty state</h3><div class="empty"><span>' + icon("package", 24) + '</span><strong>No orders yet</strong><span class="meta">Orders you place with suppliers show up here.</span><button class="btn small" type="button" data-act="new-order">New order</button></div></div>' +
+      '<div class="panel"><h3>Loading</h3><div style="display:flex;flex-direction:column;gap:12px;margin-top:12px"><div class="skel" style="width:70%"></div><div class="skel" style="width:95%"></div><div class="skel" style="width:60%"></div></div><p class="meta" style="margin-top:8px">Rows are shaped like the result, so nothing jumps when data arrives.</p></div></div>';
+  }
+
+  /* ---------- Order detail ---------- */
+  function takeaway(o, st, ch) {
+    var s = o.sup;
+    if (st.status === "cancelled") return "This order is cancelled. It no longer counts as ordered.";
+    if (st.status === "closed") return "This order is closed. The " + fmt(o.units - st.arrived) + " units that never arrived no longer count as ordered.";
+    if (st.status === "received") return "All " + fmt(o.units) + " units arrived. Nothing left to do.";
+    if (ch && ch.kind === "where") return fmt(st.way) + " units shipped " + ch.days + " days ago and haven't arrived. Ask " + s + " where it is.";
+    if (ch && ch.kind === "tracking") return "Confirmed " + ch.days + " days ago, but " + fmt(o.units - st.tracked) + " of " + fmt(o.units) + " units have no tracking. Ask " + s + " for tracking numbers.";
+    if (ch) return "Placed " + ch.days + " days ago and still not confirmed. Ask " + s + " to confirm.";
+    return fmt(st.rem) + " units are still to come. Nothing to chase yet.";
+  }
+  function step(label, done, cur, sub, icn) { return '<li class="step' + (done ? " done" : "") + (cur ? " cur" : "") + '"' + (cur ? ' aria-current="step"' : "") + '><span class="mk">' + icon(done ? "circle-check" : icn, 16) + '</span><b>' + label + '</b><span class="meta">' + sub + '</span></li>'; }
+  function pageOrder() {
+    var o = SR.order(S.orderName), fl = S.flags, st = SR.stagesOf(o, fl), ch = SR.chaseOf(o, fl), p = SR.product(o.code);
+    var untracked = o.units - st.tracked, msgKind = ch ? ch.kind : "order";
+    var steps = [
+      { l: "Placed", d: true, s: dayStr(-o.createdAgo) },
+      { l: "Confirmed", d: st.confirmed, s: st.confirmed ? (o.confirmedAgo !== null ? dayStr(-o.confirmedAgo) : "has tracking") : "waiting" },
+      { l: "Shipped", d: st.tracked > 0, s: st.tracked > 0 ? fmt(st.tracked) + " of " + fmt(o.units) + " units" : "no tracking yet" },
+      { l: "Arrived", d: st.rem === 0, s: st.arrived > 0 ? fmt(st.arrived) + " of " + fmt(o.units) + " units" : "nothing yet" }
+    ], firstOpen = -1, i;
+    for (i = 0; i < steps.length; i++) if (!steps[i].d) { firstOpen = i; break; }
+    var icons = ["clock", "package", "truck", "circle-check"];
+    var stepsHTML = steps.map(function (s, k) { return step(s.l, s.d, st.open && k === firstOpen, s.s, icons[k]); }).join("");
+
+    var primary = "", secondary = "";
+    if (st.open) {
+      if (ch) primary = '<button class="btn primary" type="button" data-act="modal" data-m="message" data-k="' + msgKind + '">' + icon("copy") + 'Copy follow-up message</button>';
+      else if (!st.confirmed) primary = '<button class="btn primary" type="button">' + icon("circle-check") + 'Mark confirmed</button>';
+      else if (untracked > 0) primary = '<button class="btn primary" type="button" data-act="modal" data-m="tracking">' + icon("truck") + 'Add tracking</button>';
+      if (ch && !st.confirmed) secondary += '<button class="btn" type="button">Mark confirmed</button>';
+      if (untracked > 0 && !(primary.indexOf("Add tracking") > -1)) secondary += '<button class="btn" type="button" data-act="modal" data-m="tracking">' + icon("truck") + 'Add tracking</button>';
+      secondary += '<button class="btn" type="button" data-act="modal" data-m="message" data-k="order">' + icon("mail") + 'Copy order message</button>' + (st.rem > 0 ? '<button class="btn" type="button" data-act="modal" data-m="edit">Edit</button>' +
+        '<button class="btn quiet" type="button">Close, no more coming</button><button class="btn quiet" type="button">Cancel order</button>' : "");
+    } else secondary = '<button class="btn primary" type="button">Reopen</button>';
+    var blocked = o.arrived > 0;
+    var menu = '<div class="rel"><button class="btn" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="del" aria-label="More actions">' + icon("ellipsis") + '</button>' +
+      '<div class="pop" role="menu" data-for="del" hidden style="right:0;top:100%;margin-top:4px"><button type="button" class="dng" role="menuitem" data-act="modal" data-m="delete"' + (blocked ? " disabled" : "") + '>Delete order</button>' + (blocked ? '<span class="meta" style="padding:4px 12px 8px">Arrivals are matched to this order. Close or cancel it instead.</span>' : "") + '</div></div>';
+
+    var trk = o.trk.length ? o.trk.map(function (t) {
+      var url = SR.trackingUrl(t.c, t.n);
+      return '<div class="trow"><div>' + icon("truck") + ' ' + (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(t.n) + '</a>' : esc(t.n)) + '</div><span>' + t.c + '</span><span>' + fmt(t.u) + ' units</span><span class="meta">shipped ' + dayStr(-t.ago) + '</span>' + (st.open ? '<button class="btn quiet small" type="button">Remove</button>' : "<span></span>") + '</div>';
+    }).join("") : '<div class="empty"><span>' + icon("truck", 24) + '</span><strong>No tracking numbers yet</strong><span class="meta">' + fmt(untracked) + ' of ' + fmt(o.units) + ' units still have none. You can add more later.</span></div>';
+
+    var ev = [{ t: "Created", d: fmt(o.units) + " units" + (o.notes ? " · " + o.notes : ""), by: "Staff", ago: o.createdAgo }];
+    if (o.confirmedAgo !== null) ev.push({ t: "Confirmed", d: "", by: sup(o), ago: o.confirmedAgo });
+    o.trk.forEach(function (t) { ev.push({ t: "Tracking added", d: t.n + " × " + fmt(t.u), by: sup(o), ago: t.ago }); });
+    if (o.arrived > 0) ev.push({ t: "Arrival matched", d: fmt(o.arrived) + " units", by: "Staff", ago: o.arrivedAgo });
+    if (!st.open) ev.push({ t: st.status === "closed" ? "Closed" : "Cancelled", d: "", by: "Staff", ago: 0 });
+    ev.sort(function (a, b) { return a.ago - b.ago; });
+    var tl = ev.map(function (e) { return '<li><span class="dot"></span><div><b style="font-weight:600">' + e.t + '</b>' + (e.d ? ' <span class="muted">· ' + esc(e.d) + '</span>' : "") + '<div class="meta">' + e.by + '</div></div><span class="meta">' + (e.ago === 0 ? "Today" : dayStr(-e.ago)) + '</span></li>'; }).join("");
+
+    var matched = o.arrived > 0 ? '<div class="mrow"><span>' + dayStr(-o.arrivedAgo) + '</span><span class="track"><i style="width:' + Math.round(o.arrived / o.units * 100) + '%"></i></span><span>' + fmt(o.arrived) + ' units</span></div><p class="meta">Matched by the arrival of ' + dayStr(-o.arrivedAgo) + '. Oldest open order first.</p>' : '<div class="empty"><span>' + icon("package", 24) + '</span><strong>Nothing has arrived yet</strong><span class="meta">Arrivals for ' + p.name + ' match the oldest open order first.</span></div>';
+
+    var banner = !st.open ? '<div class="callout info">' + icon("circle-alert") + '<span>This order is ' + st.status + '. It no longer counts as ordered on the Stock page.' + (st.status === "closed" ? ' Reopen it if more units are coming.' : "") + '</span></div>' : "";
+    var exp = st.rem > 0 && st.open ? '<p class="meta" style="margin-top:12px">Expected ' + dayStr(SR.expectedOffset(o)) + ': order date plus the 45-day lead time. This is an assumption, because the SOP has no expected-date field.</p>' : "";
+
+    return topbar("orders") +
+      '<div><button class="back" type="button" data-go="orders">' + icon("chevron-right") + ' All orders</button></div>' +
+      '<div class="panel headline"><div><h2 style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">' + o.name + ' ' + statusBadge(st.status) + '</h2><div class="meta">' + p.name + ' · ' + sup(o) + ' · created ' + o.createdAgo + ' days ago</div>' +
+      '<div class="sentence" style="margin-top:12px;font-size:16px;line-height:24px">' + takeaway(o, st, ch) + '</div></div></div>' + banner +
+      '<div class="twocol"><div class="stack">' +
+      '<div class="panel"><div class="phead"><div><h3>Where the units are</h3><div class="sub">' + fmt(o.units) + ' units ordered</div></div></div><ol class="stepper">' + stepsHTML + '</ol>' +
+      '<div style="margin-top:16px">' + stagebar(o, st, 320) + '<div class="meta" style="margin-top:4px">' + fmt(st.placed) + ' placed · ' + fmt(st.prod) + ' in production · ' + fmt(st.way) + ' on the way · ' + fmt(st.arrived) + ' arrived</div></div>' + exp + '</div>' +
+      '<div class="panel"><div class="phead"><div><h3>Tracking</h3><div class="sub">' + fmt(st.tracked) + ' of ' + fmt(o.units) + ' units</div></div>' + (st.open && untracked > 0 ? '<button class="btn small" type="button" data-act="modal" data-m="tracking">' + icon("plus") + 'Add tracking</button>' : "") + '</div>' + trk + '</div>' +
+      '<div class="panel"><div class="phead"><div><h3>Arrivals matched</h3></div></div>' + matched + '</div>' +
+      '</div><div class="stack">' +
+      '<div class="panel"><div class="phead"><div><h3>Next step</h3></div>' + menu + '</div><div style="display:flex;flex-direction:column;gap:8px;align-items:stretch">' + primary + secondary + '</div></div>' +
+      '<div class="panel"><div class="phead"><div><h3>History</h3><div class="sub">Who did what, and when</div></div></div><ul class="tl">' + tl + '</ul></div></div></div>';
+  }
+
+  /* ---------- Arrivals ---------- */
+  var ARR_COL = ["var(--st4)", "var(--st3)", "var(--st2)"];
+  function matchBar(a) {
+    var W = 232, segs = "", left = a.units, legend = [];
+    a.allocs.forEach(function (al, i) { segs += '<i style="width:' + (al.u / a.units * W).toFixed(0) + 'px;background:' + ARR_COL[i % 3] + '"></i>'; legend.push('<span><i class="k" style="background:' + ARR_COL[i % 3] + '"></i>' + al.order + ' ' + fmt(al.u) + '</span>'); left -= al.u; });
+    if (left > 0) { segs += '<i style="width:' + (left / a.units * W).toFixed(0) + 'px;background:var(--s-crit)"></i>'; legend.push('<span><i class="k" style="background:var(--s-crit)"></i>Unmatched ' + fmt(left) + '</span>'); }
+    return { html: '<div class="mbar" style="width:' + W + 'px" role="img" aria-label="' + a.units + ' units: ' + legend.length + ' parts">' + segs + '</div><div class="legend" style="margin:4px 0 0">' + legend.join("") + '</div>', left: left };
+  }
+  function arrivalRow(a) {
+    var p = SR.product(a.code), mb = matchBar(a);
+    return '<div class="arow"><div class="cell"><span class="lab">Date</span>' + (a.ago === 0 ? "Today" : dayStr(-a.ago)) + '</div>' +
+      '<div class="pname cell wide"><strong>' + p.name + '</strong><span class="code">' + p.code + '</span><div class="flags">' + (mb.left > 0 ? levelBadge("crit", "circle-alert", fmt(mb.left) + " units unmatched") : levelBadge("good", "circle-check", "All matched")) + (a.example ? '<span class="meta">Example</span>' : "") + '</div></div>' +
+      '<div class="cell num"><span class="lab">Units</span>' + fmt(a.units) + '</div>' +
+      '<div class="cell wide"><span class="lab">Matched to</span>' + mb.html + '</div>' +
+      '<div class="cell"><button class="btn small" type="button" data-act="modal" data-m="fix" data-id="' + a.id + '">Fix match</button></div></div>';
+  }
+  function pageArrivals() {
+    var list = (S.showExample ? [SR.EXAMPLE_ARRIVAL] : []).concat(SR.ARRIVALS);
+    var unm = list.filter(function (a) { return matchBar(a).left > 0; });
+    var head = unm.length ? unm.length + " arrival has units that match no order." : "2 arrivals this month, all matched.";
+    var un = unm.length ? unm.map(function (a) { var l = matchBar(a).left, p = SR.product(a.code); return '<div class="callout crit" style="margin-bottom:8px">' + icon("circle-alert") + '<span><b>' + fmt(l) + ' ' + p.name + '</b> arrived with no open order to match. Assign them to an order or mark them as not from an order. <button class="plink" type="button" data-act="modal" data-m="fix" data-id="' + a.id + '">Fix match</button></span></div>'; }).join("") : '<div class="empty"><span>' + icon("circle-check", 24) + '</span><strong>Everything that arrived is matched</strong><span class="meta">Units that match no order would appear here.</span></div>';
+    return topbar("arrivals") +
+      '<div class="panel headline"><div class="sentence">' + head + ' <span>Oldest open order is filled first.</span></div><button class="btn primary" type="button" data-act="modal" data-m="arrival">' + icon("plus") + 'Record arrival</button></div>' +
+      '<div class="panel"><div class="phead"><div><h3>Recent arrivals</h3><div class="sub">Newest first</div></div><label class="meta"><input type="checkbox" id="ex-toggle" ' + (S.showExample ? "checked" : "") + ' data-act="example"> Show an example with unmatched units</label></div>' +
+      '<div class="alhead"><span>Date</span><span>Product</span><span style="text-align:right">Units</span><span>Matched to</span><span></span></div>' + list.map(arrivalRow).join("") + '</div>' +
+      '<div class="panel"><div class="phead"><div><h3>Unmatched units</h3><div class="sub">Needs someone to decide</div></div></div>' + un + '</div>';
+  }
+
+  /* ---------- Stock (condensed from the design system sheet) ---------- */
+  function series(p) { var pat = [0, 1, -1, 0, 1, 0, -1], out = [], i; for (i = 33; i >= 1; i--) out.push(p.base === 0 ? 0 : Math.max(0, p.base + pat[i % 7] - (p.base > 4 ? 1 : 0))); return out.concat(p.p4, p.l3); }
+  function spark(p) {
+    var s = series(p), W = 112, H = 28, n = s.length, mx = Math.max.apply(null, s.concat([1])), i, older = "", recent = "", area = "";
+    function X(k) { return 4 + (k / (n - 1)) * (W - 8); } function Y(v) { return H - 4 - (v / mx) * (H - 10); }
+    for (i = 0; i < n; i++) { var pt = X(i).toFixed(1) + "," + Y(s[i]).toFixed(1); if (i <= n - 4) older += pt + " "; if (i >= n - 4) recent += pt + " "; area += pt + " "; }
+    area += X(n - 1).toFixed(1) + "," + (H - 4) + " " + X(0).toFixed(1) + "," + (H - 4);
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Daily sales over 40 days for ' + p.name + '"><polygon points="' + area + '" style="fill:var(--accent);fill-opacity:.1"/><polyline points="' + older + '" fill="none" style="stroke:var(--muted)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><polyline points="' + recent + '" fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(s[n - 1]).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(s[n - 1]).toFixed(1) + '" r="4" style="fill:var(--accent)"/></svg>';
+  }
+  function bullet(p) {
+    var W = 164, H = 20, M = 90; function X(d) { return 4 + (Math.min(d, M) / M) * (W - 8); }
+    if (p.days === null) return '<svg class="mc" width="' + W + '" height="' + H + '" role="img" aria-label="No sales"><rect x="4" y="6" width="' + (W - 8) + '" height="8" rx="4" style="fill:var(--line)"/></svg>';
+    var col = p.level === "crit" ? "var(--s-crit)" : p.level === "serious" ? "var(--s-serious)" : p.days < 45 ? "var(--s-warn)" : "var(--accent)";
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + p.days.toFixed(1) + ' days left"><rect x="4" y="6" width="' + (W - 8) + '" height="8" rx="4" style="fill:var(--line)"/><rect x="4" y="6" width="' + Math.max(X(p.days) - 4, 4).toFixed(1) + '" height="8" rx="4" style="fill:' + col + '"/><rect x="' + (X(59) - 1).toFixed(1) + '" y="1" width="2" height="18" rx="1" style="fill:var(--ink)"/><circle cx="' + X(p.incl).toFixed(1) + '" cy="10" r="6" style="fill:var(--panel)"/><circle cx="' + X(p.incl).toFixed(1) + '" cy="10" r="4" style="fill:var(--panel);stroke:var(--ink2);stroke-width:2"/></svg>';
+  }
+  function stage3(p) {
+    var W = 140, tot = p.st[0] + p.st[1] + p.st[2], x = 0, out = "", cols = ["var(--st1)", "var(--st2)", "var(--st3)"], i;
+    if (!tot) return '<svg class="mc" width="' + W + '" height="12" role="img" aria-label="Nothing on order"><rect x="0" y="2" width="' + W + '" height="8" rx="4" style="fill:var(--line)"/></svg>';
+    for (i = 0; i < 3; i++) { if (!p.st[i]) continue; var w = Math.max(p.st[i] * ((W - 4) / 300), 4); out += '<rect x="' + x.toFixed(1) + '" y="2" width="' + w.toFixed(1) + '" height="8" rx="2" style="fill:' + cols[i] + '"/>'; x += w + 2; }
+    return '<svg class="mc" width="' + W + '" height="12" viewBox="0 0 ' + W + ' 12" role="img" aria-label="' + tot + ' units on order">' + out + '</svg>';
+  }
+  var LV = { crit: "circle-alert", serious: "triangle-alert", warn: "clock", good: "circle-check" };
+  function stockRow(p) {
+    var tot = p.st[0] + p.st[1] + p.st[2];
+    return '<div class="orow srow" style="cursor:default"><div class="pname"><strong>' + p.name + '</strong><span class="code">' + p.code + '</span><div class="flags">' + levelBadge(p.level, LV[p.level], p.flag) + (p.note ? '<span class="meta">' + p.note + '</span>' : "") + '</div></div>' +
+      '<div class="cell"><span class="lab">Runway</span>' + bullet(p) + '<div class="small"><span class="big">' + (p.days === null ? "No sales yet" : p.days.toFixed(1) + " days left") + '</span>' + (p.out ? " · out " + p.out : "") + '</div></div>' +
+      '<div class="cell"><span class="lab">Sales, 40 days</span>' + spark(p) + '<div class="small">' + (p.burn ? p.burn.toFixed(1) + " a day " + (p.trend > 1.005 ? icon("trending-up") : p.trend < 0.995 ? icon("trending-down") : "") : "0 a day") + '</div></div>' +
+      '<div class="cell"><span class="lab">Ordered</span>' + stage3(p) + '<div class="small">' + (tot ? fmt(tot) + " on order" : "Nothing on order") + '</div></div>' +
+      '<div class="cell num"><span class="lab">In stock</span><span class="big">' + fmt(p.stock) + '</span></div>' +
+      '<div class="cell" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap"><span class="lab">Suggested</span><b>' + (p.sugg ? fmt(p.sugg) : "None") + '</b><button class="btn small" type="button" data-act="new-order" data-code="' + p.code + '">Order</button></div></div>';
+  }
+  function pageStock() {
+    var chase = SR.ORDERS.map(function (o) { return { o: o, ch: SR.chaseOf(o) }; }).filter(function (x) { return x.ch; }).sort(function (a, b) { return b.ch.over - a.ch.over; });
+    function dp(c) { var W = 176, M = 30; function X(d) { return 4 + (Math.min(d, M) / M) * (W - 8); } var col = c.over >= 8 ? "var(--s-serious)" : "var(--s-warn)";
+      return '<svg class="mc" width="' + W + '" height="20" viewBox="0 0 ' + W + ' 20" role="img" aria-label="Waited ' + c.days + ' days, limit ' + c.thr + '"><line x1="4" x2="' + (W - 4) + '" y1="10" y2="10" style="stroke:var(--line)" stroke-width="1"/><rect x="' + (X(c.thr) - 1).toFixed(1) + '" y="2" width="2" height="16" rx="1" style="fill:var(--ink)"/><circle cx="' + X(c.days).toFixed(1) + '" cy="10" r="6" style="fill:var(--panel)"/><circle cx="' + X(c.days).toFixed(1) + '" cy="10" r="4" style="fill:' + col + '"/></svg>'; }
+    var ch = chase.map(function (x) { var nx = nextStep(x.o, SR.stagesOf(x.o), x.ch); return '<div class="crow"><b>' + x.o.name + '</b><div><div>' + sup(x.o) + '</div><div class="meta">' + nx.text + '. ' + nx.detail + '</div></div>' + dp(x.ch) + '<button class="btn small" type="button" data-act="modal" data-m="message" data-k="' + x.ch.kind + '" data-id="' + x.o.name + '">' + icon("copy") + 'Copy message</button></div>'; }).join("");
+    return topbar("stock") +
+      '<div class="panel headline"><div class="sentence">3 products need a reorder, and Gadget Pro is out. <span>Suggested order: 1,963 units.</span></div><button class="btn primary" type="button" data-act="new-order">Review suggested orders</button></div>' +
+      '<div class="panel"><div class="phead"><div><h3>Products</h3><div class="sub">Most urgent first</div></div><span class="seg" role="group" aria-label="Filter"><button type="button" aria-pressed="true">All 6</button><button type="button" aria-pressed="false">Critical 2</button><button type="button" aria-pressed="false">Reorder now 1</button><button type="button" aria-pressed="false">Healthy 3</button></span></div>' +
+      '<div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, 40 days</span><span>Ordered</span><span style="text-align:right">In stock</span><span style="text-align:right">Suggested order</span></div>' + SR.PRODUCTS.map(stockRow).join("") + '</div>' +
+      '<div class="panel"><div class="phead"><div><h3>Orders to chase</h3><div class="sub">' + chase.length + ' orders need a message</div></div><button class="plink" type="button" data-go="chase">Open chase list ' + icon("chevron-right") + '</button></div>' + ch + '</div>' +
+      '<p class="meta">The runway chart for a selected product, and the full Stock page states, are in the design system sheet.</p>';
+  }
+
+  /* ---------- pages designed next ---------- */
+  var NEXT = {
+    chase: ["Chase list", "Operations staff, daily", "Whom to contact today, and with what message", "Contact Acme about 3 orders today.", ["Ranked list with a dot plot against each SOP limit", "Message modal with copy, then Mark as sent", "Sent and next-due state (a reminder repeats at most every 2 days)", "Empty state: nothing to chase"]],
+    history: ["Product history", "Operations staff, occasional audit", "Why stock changed", "Stock fell 40 units from manual sales since Oct 20.", ["Stock level over time as a step line", "Ledger: arrivals, manual sales, adjustments, reallocations, each with who, when and why", "Log adjustment modal with a required note"]],
+    settings: ["Settings and Outbox", "Operations staff, rarely", "Which defaults drive the forecast", "Lead time 45, safety 14, target 60 days. Two products override them.", ["Forecast defaults and per-product overrides, with a live preview of the effect", "Products, sales-matching identifiers, bundle variants", "Suppliers", "Alert emails on or off, recipients, send a test, Outbox"]],
+    login: ["Login", "Staff and suppliers", "Who is signing in", "Sign in to see your orders.", ["The one page with presentation polish: a calm hero with a skewed product visual", "Role-aware: staff land on Stock, suppliers on their own orders", "Plain error text for a wrong password"]],
+    supplier: ["Supplier view", "Supplier, occasionally, probably on a phone", "Which orders to confirm and add tracking to", "3 orders from Acme are waiting for you.", ["Only that supplier's orders", "Two actions only: confirm, add tracking", "Phone-first layout, 44px targets"]],
+    errors: ["Error and empty pages", "Everyone", "How to get back on track", "That page doesn't exist.", ["Not found, server error, no permission", "Per-page empty states", "Always a way back to Stock"]]
+  };
+  function pageNext(k) {
+    var n = NEXT[k];
+    return topbar("") + '<div class="panel"><h2>' + n[0] + '</h2><p class="muted" style="margin-top:8px">Designed next. This is what the page will cover.</p><ul class="plist2">' + n[4].map(function (t) { return "<li>" + t + "</li>"; }).join("") + '</ul></div>';
+  }
+
+  /* ---------- brief ---------- */
+  function brief() {
+    var b = {
+      orders: ["Operations staff, daily", "Which orders to act on first", ordersHeadline()],
+      order: ["Operations staff, for one order", "What happens next for this order", null],
+      arrivals: ["Operations staff, when goods arrive", "Whether the goods matched the right order", "2 arrivals this month, all matched."],
+      stock: ["Operations staff, weekly reorder", "What to order today, and how much", "3 products need a reorder, and Gadget Pro is out."]
+    }[S.page];
+    if (S.page === "order") { var o = SR.order(S.orderName), st = SR.stagesOf(o, S.flags); b[2] = takeaway(o, st, SR.chaseOf(o, S.flags)); }
+    if (!b) { var n = NEXT[S.page]; b = [n[1], n[2], n[3]]; }
+    var extra = S.page === "order" ? '<div><div class="bl">Preview order</div><div class="row"><span class="seg" role="group" aria-label="Preview order">' + SR.ORDERS.map(function (o) { return '<button type="button" data-act="pick-order" data-id="' + o.name + '" aria-pressed="' + (o.name === S.orderName && !S.flags.closed && !S.flags.cancelled) + '">' + o.name + '</button>'; }).join("") + '</span><span class="seg" role="group" aria-label="Preview state"><button type="button" data-act="flag" data-f="closed" aria-pressed="' + !!S.flags.closed + '">Closed</button><button type="button" data-act="flag" data-f="cancelled" aria-pressed="' + !!S.flags.cancelled + '">Cancelled</button></span></div></div>' : "";
+    return '<div><div class="bl">Who uses it</div><div class="bt">' + b[0] + '</div></div><div><div class="bl">What they decide</div><div class="bt">' + b[1] + '</div></div><div><div class="bl">One-sentence takeaway</div><div class="bt">' + b[2] + '</div></div>' + extra;
+  }
+
+  /* ---------- modals ---------- */
+  function msgText(o, kind) {
+    var s = o.sup, p = SR.product(o.code), st = SR.stagesOf(o), ch = SR.chaseOf(o);
+    if (kind === "confirm") return "Hi " + s + ",\n\nCould you confirm order " + o.name + "? We placed it " + o.createdAgo + " days ago for " + fmt(o.units) + " units of " + p.name + ".\n\nThanks,\nSam";
+    if (kind === "tracking") return "Hi " + s + ",\n\nOrder " + o.name + " was confirmed " + o.confirmedAgo + " days ago, but we have no tracking for " + fmt(o.units - st.tracked) + " of " + fmt(o.units) + " units. Could you send tracking numbers?\n\nThanks,\nSam";
+    if (kind === "where") return "Hi " + s + ",\n\nOrder " + o.name + " shipped " + (ch ? ch.days : "") + " days ago (tracking " + (o.trk[0] ? o.trk[0].n : "") + ") and has not arrived. Do you know where it is?\n\nThanks,\nSam";
+    return "Hi " + s + ",\n\nPlease confirm this order:\n\nOrder: " + o.name + "\nProduct: " + p.name + " (" + p.code + ")\nUnits: " + fmt(o.units) + (o.notes ? "\nNotes: " + o.notes : "") + "\n\nPlease reply to confirm, and send tracking numbers when it ships.\n\nThanks,\nSam";
+  }
+  function modalShell(title, sub, body, foot) { return '<div class="scrim" data-act="scrim"><div class="modal" role="dialog" aria-modal="true" aria-label="' + title + '"><header><div><h3>' + title + '</h3>' + (sub ? '<div class="meta">' + sub + '</div>' : "") + '</div><button class="btn quiet small" type="button" data-act="close" aria-label="Close">' + icon("x") + '</button></header>' + body + '<div class="mfoot">' + foot + '</div></div></div>'; }
+  function planCards(code) {
+    var p = SR.product(code), ordered = p.st[0] + p.st[1] + p.st[2];
+    if (!p.burn) return '<div class="callout info">' + icon("circle-alert") + '<span>' + p.name + ' has no sales yet, so there is nothing to size an order against. You can still enter units below.</span></div>';
+    var o = [
+      { id: "p1", t: "Reorder point", u: Math.max(0, Math.ceil(59 * p.burn - (p.stock + ordered))), n: "Reaches the 59-day reorder line" },
+      { id: "p2", t: "SOP suggestion", u: p.sugg, tag: "Suggested", n: "Target 60 days plus 45 days lead time. Uses warehouse stock only." },
+      { id: "p3", t: "Cover 90 days", u: Math.max(0, Math.ceil(90 * p.burn - (p.stock + ordered))), n: "Longest cover from one order" }];
+    return '<div class="plans" role="radiogroup" aria-label="Order size">' + o.map(function (x) {
+      var days = (p.stock + ordered + x.u) / p.burn;
+      return '<label class="plan"><input type="radio" name="plan" value="' + x.u + '"' + (x.id === "p2" && x.u > 0 ? " checked" : "") + (x.u === 0 ? " disabled" : "") + '><span class="title">' + x.t + (x.tag ? '<span class="tag">' + x.tag + '</span>' : "") + '</span><span class="units">' + fmt(x.u) + ' units</span><span class="meta">' + days.toFixed(1) + ' days of stock including everything on order</span><span class="meta">' + (x.u === 0 ? "Already covered" : x.n) + '</span></label>';
+    }).join("") + '</div>';
+  }
+  function openModal(kind, ctx) {
+    var html = "", host = document.getElementById("modals"), o;
+    if (kind === "message") { o = SR.order(ctx.id || S.orderName); var k = ctx.k || "order"; html = modalShell("Message to " + SR.SUP[o.sup], o.name + ". Copy it and send it from your own email.", '<div class="msgbox" id="msgtext">' + esc(msgText(o, k)) + '</div>', '<span class="meta" id="msgstate">Nothing is sent from here.</span><div class="row"><button class="btn quiet" type="button" data-act="close">Close</button><button class="btn primary" type="button" data-act="copy">' + icon("copy") + 'Copy message</button></div>'); }
+    else if (kind === "tracking") { o = SR.order(S.orderName); var stt = SR.stagesOf(o), left = o.units - stt.tracked;
+      html = modalShell("Add tracking", o.name + " · " + fmt(left) + " of " + fmt(o.units) + " units have no tracking", '<div class="grid2"><label class="field" for="t-num">Tracking number<input id="t-num" placeholder="1Z999AA10123456784" autocomplete="off"></label><label class="field" for="t-units">Units<input id="t-units" type="number" min="1" value="' + left + '"></label></div><div class="hint" id="t-hint">Carrier is detected from the number.</div><div class="callout info" id="t-cap">' + icon("circle-alert") + '<span>' + fmt(left) + ' units left to track. You can add more tracking numbers later.</span></div>', '<span></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="close">Add tracking</button></div>'); ctx.left = left; }
+    else if (kind === "delete") { o = SR.order(S.orderName); html = modalShell("Delete " + o.name + "?", "", '<p class="muted">This removes the order, its tracking and its history for good. To stop it counting as ordered, close or cancel it instead.</p>', '<span></span><div class="row"><button class="btn quiet" type="button" data-act="close">Keep it</button><button class="btn danger" type="button" data-act="close">Yes, delete</button></div>'); }
+    else if (kind === "edit") { o = SR.order(S.orderName); var stE = SR.stagesOf(o); var floor = Math.max(stE.tracked, stE.arrived, 1);
+      html = modalShell("Edit " + o.name, "", '<div class="grid2"><label class="field" for="e-sup">Supplier<select id="e-sup"><option>' + SR.SUP.Acme + '</option><option' + (o.sup === "Nova" ? " selected" : "") + '>' + SR.SUP.Nova + '</option></select></label><label class="field" for="e-units">Units<input id="e-units" type="number" min="' + floor + '" value="' + o.units + '"></label></div><div class="hint">Units cannot go below ' + fmt(floor) + ', which is already on tracking or has arrived.</div><label class="field" for="e-notes">Notes<textarea id="e-notes" rows="2">' + esc(o.notes) + '</textarea></label>', '<span></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="close">Save changes</button></div>'); }
+    else if (kind === "new") { var code = ctx.code || "GIZ"; var opts = SR.PRODUCTS.map(function (p) { return '<option value="' + p.code + '"' + (p.code === code ? " selected" : "") + '>' + p.name + '</option>'; }).join("");
+      html = modalShell("New order", "Pick a size, then adjust the units if you need to", '<div class="grid2"><label class="field" for="n-prod">Product<select id="n-prod" data-act="new-prod">' + opts + '</select></label><label class="field" for="n-sup">Supplier<select id="n-sup"><option>' + SR.SUP.Acme + '</option><option>' + SR.SUP.Nova + '</option></select></label></div><div id="n-plans">' + planCards(code) + '</div><div class="grid2"><label class="field" for="n-units">Units<input id="n-units" type="number" min="1" value="' + (SR.product(code).sugg || "") + '"></label><label class="field" for="n-notes">Notes (optional)<input id="n-notes" placeholder="Rush if possible"></label></div>', '<span class="meta" id="n-sum"></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="close">Create order</button></div>'); }
+    else if (kind === "arrival") { var opts2 = SR.PRODUCTS.map(function (p) { return '<option value="' + p.code + '"' + (p.code === "GIZ" ? " selected" : "") + '>' + p.name + '</option>'; }).join("");
+      html = modalShell("Record arrival", "The preview shows which orders the units go to", '<div class="grid2"><label class="field" for="a-prod">Product<select id="a-prod" data-act="arr-prod">' + opts2 + '</select></label><label class="field" for="a-units">Units<input id="a-units" type="number" min="1" value="250"></label></div><label class="field" for="a-date">Date<input id="a-date" type="date" value="2026-10-29"></label><div id="a-prev"></div>', '<span class="meta" id="a-sum"></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="close">Record arrival</button></div>'); }
+    else if (kind === "fix") { var a = (SR.ARRIVALS.concat([SR.EXAMPLE_ARRIVAL])).filter(function (x) { return x.id === ctx.id; })[0], p2 = SR.product(a.code);
+      var cands = SR.ORDERS.filter(function (x) { return x.code === a.code && SR.stagesOf(x).open; });
+      var rows = cands.map(function (x) { var cur = (a.allocs.filter(function (al) { return al.order === x.name; })[0] || { u: 0 }).u; return '<label class="mrow field" style="grid-template-columns:96px minmax(0,1fr) 96px" for="f-' + x.name + '"><b style="font-weight:600;color:var(--ink)">' + x.name + '</b><span class="meta">up to ' + fmt(x.units) + ' units</span><input id="f-' + x.name + '" type="number" min="0" max="' + x.units + '" value="' + cur + '" data-fix="1"></label>'; }).join("");
+      var matched = a.allocs.reduce(function (s, al) { return s + al.u; }, 0);
+      html = modalShell("Fix match", fmt(a.units) + " " + p2.name + " arrived " + (a.ago === 0 ? "today" : dayStr(-a.ago)), '<div class="stack" style="gap:4px">' + rows + '<label class="mrow field" style="grid-template-columns:96px minmax(0,1fr) 96px" for="f-none"><b style="font-weight:600;color:var(--ink)">Not from an order</b><span class="meta">stays in stock</span><input id="f-none" type="number" min="0" value="' + (a.units - matched) + '" data-fix="1"></label></div><div class="callout" id="f-state">' + icon("circle-alert") + '<span></span></div>', '<span></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" id="f-save" data-act="close">Save match</button></div>'); ctx.units = a.units; }
+    host.innerHTML = html; S.modal = { kind: kind, ctx: ctx };
+    host.querySelector(".scrim").hidden = false;
+    wireModal(kind, ctx);
+    var f = host.querySelector("input,select,textarea,button.primary"); if (f) f.focus();
+  }
+  function closeModal() { var host = document.getElementById("modals"); host.innerHTML = ""; S.modal = null; }
+  function wireModal(kind, ctx) {
+    var $ = function (id) { return document.getElementById(id); };
+    if (kind === "tracking") {
+      var upd = function () { var n = $("t-num").value, c = SR.detectCarrier(n), u = +$("t-units").value || 0, over = u > ctx.left;
+        $("t-hint").textContent = n ? (c ? "Detected: " + c : "Carrier not recognised. You can choose one after adding.") : "Carrier is detected from the number.";
+        var cap = $("t-cap"); cap.className = "callout " + (over ? "crit" : "info"); cap.querySelector("span").textContent = over ? "Tracking units can't go over the order. Only " + fmt(ctx.left) + " units are left to track." : fmt(ctx.left - u) + " units will still have no tracking. You can add more later."; };
+      $("t-num").addEventListener("input", upd); $("t-units").addEventListener("input", upd); upd();
+    }
+    if (kind === "new") {
+      var sum = function () { var p = SR.product($("n-prod").value), u = +$("n-units").value || 0, ordered = p.st[0] + p.st[1] + p.st[2]; $("n-sum").textContent = p.burn ? "Lands about " + dayStr(45) + ", " + ((p.stock + ordered + u) / p.burn).toFixed(1) + " days incl. ordered." : "Lands about " + dayStr(45) + "."; };
+      $("n-units").addEventListener("input", sum);
+      $("n-plans").addEventListener("change", function (e) { if (e.target.name === "plan") { $("n-units").value = e.target.value; sum(); } });
+      sum();
+    }
+    if (kind === "arrival") {
+      var prev = function () {
+        var code = $("a-prod").value, u = +$("a-units").value || 0, open = SR.openOrdersFor(code), r = SR.fifo(u, open), html = "";
+        if (!open.length) html = '<div class="callout crit">' + icon("circle-alert") + '<span>There are no open orders for this product, so all ' + fmt(u) + ' units will be unmatched. You can still record the arrival.</span></div>';
+        else html = '<div class="stack" style="gap:4px">' + r.allocs.map(function (al) { return '<div class="mrow"><b style="font-weight:600">' + al.name + '</b><span class="track"><i style="width:' + Math.round(al.take / al.rem * 100) + '%"></i></span><span>' + fmt(al.take) + ' of ' + fmt(al.rem) + '</span></div>'; }).join("") + '</div>' + (r.left > 0 ? '<div class="callout crit" style="margin-top:8px">' + icon("circle-alert") + '<span>' + fmt(r.left) + ' units match no order. They will show on the unmatched list.</span></div>' : '<div class="callout good" style="margin-top:8px">' + icon("circle-check") + '<span>Every unit has an order.</span></div>');
+        $("a-prev").innerHTML = html; $("a-sum").textContent = "Stock goes up by " + fmt(u) + ".";
+      };
+      $("a-units").addEventListener("input", prev); $("a-prod").addEventListener("change", prev); prev();
+    }
+    if (kind === "fix") {
+      var chk = function () { var inputs = document.querySelectorAll("#modals input[data-fix]"), tot = 0; inputs.forEach(function (i) { tot += +i.value || 0; });
+        var st = $("f-state"), ok = tot === ctx.units; st.className = "callout " + (ok ? "good" : "crit");
+        st.querySelector("span").textContent = ok ? "All " + fmt(ctx.units) + " units are assigned." : "Assigned " + fmt(tot) + " of " + fmt(ctx.units) + ". The total must match the arrival.";
+        $("f-save").disabled = !ok; };
+      document.querySelectorAll("#modals input[data-fix]").forEach(function (i) { i.addEventListener("input", chk); }); chk();
+    }
+  }
+
+  /* ---------- render and events ---------- */
+  var PAGES = [["orders", "Orders"], ["order", "Order detail"], ["arrivals", "Arrivals"], ["stock", "Stock"], ["chase", "Chase list", 1], ["history", "Product history", 1], ["settings", "Settings", 1], ["login", "Login", 1], ["supplier", "Supplier view", 1], ["errors", "Error pages", 1]];
+  function render() {
+    var el = document.getElementById("app");
+    el.innerHTML = S.page === "orders" ? pageOrders() : S.page === "order" ? pageOrder() : S.page === "arrivals" ? pageArrivals() : S.page === "stock" ? pageStock() : pageNext(S.page);
+    document.getElementById("brief").innerHTML = brief();
+    document.getElementById("picker").innerHTML = PAGES.map(function (p) { return '<button class="pk" role="tab" type="button" data-page="' + p[0] + '" aria-selected="' + (S.page === p[0]) + '">' + p[1] + (p[2] ? ' <span class="next">next</span>' : "") + '</button>'; }).join("");
+  }
+  SR.render = { orders: pageOrders, order: pageOrder, arrivals: pageArrivals, stock: pageStock, brief: brief, msgText: msgText, planCards: planCards, matchBar: matchBar, stagebar: stagebar };
+  SR.state = S;
+
+  function closePops() { document.querySelectorAll(".pop").forEach(function (p) { p.hidden = true; }); document.querySelectorAll("[data-pop]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
+  function go(page) { S.page = page; S.flags = {}; closePops(); render(); }
+  function onClick(e) {
+    var t = e.target;
+    var pk = t.closest("[data-page]"); if (pk) { go(pk.dataset.page); return; }
+    var g = t.closest("[data-go]"); if (g) { go(g.dataset.go); return; }
+    var pp = t.closest("[data-pop]");
+    if (pp) { var bar = pp.closest(".topbar, .rel"), pop = bar.querySelector('.pop[data-for="' + pp.dataset.pop + '"]'), was = !pop.hidden; closePops(); if (!was) { pop.hidden = false; pp.setAttribute("aria-expanded", "true"); } return; }
+    var a = t.closest("[data-act]");
+    if (!a) { if (!t.closest(".pop")) closePops(); return; }
+    var act = a.dataset.act;
+    if (act === "scrim") { if (t === a) closeModal(); return; }
+    if (act === "close") { closeModal(); return; }
+    if (act === "open-order") { S.orderName = a.dataset.id; S.flags = {}; S.page = "order"; render(); return; }
+    if (act === "pick-order") { S.orderName = a.dataset.id; S.flags = {}; render(); return; }
+    if (act === "flag") { var f = a.dataset.f, was2 = !!S.flags[f]; S.flags = {}; if (!was2) S.flags[f] = true; render(); return; }
+    if (act === "filter") { S.filter = a.dataset.f; render(); return; }
+    if (act === "example") { return; }
+    if (act === "new-order") { openModal("new", { code: a.dataset.code }); return; }
+    if (act === "modal") { closePops(); openModal(a.dataset.m, { k: a.dataset.k, id: a.dataset.id }); return; }
+    if (act === "copy") { var txt = document.getElementById("msgtext").textContent; var done = function () { document.getElementById("msgstate").textContent = "Copied. Paste it into your email."; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { document.getElementById("msgstate").textContent = "Select the text and press Ctrl+C."; }); else document.getElementById("msgstate").textContent = "Select the text and press Ctrl+C."; return; }
+  }
+  function onChange(e) {
+    var t = e.target;
+    if (t.id === "ex-toggle") { S.showExample = t.checked; render(); return; }
+    if (t.dataset && t.dataset.act === "new-prod") { document.getElementById("n-plans").innerHTML = planCards(t.value); var p = SR.product(t.value); document.getElementById("n-units").value = p.sugg || ""; document.getElementById("n-units").dispatchEvent(new Event("input")); }
+  }
+  function onKey(e) {
+    if (e.key === "Escape") { if (S.modal) closeModal(); closePops(); }
+    if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.act === "open-order") { e.preventDefault(); e.target.click(); }
+  }
+  if (document.getElementById("app").addEventListener) {
+    document.addEventListener("click", onClick); document.addEventListener("change", onChange); document.addEventListener("keydown", onKey);
+    var shell = document.getElementById("shell");
+    var devsw = document.getElementById("devsw"), thsw = document.getElementById("thsw");
+    devsw.addEventListener("click", function (e) { var b = e.target.closest("button[data-d]"); if (!b) return; S.device = b.dataset.d; shell.classList.toggle("phone", S.device === "phone"); devsw.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); });
+    thsw.addEventListener("click", function (e) { var b = e.target.closest("button[data-t]"); if (!b) return; shell.classList.remove("force-light", "force-dark"); if (b.dataset.t !== "page") shell.classList.add("force-" + b.dataset.t); thsw.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); });
+    render();
+  }
+})();
+</script>

@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 STORE_TZ = ZoneInfo("America/Denver")
 DB_URL = os.getenv("DATABASE_URL", "sqlite:///stock.db")
 EMAIL_MODE = os.getenv("EMAIL_MODE", "test")  # "test" writes to the outbox and delivers nothing
+SENDER_NAME = os.getenv("SENDER_NAME", "Sam")  # signs the messages staff copy to suppliers
 
 
 def now() -> datetime:

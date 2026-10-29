@@ -1,0 +1,76 @@
+"""Plain-text messages and the short sentences the pages show. Pure functions."""
+from app.domain.chase import Chase
+
+
+def short_name(supplier: str) -> str:
+    return supplier.split()[0] if supplier.strip() else supplier
+
+
+def chase_step(chase: Chase, supplier: str) -> tuple[str, str]:
+    """(what to do, why) for the Next step column and the chase list."""
+    s = short_name(supplier)
+    if chase.kind == "confirm":
+        return f"Ask {s} to confirm", f"Placed {chase.days} days ago"
+    if chase.kind == "tracking":
+        return f"Ask {s} for tracking", f"Confirmed {chase.days} days ago, no tracking"
+    return f"Ask {s} where it is", f"On the way {chase.days} days"
+
+
+WAITING = {
+    "placed": "Waiting for confirmation",
+    "in production": "Waiting for tracking",
+    "on the way": "Waiting for arrival",
+    "partial": "Waiting for the rest",
+}
+
+
+def quiet_step(status: str) -> tuple[str, str, str]:
+    """(tone, what, why) for an order with nothing to chase."""
+    if status == "received":
+        return "ok", "Complete", "All units arrived"
+    if status in ("closed", "cancelled"):
+        return "idle", status.capitalize(), "No longer counts as ordered"
+    return "idle", WAITING[status], "Nothing to chase yet"
+
+
+def takeaway(*, status: str, units: int, arrived: int, remaining: int, on_the_way: int, untracked: int,
+             chase: Chase | None, supplier: str) -> str:
+    """The one sentence an order page leads with."""
+    s = short_name(supplier)
+    if status == "cancelled":
+        return "This order is cancelled. It no longer counts as ordered."
+    if status == "closed":
+        return f"This order is closed. The {units - arrived:,} units that never arrived no longer count as ordered."
+    if status == "received":
+        return f"All {units:,} units arrived. Nothing left to do."
+    if chase and chase.kind == "where":
+        return f"{on_the_way:,} units shipped {chase.days} days ago and haven't arrived. Ask {s} where it is."
+    if chase and chase.kind == "tracking":
+        return (f"Confirmed {chase.days} days ago, but {untracked:,} of {units:,} units have no tracking. "
+                f"Ask {s} for tracking numbers.")
+    if chase:
+        return f"Placed {chase.days} days ago and still not confirmed. Ask {s} to confirm."
+    return f"{remaining:,} units are still to come. Nothing to chase yet."
+
+
+def order_message(*, supplier: str, order: str, product: str, code: str, units: int, notes: str, sender: str) -> str:
+    lines = [f"Hi {short_name(supplier)},", "", "Please confirm this order:", "", f"Order: {order}",
+             f"Product: {product} ({code})", f"Units: {units:,}"]
+    if notes:
+        lines.append(f"Notes: {notes}")
+    lines += ["", "Please reply to confirm, and send tracking numbers when it ships.", "", "Thanks,", sender]
+    return "\n".join(lines)
+
+
+def follow_up(chase: Chase, *, supplier: str, order: str, product: str, units: int, untracked: int,
+              tracking_number: str, created_days: int, sender: str) -> str:
+    s = short_name(supplier)
+    if chase.kind == "confirm":
+        body = (f"Could you confirm order {order}? We placed it {created_days} days ago for {units:,} units of {product}.")
+    elif chase.kind == "tracking":
+        body = (f"Order {order} was confirmed {chase.days} days ago, but we have no tracking for {untracked:,} of "
+                f"{units:,} units. Could you send tracking numbers?")
+    else:
+        body = (f"Order {order} shipped {chase.days} days ago (tracking {tracking_number}) and has not arrived. "
+                "Do you know where it is?")
+    return f"Hi {s},\n\n{body}\n\nThanks,\n{sender}"

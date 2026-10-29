@@ -1,0 +1,11 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Message to {{ o.supplier.name }}">
+  <div class="mbody">
+    {{ dialog_head("Message to " ~ o.supplier.name, o.name ~ ". Copy it and send it from your own email.") }}
+    <div class="msgbox" id="msg-text">{{ message }}</div>
+    <div class="mfoot">
+      <span class="meta" id="copy-state" aria-live="polite">Nothing is sent from here.</span>
+      <div class="row"><button class="btn quiet" type="button" data-close>Close</button><button class="btn primary" type="button" data-copy="msg-text">{{ icon("copy") }}Copy message</button></div>
+    </div>
+  </div>
+</dialog>

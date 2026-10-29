@@ -1,0 +1,10 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Delete order">
+  <div class="mbody">
+    {{ dialog_head("Delete " ~ o.name ~ "?") }}
+    <p class="muted">This removes the order, its tracking and its history for good. To stop it counting as ordered, close or cancel it instead.</p>
+    <form method="post" action="/orders/{{ o.id }}/delete">
+      <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Keep it</button><button class="btn danger" type="submit">Yes, delete</button></div></div>
+    </form>
+  </div>
+</dialog>
