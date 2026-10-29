@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, dialog_link %}
+{% block title %}Outbox · Stock Report{% endblock %}
+{% block content %}
+<div class="panel headline">
+  <div class="sentence">{{ today_n }} message{{ "s" if today_n != 1 }} saved today. <span>None were delivered, because test mode is on.</span></div>
+  <span class="meta">Delivery stays off until a mail server is set up</span>
+</div>
+<div class="callout info">{{ icon("circle-alert") }}<span>Test mode is on. Messages here are saved only. The To address shows who would have received each one.</span></div>
+<div class="panel">
+  <div class="phead"><div><h3>Messages</h3><div class="sub">Newest first</div></div>
+    <span class="seg" role="group" aria-label="Kind of message">
+      <a href="/outbox" {% if not kind %}aria-current="true"{% endif %}>All {{ total }}</a>
+      {% for k, label in kinds.items() %}<a href="/outbox?kind={{ k }}" {% if kind == k %}aria-current="true"{% endif %}>{{ label }}{{ "s" if k != "alert" else "s" }} {{ counts[k] }}</a>{% endfor %}
+    </span></div>
+  {% if rows %}
+  <div class="lhead ohead"><span>When</span><span>To</span><span>Subject</span><span>Kind</span><span style="text-align:right">Open</span></div>
+  {% for m in rows %}
+  <div class="orow orw">
+    <div class="cell num"><span class="lab">When</span>{{ m.at|clock }}</div>
+    <div class="cell"><span class="lab">To</span>{{ m.to }}</div>
+    <div class="cell"><span class="lab">Subject</span>{{ m.subject }}</div>
+    <div class="cell">{{ badge("info" if m.kind == "follow-up" else "", {"follow-up": "mail", "alert": "bell", "test": "send"}.get(m.kind, "mail"), kinds.get(m.kind, "Message")) }}</div>
+    <div class="cell act">{{ dialog_link("/outbox/" ~ m.id, "Open", "btn small quiet", "chevron-right") }}</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty">{{ icon("inbox", 24) }}<strong>{{ "No messages of this kind" if kind else "No messages saved yet" }}</strong><span class="meta">Follow-ups and alert tests will appear here.</span>
+    {% if kind %}<a class="btn small" href="/outbox">Show all</a>{% else %}<a class="btn small" href="/chase">Open the Chase list</a>{% endif %}</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -55,6 +55,89 @@
     if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.href) { e.preventDefault(); window.location = e.target.dataset.href; }
   });
 
+
+  /* ---- chart hover: a crosshair and a tooltip, from the data the server put on the chart ---- */
+  function fmtNum(n) { return Number(n).toLocaleString("en-US"); }
+  document.addEventListener("pointermove", function (e) {
+    var hit = e.target.closest && e.target.closest(".chit");
+    if (!hit) return;
+    var wrap = hit.closest("[data-chart]"), svg = hit.ownerSVGElement;
+    var data = wrap._d || (wrap._d = JSON.parse(wrap.dataset.chart));
+    var r = svg.getBoundingClientRect(), W = +svg.dataset.w, L = +svg.dataset.l, PW = +svg.dataset.pw;
+    var span = (data.x1 - data.x0) || 1;
+    var d = Math.max(data.x0, Math.min(data.x1, Math.round(data.x0 + (((e.clientX - r.left) * (W / r.width) - L) / PW) * span)));
+    var X = L + ((d - data.x0) / span) * PW, xh = svg.querySelector(".xhair");
+    xh.setAttribute("x1", X); xh.setAttribute("x2", X); xh.setAttribute("visibility", "visible");
+    var when = new Date(data.today + "T12:00:00"); when.setDate(when.getDate() + d);
+    var name = when.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    var title = d === 0 ? "Today, " + name : (d > 0 ? "Day " + d : (-d) + " days ago") + ", " + name;
+    var tip = wrap.querySelector(".tip"), rows = data.series.map(function (s) {
+      return '<div class="tr"><span><i class="sw ' + s.cls + '"></i>' + s.name + '</span><b>' + fmtNum(s.v[d - data.x0]) + '</b></div>';
+    }).join("");
+    tip.hidden = false; tip.innerHTML = "<b>" + title + "</b>" + rows;
+    var left = (X / W) * r.width + 12;
+    if (left + tip.offsetWidth > r.width) left = (X / W) * r.width - tip.offsetWidth - 12;
+    tip.style.left = Math.max(0, left) + "px";
+  });
+  document.addEventListener("pointerleave", function (e) {
+    if (!(e.target.classList && e.target.classList.contains("chit"))) return;
+    var wrap = e.target.closest("[data-chart]");
+    wrap.querySelector(".xhair").setAttribute("visibility", "hidden"); wrap.querySelector(".tip").hidden = true;
+  }, true);
+
+  /* ---- match editor: every unit must be assigned before Save turns on ---- */
+  function splitUpdate(form) {
+    var total = +form.dataset.total, sum = 0;
+    form.querySelectorAll("input[name^='u_']").forEach(function (i) { sum += Math.max(0, parseInt(i.value, 10) || 0); });
+    var ok = sum === total, good = form.querySelector("[data-ok]"), bad = form.querySelector("[data-bad]");
+    good.hidden = !ok; bad.hidden = ok;
+    (ok ? good : bad).querySelector("[data-txt]").textContent = sum + " of " + total + " units assigned" +
+      (ok ? "" : ". " + (sum > total ? "Remove " + (sum - total) : "Assign " + (total - sum) + " more") + ".");
+    form.querySelector("[data-save]").disabled = !ok;
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-step]");
+    if (!b) return;
+    var form = b.closest("[data-split]"), input = b.parentElement.querySelector("input");
+    input.value = Math.max(0, (parseInt(input.value, 10) || 0) + (+b.dataset.step));
+    if (form) splitUpdate(form);
+  });
+
+  /* ---- adjustment dialog: say what the new stock and days left will be before saving ---- */
+  function adjustUpdate(form) {
+    var stock = +form.dataset.stock, burn = +form.dataset.burn, units = Math.max(0, parseInt(form.units.value, 10) || 0);
+    var kind = form.querySelector("input[name=kind]:checked"), sign = +kind.dataset.sign, pick = form.querySelector("select[name=variant]");
+    if (pick && kind.value === "sale") units *= +pick.selectedOptions[0].dataset.per;  // a bundle sale means more units
+    var next = Math.max(0, stock + sign * units);
+    form.querySelector("[data-dir]").textContent = (sign > 0 ? "Adds " : "Removes ") + units + " unit" + (units === 1 ? "" : "s");
+    var days = burn > 0 ? " That is " + (next / burn).toFixed(1) + " days at " + burn + " a day." : "";
+    form.querySelector("[data-preview] span").textContent = "Stock goes from " + fmtNum(stock) + " to " + fmtNum(next) + "." + days;
+  }
+
+  /* ---- settings: show the reorder line while the numbers are typed ---- */
+  function forecastUpdate(form) {
+    var n = function (name) { return parseInt(form[name].value, 10) || 0; }, panel = form.closest(".panel");
+    panel.querySelector("[data-line]").textContent = (n("lead_time") + n("safety_days")) + " days";
+    panel.querySelector("[data-cover]").textContent = (n("target_days") + n("lead_time")) + " days of sales";
+  }
+
+  document.addEventListener("input", function (e) {
+    var f = e.target.closest("form");
+    if (!f) return;
+    if (f.matches("[data-split]")) splitUpdate(f);
+    else if (f.matches("[data-adjust]")) adjustUpdate(f);
+    else if (f.matches("[data-forecast]")) forecastUpdate(f);
+  });
+  document.addEventListener("change", function (e) {
+    var f = e.target.closest("form");
+    if (f && f.matches("[data-adjust]")) adjustUpdate(f);
+  });
+  function initDialog(root) {
+    root.querySelectorAll("[data-split]").forEach(splitUpdate);
+    root.querySelectorAll("[data-adjust]").forEach(adjustUpdate);
+  }
+  document.body.addEventListener("htmx:afterSwap", function (e) { if (e.target === host) initDialog(host); });
+
   /* Picking an order size fills the units box, then the box asks the server for the days of stock. */
   document.addEventListener("change", function (e) {
     var r = e.target;

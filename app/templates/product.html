@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "_macros.html" import level_badge, dialog_link %}
+{% block title %}{{ p.name }} · Stock Report{% endblock %}
+{% block content %}
+<div><a class="back" href="/">{{ icon("chevron-right") }} Stock</a></div>
+
+<div class="panel headline">
+  <div class="sentence">{{ headline }} {% if sub %}<span>{{ sub }}</span>{% endif %}</div>
+  <div class="stack" style="align-items:flex-end;gap:4px">
+    {{ dialog_link("/products/" ~ p.id ~ "/adjust", "Log adjustment", "btn", "pencil") }}
+    <span class="meta">Every change below is permanent. Fix a mistake with a new entry.</span>
+  </div>
+</div>
+{% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
+
+<div class="panel">
+  <div class="phead"><div><h3>{{ p.name }} <span class="code">{{ p.code }}</span></h3>
+    <div class="sub">{{ level_badge(row.flag.level, row.flag.label) }} <span style="margin-left:4px">{% if row.forecast.days_of_stock is none %}No sales yet{% else %}{{ row.forecast.days_of_stock|days }} days left · reorder by {{ row.forecast.reorder_by|short_date }}{% endif %}</span></div></div>
+    <div class="stack" style="align-items:flex-end;gap:0"><span class="big">{{ p.stock|num }}</span><span class="meta">in the warehouse</span></div></div>
+  <div id="runway">{% with closable=False %}{% include "partials/runway.html" %}{% endwith %}</div>
+</div>
+
+<div class="panel">
+  <div class="phead"><div><h3>Warehouse stock, last 30 days</h3><div class="sub">Steps with arrivals, corrections and manual sales. The count is the last stock count plus what is recorded here. Imported daily sales set the burn and do not change it.</div></div></div>
+  <div class="legend"><span><i class="k line a"></i>Units in the warehouse</span><span><i class="k dot"></i>Arrival</span><span><i class="k dot b"></i>Manual change</span></div>
+  {% set marks = [] %}
+  {% for x, y, k in hist.markers %}{% set _ = marks.append((x, y, "ser-a" if k == "arrival" else "ser-b", "")) %}{% endfor %}
+  {{ charts.step_chart([("Units in the warehouse", "ser-a", hist.points)], -30, 0, today,
+      "Warehouse stock for " ~ p.name ~ " over 30 days, ending at " ~ p.stock ~ " units", markers=marks, tick=5) }}
+</div>
+
+<div class="panel">
+  <div class="phead"><div><h3>Movements</h3><div class="sub">Newest first · {{ total }} in all</div></div>
+    <span class="seg" role="group" aria-label="Kind of movement">
+      {% for key, label in [("", "All"), ("arrivals", "Arrivals"), ("moves", "Moves between orders"), ("manual", "Manual")] %}
+      <a href="/products/{{ p.id }}{% if key %}?kind={{ key }}{% endif %}" {% if kind == key %}aria-current="true"{% endif %}>{{ label }}</a>
+      {% endfor %}
+    </span></div>
+  {% if moves %}
+  <div class="lhead mhead"><span>When</span><span>What</span><span style="text-align:right">Change</span><span style="text-align:right">Stock after</span><span>Why</span><span>Who</span></div>
+  {% for mv in moves %}{% set m = mv.m %}
+  <div class="orow mrow2">
+    <div class="cell num"><span class="lab">When</span>{{ m.at|clock }}</div>
+    <div class="cell"><span class="lab">What</span><span class="kind">{{ icon({"arrival": "truck", "sale": "trending-down", "adjustment": "pencil", "reallocation": "split"}[m.kind]) }}{{ {"arrival": "Arrival", "sale": "Manual sale", "adjustment": "Adjustment", "reallocation": "Moved between orders"}[m.kind] }}</span></div>
+    <div class="cell num"><span class="lab">Change</span><span class="big">{{ "+" ~ m.delta if m.delta > 0 else ("−" ~ (-m.delta) if m.delta < 0 else "0") }}</span></div>
+    <div class="cell num"><span class="lab">Stock after</span>{{ mv.after|num }}</div>
+    <div class="cell"><span class="lab">Why</span>{{ m.note or "—" }}</div>
+    <div class="cell"><span class="lab">Who</span>{{ m.by or "—" }}</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty">{{ icon("history", 24) }}<strong>{{ "No movements of this kind" if kind else "No stock changes for " ~ p.name }}</strong><span class="meta">Arrivals and adjustments will appear here with the reason.</span></div>
+  {% endif %}
+</div>
+{% endblock %}

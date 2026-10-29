@@ -35,3 +35,11 @@
 {% macro dialog_head(title, sub="") -%}
 <header><div><h3>{{ title }}</h3>{% if sub %}<div class="meta">{{ sub }}</div>{% endif %}</div><button type="button" class="btn quiet small" data-close aria-label="Close">{{ icon("x") }}</button></header>
 {%- endmacro %}
+
+{# warns when the stock or sales data is old (SOP section 3) #}
+{% macro stale_banner(days) -%}
+{% if days %}
+<div class="stale" role="status">{{ icon("clock") }}<div><strong>The stock and sales data is {{ days }} days old.</strong> <span class="muted">Burn, days left and reorder dates may be behind.</span></div>
+  <form method="post" action="/settings/data-updated"><button class="btn small" type="submit">Mark as updated today</button></form></div>
+{% endif %}
+{%- endmacro %}

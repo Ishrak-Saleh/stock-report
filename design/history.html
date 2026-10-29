@@ -1,0 +1,564 @@
+<title>Stock History and Runway</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* Layout concept: same app surface as design-system.html. Each design page is a stack of "stages" (the app at laptop width, then at 390px),
+   followed by a short "Decisions" panel that says why the screen is built the way it is. Dark first; light through data-theme="light". */
+:root {
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-control: 6px; --r-panel: 10px; --r-pill: 999px;
+  --page: #181818; --panel: #1F1F1F; --raised: #272727; --line: #313131;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --danger: #ec7070;
+  --accent: #3987e5; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --s-good: #0ca30c; --s-warn: #fab219; --s-serious: #ec835a; --s-crit: #d03b3b;
+  --ser-a: #3987e5; --ser-b: #d95926;
+  --st1: #184f95; --st2: #2a78d6; --st3: #5598e7; --st4: #86b6ef;
+  --ring: 0 0 0 1px var(--line);
+  --hover: oklch(1 0 0 / .05);
+  --scrim: oklch(0 0 0 / .55);
+  --shadow: oklch(0 0 0 / .35);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #f6f6f4; --panel: #ffffff; --raised: #f0efec; --line: #e1e0d9;
+  --ink: #0b0b0b; --ink2: #52514e; --muted: #75736e; --danger: #b42323;
+  --accent: #2a78d6; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --ser-a: #2a78d6; --ser-b: #eb6834;
+  --st1: #86b6ef; --st2: #5598e7; --st3: #2a78d6; --st4: #1c5cab;
+  --hover: oklch(0 0 0 / .04);
+  --scrim: oklch(0 0 0 / .35);
+  --shadow: oklch(0 0 0 / .18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink); font: 400 14px/20px var(--font);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+h1, h2 { font-size: 20px; line-height: 28px; }
+h3 { font-size: 16px; line-height: 24px; }
+p { margin: 0; max-width: 70ch; text-wrap: pretty; }
+.muted { color: var(--ink2); }
+.meta { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.faint { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+code, .tok { font: 12px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--raised); padding: 0 4px; border-radius: 4px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-control); }
+.ic { flex-shrink: 0; display: inline-block; vertical-align: middle; }
+.sec { display: flex; flex-direction: column; gap: 16px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; align-items: start; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.jump a { color: var(--ink2); text-decoration: none; }
+.jump a:hover { color: var(--ink); }
+.crumb { font-size: 12px; line-height: 16px; color: var(--ink2); display: flex; gap: 8px; flex-wrap: wrap; }
+.crumb a { color: var(--ink2); }
+
+.stage { background: var(--page); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; container-type: inline-size; container-name: stage; position: relative; }
+.panel { background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; min-width: 0; }
+.phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.phead .sub { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.plink { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; font-weight: 500; font-size: 12px; background: none; border: 0; cursor: pointer; font-family: var(--font); padding: 4px 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line);
+  background: transparent; color: var(--ink); cursor: pointer; transition: transform 120ms var(--ease), background-color 120ms var(--ease); touch-action: manipulation; text-decoration: none; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-ink); }
+.btn.quiet { color: var(--ink2); }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.small { padding: 4px 8px; font-size: 12px; line-height: 16px; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) { .btn:hover:not(.primary):not(:disabled) { background: var(--hover); } .btn.primary:hover { filter: brightness(1.08); } }
+.seg { display: inline-flex; background: var(--raised); border-radius: var(--r-control); padding: 2px; gap: 2px; flex-wrap: wrap; }
+.seg button { font: 500 12px/16px var(--font); padding: 4px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--ring); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.field select, .field input, .field textarea { font: 400 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line); background: var(--page); color: var(--ink); width: 100%; }
+.field .hint { color: var(--muted); }
+.field.err input, .field.err select { border-color: var(--s-crit); }
+.field .errmsg { display: flex; gap: 4px; align-items: center; color: var(--ink); }
+.field .errmsg .ic { color: var(--s-crit); }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-pill); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; color: var(--ink);
+  background: color-mix(in srgb, var(--c) 16%, var(--panel)); }
+.badge .ic { color: var(--c); }
+.badge.crit { --c: var(--s-crit); } .badge.serious { --c: var(--s-serious); } .badge.warn { --c: var(--s-warn); } .badge.good { --c: var(--s-good); }
+.badge.plain { --c: var(--muted); } .badge.info { --c: var(--accent); }
+
+.topbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: relative; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.brand .logo { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-fill); color: #fff; display: grid; place-items: center; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--r-control); color: var(--ink2); text-decoration: none; border: 0; background: none; font: 500 14px/20px var(--font); cursor: pointer; }
+.tab[aria-current="page"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+@media (hover: hover) and (pointer: fine) { .tab:hover { background: var(--hover); } }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.avatar { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--raised); color: var(--ink); display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 0; cursor: pointer; box-shadow: var(--ring); }
+.pop { position: absolute; z-index: 5; background: var(--raised); border-radius: var(--r-panel); box-shadow: var(--ring), 0 8px 24px var(--shadow); padding: 4px; min-width: 216px; display: flex; flex-direction: column; }
+.pop[hidden] { display: none; }
+.pop a, .pop button { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); color: var(--ink); text-decoration: none; background: none; border: 0; font: 400 14px/20px var(--font); cursor: pointer; text-align: left; }
+.pop .count { margin-left: auto; }
+.pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+@media (hover: hover) and (pointer: fine) { .pop a:hover, .pop button:hover { background: var(--hover); } }
+
+.headline { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.headline .sentence { font-size: 20px; line-height: 28px; font-weight: 600; max-width: 46ch; text-wrap: balance; }
+.headline .sentence span { color: var(--ink2); font-weight: 400; }
+.hl-meta { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+@container stage (max-width: 560px) { .hl-meta { align-items: flex-start; } .headline .sentence { font-size: 16px; line-height: 24px; } }
+
+/* Generic ranked grid: set --cols on the container */
+.ghead, .grow { display: grid; grid-template-columns: var(--cols); gap: 16px; align-items: center; }
+.ghead { padding: 0 0 8px; font-size: 12px; line-height: 16px; color: var(--ink2); border-bottom: 1px solid var(--line); }
+.grow { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.grow:last-child { border-bottom: 0; }
+.r { text-align: right; font-variant-numeric: tabular-nums; }
+.cell .big { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cell .small { font-size: 12px; line-height: 16px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.cell .lab { display: none; font-size: 12px; line-height: 16px; color: var(--muted); }
+.cell.act { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.strong { font-weight: 600; }
+.stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+@container stage (max-width: 820px) {
+  .ghead { display: none; }
+  .grow { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .grow > .full { grid-column: 1 / -1; }
+  .cell .lab { display: block; }
+  .r { text-align: left; }
+  .cell.act { justify-content: flex-start; }
+  .hide-narrow { display: none !important; }
+}
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; line-height: 16px; color: var(--ink2); align-items: center; margin-bottom: 8px; }
+.legend i { display: inline-block; vertical-align: middle; }
+.k-fill { width: 16px; height: 8px; border-radius: 4px; background: var(--s-serious); }
+.k-tick { width: 2px; height: 12px; background: var(--ink); }
+.k-st { width: 12px; height: 8px; border-radius: 2px; }
+.mc { display: block; overflow: visible; }
+.cwrap { position: relative; }
+.cwrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tip { position: absolute; pointer-events: none; background: var(--raised); box-shadow: var(--ring), 0 4px 12px var(--shadow); border-radius: var(--r-control); padding: 8px 12px; font-size: 12px; line-height: 16px; min-width: 176px; z-index: 3; }
+.tip b { font-weight: 600; }
+.tip .tr { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.tip .sw { width: 12px; height: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+svg text { font-family: var(--font); fill: var(--muted); font-size: 11px; }
+svg .t2 { fill: var(--ink2); font-size: 12px; }
+.gridl { stroke: var(--line); stroke-width: 1; }
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); font-size: 12px; line-height: 16px; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { color: var(--ink2); font-weight: 500; }
+.tablewrap { overflow-x: auto; }
+details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-height: 16px; padding: 8px 0; }
+
+/* Modal (static preview inside a stage) */
+.scrim { background: var(--scrim); border-radius: var(--r-panel); padding: 24px 16px; display: grid; place-items: start center; }
+.modal { background: var(--panel); box-shadow: var(--ring), 0 16px 48px var(--shadow); border-radius: var(--r-panel); width: 100%; max-width: 640px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.mfoot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.callout { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-warn) 14%, var(--panel)); font-size: 12px; line-height: 16px; }
+.callout .ic { color: var(--s-warn); }
+.callout.info { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+.callout.info .ic { color: var(--accent); }
+.callout.crit { background: color-mix(in srgb, var(--s-crit) 14%, var(--panel)); }
+.callout.crit .ic { color: var(--s-crit); }
+.callout.good { background: color-mix(in srgb, var(--s-good) 14%, var(--panel)); }
+.callout.good .ic { color: var(--s-good); }
+.banner { display: flex; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-crit) 16%, var(--panel)); }
+.banner .ic { color: var(--s-crit); margin-top: 2px; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 12px; text-align: center; }
+.skel { height: 12px; border-radius: 4px; background: var(--raised); }
+
+/* Stepper and switch */
+.step { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--page); overflow: hidden; }
+.step button { width: 32px; border: 0; background: transparent; color: var(--ink2); cursor: pointer; display: grid; place-items: center; }
+.step input { width: 64px; text-align: center; border: 0; border-inline: 1px solid var(--line); background: transparent; color: var(--ink); font: 600 14px/20px var(--font); padding: 4px; font-variant-numeric: tabular-nums; }
+.switch { position: relative; width: 40px; height: 24px; border-radius: var(--r-pill); border: 0; background: var(--raised); box-shadow: var(--ring); cursor: pointer; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink2); transition: transform 160ms var(--ease); }
+.switch[aria-checked="true"] { background: var(--accent-fill); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); background: #fff; }
+.setrow { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.setrow:last-child { border-bottom: 0; }
+
+/* Decisions panel */
+.why { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.why ul { margin: 8px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; color: var(--ink2); }
+.phone { width: 100%; max-width: 390px; margin: 0 auto; }
+.phone .btn { min-height: 44px; justify-content: center; }
+.phone .btn.small { min-height: 44px; }
+.phone .field input, .phone .field select, .phone .field textarea { font-size: 16px; min-height: 44px; }
+.phone .tab, .phone .avatar { min-height: 44px; }
+.phone .avatar { width: 44px; height: 44px; }
+.phone .seg button { min-height: 36px; }
+.phone .modal { padding: 16px; }
+.phone .scrim { padding: 12px 8px; }
+.state-label { font-size: 12px; line-height: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+@media (prefers-reduced-motion: reduce) { .btn, .switch::after { transition: none; } .btn:active { transform: none; } }
+
+.hcols { --cols: 96px 120px 72px 72px minmax(160px, 1fr) 88px; }
+.prow { --cols: minmax(176px, 1.3fr) 196px 148px 164px 72px 144px; display: grid; grid-template-columns: var(--cols); gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.pname .code { color: var(--muted); font-size: 12px; margin-left: 4px; }
+.pname .flags { margin-top: 4px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.pname .note { font-size: 12px; line-height: 16px; color: var(--ink2); }
+@container stage (max-width: 820px) {
+  .prow { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .prow .pname, .prow .cell.act { grid-column: 1 / -1; }
+}
+.drawer { border-radius: var(--r-panel); background: var(--panel); box-shadow: var(--ring); padding: 16px; margin-top: 4px; }
+.kind { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 500; }
+.sgn-pos { color: var(--ink); } .sgn-neg { color: var(--ink); }
+.k-line { width: 16px; height: 2px; background: var(--ser-a); }
+.k-line.b { background: var(--ser-b); }
+.k-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ser-a); border: 2px solid var(--panel); box-sizing: content-box; }
+.k-dot.o { background: var(--ser-b); }
+.radios { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 8px; }
+.opt { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: var(--r-control); background: var(--page); box-shadow: var(--ring); cursor: pointer; }
+.opt input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.opt:has(input:checked) { box-shadow: 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+.opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt .t { font-weight: 600; }
+.opt .d { font-size: 12px; line-height: 16px; color: var(--ink2); }
+</style>
+
+<main id="top">
+  <div class="sec">
+    <div class="head">
+      <div class="crumb"><span>Stock Report design, screens still to build</span><span>·</span><span>Group 2 of 6</span></div>
+      <h1>Stock History and Runway</h1>
+      <p class="muted">Answers question 10: what changed in stock, when, and why. Also covers two musts, log a manual sale or adjustment and show the movement history per product, and adds the runway chart that opens under a Stock row. A row on the Stock page opens this view.</p>
+    </div>
+    <div class="jump meta"><a href="#row">Runway under a Stock row</a><a href="#product">Product page and history</a><a href="#adjust">Log adjustment</a><a href="#phone">Phone</a><a href="#states">States</a><a href="#why">Decisions</a></div>
+  </div>
+
+  <section class="sec" id="row">
+    <div class="head"><h2>The runway opens under the Stock row</h2><p class="muted">Decision: is an order enough, or do I need to chase what is already coming? Click the row to open it. The chart is a step line because stock changes in jumps when a delivery lands, and a sloped line would imply stock arrives gradually. Arrival dates are an assumption (order date plus lead time), and the chart says so.</p></div>
+    <div class="stage">
+      <div class="panel">
+        <div class="lhead-wrap"><div id="prow-host"></div></div>
+        <div class="drawer" id="drawer">
+          <div class="phead">
+            <div><h3>Mouse runway</h3><div class="sub">Stock projected at 10.9 a day. Arrivals are assumed on order date plus the 45-day lead time.</div></div>
+            <span class="seg" role="group" aria-label="Horizon" id="hz"><button type="button" data-h="30" aria-pressed="false">30 days</button><button type="button" data-h="60" aria-pressed="false">60 days</button><button type="button" data-h="90" aria-pressed="true">90 days</button></span>
+          </div>
+          <div class="legend"><span><i class="k-line"></i> Current orders only</span><span><i class="k-line b"></i> If you order 1,044 today</span><span><i class="k-dot"></i> Order lands</span></div>
+          <div class="cwrap" id="runway"></div>
+          <details><summary>Show as a table</summary><div class="tablewrap" id="runway-table"></div></details>
+          <div class="row" style="margin-top:8px;justify-content:space-between"><p class="meta"><b style="color:var(--ink)">Insight.</b> Stock hits zero on day 9 and again on day 26, even if both orders arrive on time. A new order lands on day 45, so it cannot close those gaps.</p><a class="plink" href="#product">Open product history <span data-ic="chevron-right"></span></a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="product">
+    <div class="head"><h2>The product page, with history</h2><p class="muted">Decision: why is the stock number what it is? Setup: today's number and the days left. Tension: a 30-day line of what happened. Insight: each movement with its reason. Action: log an adjustment, kept as a quiet button because corrections are rare.</p></div>
+    <div class="stage">
+      <div class="topbar" data-topbar="Stock"></div>
+      <div class="crumb"><a href="#row">Stock</a><span>/</span><span>Mouse</span></div>
+      <div class="panel headline">
+        <div class="sentence">Mouse has 100 units, up 18 in 30 days. <span>Arrivals added 254, sales took 230, a count correction took 6.</span></div>
+        <div class="hl-meta"><button class="btn" type="button" id="open-adj">Log adjustment</button><span class="meta">Every change below is permanent. Fix a mistake with a new entry.</span></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><div><h3>Warehouse stock, last 30 days</h3><div class="sub">Steps down with sales, up with arrivals and corrections</div></div></div>
+        <div class="legend"><span><i class="k-line"></i> Units in the warehouse</span><span><i class="k-dot"></i> Arrival</span><span><i class="k-dot o"></i> Manual adjustment</span></div>
+        <div class="cwrap" id="hist"></div>
+        <details><summary>Show as a table</summary><div class="tablewrap" id="hist-table"></div></details>
+      </div>
+      <div class="panel">
+        <div class="phead"><div><h3>Movements</h3><div class="sub">Newest first · 8 movements in 30 days</div></div>
+          <span class="seg" role="group" aria-label="Kind"><button type="button" aria-pressed="true">All</button><button type="button" aria-pressed="false">Arrivals</button><button type="button" aria-pressed="false">Moves between orders</button><button type="button" aria-pressed="false">Manual</button></span></div>
+        <div class="ghead hcols"><span>When</span><span>What</span><span class="r">Change</span><span class="r">Stock after</span><span>Why</span><span>Who</span></div>
+        <div id="mv"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="adjust">
+    <div class="head"><h2>Log adjustment is a modal</h2><p class="muted">Decision: how many units changed, and why. A note is required, because the SOP asks that every entry shows why. The preview shows the new stock and days left before saving. Try other values.</p></div>
+    <div class="stage">
+      <div class="scrim">
+        <div class="modal" role="dialog" aria-labelledby="at">
+          <header><div><h3 id="at">Log adjustment for Mouse</h3><div class="meta">Stock now 100 · selling 10.9 a day</div></div><button class="btn quiet small" type="button" aria-label="Close" data-ic="x"></button></header>
+          <div class="radios" role="radiogroup" aria-label="Kind of change">
+            <label class="opt"><input type="radio" name="kind" value="sale" checked><span class="t">Manual sale</span><span class="d">Units left the warehouse outside the sales feed</span></label>
+            <label class="opt"><input type="radio" name="kind" value="count"><span class="t">Count correction</span><span class="d">The shelf count differs from the system</span></label>
+            <label class="opt"><input type="radio" name="kind" value="damage"><span class="t">Damaged or lost</span><span class="d">Units that can no longer be sold</span></label>
+          </div>
+          <div class="fgrid">
+            <label class="field" for="a-u">Units<input id="a-u" type="number" value="12" min="1" inputmode="numeric"><span class="hint" id="a-dir">Removes 12 units</span></label>
+            <label class="field" for="a-d">Date<input id="a-d" type="date" value="2026-10-29"></label>
+          </div>
+          <label class="field" for="a-n">Why (required)<input id="a-n" type="text" value="Trade show sample, 12 units"></label>
+          <div class="callout info" id="a-prev"></div>
+          <div class="mfoot"><span class="meta">Saved by Sam Moreno</span><div class="row"><button class="btn quiet" type="button">Cancel</button><button class="btn primary" type="button">Save adjustment</button></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="phone">
+    <div class="head"><h2>On a 390px phone</h2><p class="muted">The chart keeps its shape and loses the legend text to a row above. Movements become cards: change and balance up top, the reason below.</p></div>
+    <div class="cols">
+      <div class="phone stage" style="padding:12px;width:100%"><div class="topbar" data-topbar="Stock"></div>
+        <div class="panel headline"><div class="sentence">Mouse has 100 units, up 18 in 30 days.</div><button class="btn" type="button" style="width:100%">Log adjustment</button></div>
+        <div class="panel"><div class="phead"><h3>Movements</h3></div><div id="mv-p"></div></div></div>
+      <div class="phone stage" style="padding:12px;width:100%"><div class="panel"><div class="phead"><h3>Mouse runway</h3></div><div class="cwrap" id="runway-p"></div></div><div class="prow-p" id="prow-p"></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="states">
+    <div class="head"><h2>States</h2></div>
+    <div class="cols">
+      <div class="panel"><div class="state-label">No movements yet</div><div class="empty"><span data-ic="history" data-s="24"></span><strong>No stock changes for Cable</strong><span class="meta">Arrivals and adjustments will appear here with the reason.</span></div></div>
+      <div class="panel"><div class="state-label">No sales, so no runway</div><div class="empty"><span data-ic="clock" data-s="24"></span><strong>Days left cannot be worked out</strong><span class="meta">Cable has no sales in the last 7 days, so the runway chart stays closed.</span></div></div>
+      <div class="panel"><div class="state-label">Loading</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px"><div class="skel" style="width:40%"></div><div class="skel" style="height:96px"></div><div class="skel" style="width:80%"></div></div></div>
+      <div class="panel"><div class="state-label">Adjustment would go below zero</div><div class="field err" style="margin-top:8px"><label for="e-a">Units</label><input id="e-a" type="number" value="140"><span class="errmsg" role="alert"><span data-ic="circle-alert"></span>Only 100 units are in stock. Enter 100 or fewer.</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="why">
+    <div class="head"><h2>Decisions and how they fit the system</h2></div>
+    <div class="why">
+      <div class="panel"><h3>Why this layout</h3><ul>
+        <li>One step line answers "why this number" better than a table. The table is one click away for exact values.</li>
+        <li>The runway is a drawer under the row, not a new page, so staff stay in the ranked list while comparing products.</li>
+        <li>Log adjustment is a quiet button. The one filled button stays on the reorder action of the Stock page.</li>
+        <li>Movement kinds use an icon and a word, never color alone.</li>
+      </ul></div>
+      <div class="panel"><h3>How it connects to the code</h3><ul>
+        <li>The history is the <code>StockMovement</code> table: kind, delta, note, at, by. Stock after each row is a running total computed in the service, not stored.</li>
+        <li>Kinds: arrival, sale, adjustment, reallocation. A reallocation has delta 0 and names the orders.</li>
+        <li><code>app/charts.py</code> gets a step-line function. The runway reuses <code>forecast.py</code> for burn and the order dates from <code>orders.py</code>.</li>
+        <li>Log adjustment writes one movement and changes <code>Product.stock</code> in the same transaction.</li>
+      </ul></div>
+      <div class="panel"><h3>Rules and honest limits</h3><ul>
+        <li>An adjustment cannot take stock below zero.</li>
+        <li>The runway assumes each order lands on order date plus lead time. The SOP has no expected-date field, so this goes in the design note.</li>
+        <li>Past days of the chart come from movements, so older seed data without movements show a flat line. The seed adds starting movements to avoid this.</li>
+      </ul></div>
+    </div>
+  </section>
+</main>
+
+<script>
+var IC = {
+  "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+  "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+  "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  "circle-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+  "trending-up": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  "trending-down": '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+  "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  "minus": '<path d="M5 12h14"/>',
+  "settings": '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  "copy": '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  "check": '<path d="M20 6 9 17l-5-5"/>',
+  "arrow-right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  "trash-2": '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  "log-in": '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>',
+  "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  "send": '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  "bell": '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  "history": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  "user": '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  "split": '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>',
+  "ban": '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>'
+};
+function icon(n, s) {
+  s = s || 16;
+  return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>';
+}
+function fmt(n) { return n.toLocaleString("en-US"); }
+var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dateAt(d) { var t = new Date(2026, 9, 29 + d); return MON[t.getMonth()] + " " + t.getDate(); }
+var LEVEL_ICON = { crit: "circle-alert", serious: "triangle-alert", warn: "clock", good: "circle-check", plain: "clock", info: "circle-check" };
+function badge(level, text, ic) { return '<span class="badge ' + level + '">' + icon(ic || LEVEL_ICON[level], 16) + text + '</span>'; }
+function put(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+function fill(sel, html) { document.querySelectorAll(sel).forEach(function (el) { el.innerHTML = html; }); }
+
+/* Top bar. current is Stock, Orders or Arrivals; role is staff or supplier. */
+function topbar(el, o) {
+  o = o || {};
+  var cur = o.current || "Stock", supplier = o.role === "supplier";
+  var tabs = (supplier ? ["Orders"] : ["Stock", "Orders", "Arrivals"]).map(function (t) {
+    return '<a class="tab" href="#top"' + (t === cur ? ' aria-current="page"' : "") + '>' + t + '</a>';
+  }).join("");
+  var more = supplier ? "" : '<button class="tab" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="more">More ' + icon("chevron-down", 16) + '</button>';
+  var who = supplier ? "AM" : "SM";
+  el.innerHTML = '<span class="brand"><span class="logo">' + icon("package", 16) + '</span>Stock Report</span>' +
+    '<nav class="tabs" aria-label="Primary">' + tabs + more + '</nav>' +
+    '<div class="right"><span class="meta hide-narrow">Today, Oct 29</span><button class="avatar" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="me" aria-label="Account">' + who + '</button></div>' +
+    (supplier ? "" : '<div class="pop" role="menu" data-for="more" hidden style="top:100%;left:160px;margin-top:4px"><a role="menuitem" href="#top">' + icon("mail", 16) + 'Chase list <span class="badge crit count" style="padding:0 8px">5</span></a><a role="menuitem" href="#top">' + icon("settings", 16) + 'Settings</a><a role="menuitem" href="#top">' + icon("inbox", 16) + 'Outbox</a></div>') +
+    '<div class="pop" role="menu" data-for="me" hidden style="top:100%;right:0;margin-top:4px"><span class="meta" style="padding:8px 12px">' + (supplier ? "Acme Manufacturing · supplier" : "Sam Moreno · staff") + '</span><hr><a role="menuitem" href="#top">' + icon("log-out", 16) + 'Sign out</a></div>';
+}
+function closePops() { document.querySelectorAll(".pop").forEach(function (p) { p.hidden = true; }); document.querySelectorAll("[data-pop]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("[data-pop]");
+  if (!b) { if (!e.target.closest(".pop")) closePops(); return; }
+  var bar = b.closest(".topbar"), pop = bar.querySelector('.pop[data-for="' + b.dataset.pop + '"]'), was = !pop.hidden;
+  closePops();
+  if (!was) { pop.hidden = false; b.setAttribute("aria-expanded", "true"); }
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePops(); });
+document.querySelectorAll("[data-topbar]").forEach(function (el) { topbar(el, { current: el.dataset.topbar, role: el.dataset.role }); });
+document.addEventListener("click", function (e) {
+  var s = e.target.closest(".seg button"); if (!s || s.dataset.noSeg) return;
+  s.parentNode.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === s)); });
+});
+document.addEventListener("click", function (e) {
+  var sw = e.target.closest('.switch'); if (!sw) return;
+  sw.setAttribute("aria-checked", String(sw.getAttribute("aria-checked") !== "true"));
+});
+
+(function () {
+  document.querySelectorAll("[data-ic]").forEach(function (el) { el.innerHTML = icon(el.dataset.ic, +el.dataset.s || 16); });
+  fill(".plink [data-ic]", icon("chevron-right", 16));
+  put("open-adj", icon("pencil", 16) + "Log adjustment");
+
+  /* ---- the Mouse Stock row (same micro-charts as the Stock page) ---- */
+  var G = { code: "MOU", name: "Mouse", stock: 100, burn: 10.9, days: 9.2, incl: 33.9, out: "Nov 07", by: "Sep 09", st: [150, 0, 120], sugg: 1044, level: "crit", flag: "Under 21 days", note: "Reorder now. Ordered units not enough.", s: [6,6,6,7,6,7,6,6,7,6,6,6,7,6,6,7,6,6,6,7,6,6,7,6,6,7,6,6,6,6,6,6,6,6,6,9,9,9,9,9] };
+  function spark(p) {
+    var s = p.s, W = 112, H = 28, n = s.length, mx = Math.max.apply(null, s), i;
+    function X(k) { return 4 + (k / (n - 1)) * (W - 8); } function Y(v) { return H - 4 - (v / mx) * (H - 10); }
+    var older = "", recent = "", area = "";
+    for (i = 0; i < n; i++) { var pt = X(i).toFixed(1) + "," + Y(s[i]).toFixed(1); if (i <= n - 4) older += pt + " "; if (i >= n - 4) recent += pt + " "; area += pt + " "; }
+    area += X(n - 1).toFixed(1) + "," + (H - 4) + " " + X(0).toFixed(1) + "," + (H - 4);
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Daily sales over 40 days, last 3 days highlighted"><polygon points="' + area + '" style="fill:var(--ser-a);fill-opacity:.1"/><polyline points="' + older + '" fill="none" style="stroke:var(--muted)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><polyline points="' + recent + '" fill="none" style="stroke:var(--ser-a)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(s[n - 1]).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(n - 1).toFixed(1) + '" cy="' + Y(s[n - 1]).toFixed(1) + '" r="4" style="fill:var(--ser-a)"/></svg>';
+  }
+  function bullet(p) {
+    var W = 164, H = 20, M = 90; function X(d) { return 4 + (Math.min(d, M) / M) * (W - 8); }
+    return '<svg class="mc" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="9.2 days left, 33.9 days including orders, reorder line at 59 days"><rect x="4" y="6" width="' + (W - 8) + '" height="8" rx="4" style="fill:var(--line)"/><rect x="4" y="6" width="' + (X(p.days) - 4).toFixed(1) + '" height="8" rx="4" style="fill:var(--s-crit)"/><rect x="' + (X(59) - 1).toFixed(1) + '" y="1" width="2" height="18" rx="1" style="fill:var(--ink)"/><circle cx="' + X(p.incl).toFixed(1) + '" cy="10" r="6" style="fill:var(--panel)"/><circle cx="' + X(p.incl).toFixed(1) + '" cy="10" r="4" style="fill:var(--panel);stroke:var(--ink2);stroke-width:2"/></svg>';
+  }
+  function stagebar(p) {
+    var W = 140, x = 0, out = "", cols = ["var(--st1)", "var(--st2)", "var(--st3)"], i, sc = (W - 4) / 300;
+    for (i = 0; i < 3; i++) { if (!p.st[i]) continue; var w = Math.max(p.st[i] * sc, 4); out += '<rect x="' + x.toFixed(1) + '" y="2" width="' + w.toFixed(1) + '" height="8" rx="2" style="fill:' + cols[i] + '"/>'; x += w + 2; }
+    return '<svg class="mc" width="' + W + '" height="12" viewBox="0 0 ' + W + ' 12" role="img" aria-label="270 units on order: 150 placed, 120 on the way">' + out + '</svg>';
+  }
+  function prow(p) {
+    return '<div class="prow"><div class="pname"><strong>' + p.name + '</strong><span class="code">' + p.code + '</span><div class="flags">' + badge(p.level, p.flag) + '<span class="note">' + p.note + '</span></div></div>' +
+      '<div class="cell"><span class="lab">Runway</span>' + bullet(p) + '<div class="small"><span class="big">' + p.days.toFixed(1) + ' days left</span> · Out ' + p.out + ' · reorder by ' + p.by + '</div></div>' +
+      '<div class="cell"><span class="lab">Sales, 40 days</span>' + spark(p) + '<div class="small">' + p.burn.toFixed(1) + ' a day ' + icon("trending-up", 16) + '</div></div>' +
+      '<div class="cell"><span class="lab">Ordered</span>' + stagebar(p) + '<div class="small">270 on order</div></div>' +
+      '<div class="cell r"><span class="lab">In stock</span><span class="big">' + p.stock + '</span></div>' +
+      '<div class="cell act"><span class="big">' + fmt(p.sugg) + '</span><button class="btn small" type="button">Order</button></div></div>';
+  }
+  put("prow-host", prow(G)); put("prow-p", '<div class="panel">' + prow(G) + '</div>');
+
+  /* ---- runway (step line) ---- */
+  var BURN = 10.9, ARR = [{ d: 15, u: 120 }, { d: 42, u: 150 }], NEW = { d: 45, u: 1044 };
+  function sim(withNew) {
+    var pts = [[0, 100]], s = 100, d, k;
+    for (d = 1; d <= 90; d++) {
+      var before = Math.max(0, s - BURN); s = before; pts.push([d, s]);
+      var add = 0; for (k = 0; k < ARR.length; k++) if (ARR[k].d === d) add += ARR[k].u;
+      if (withNew && NEW.d === d) add += NEW.u;
+      if (add) { s += add; pts.push([d, s]); }
+    }
+    return pts;
+  }
+  var A = sim(false), B = sim(true), HZ = 90;
+  function valueAt(pts, d) { var v = pts[0][1], i; for (i = 0; i < pts.length; i++) { if (pts[i][0] <= d) v = pts[i][1]; else break; } return v; }
+  function niceMax(m) { var raw = m / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), c = [1, 2, 2.5, 5, 10], i; for (i = 0; i < c.length; i++) if (c[i] * mag >= raw) return c[i] * mag; return 10 * mag; }
+  function drawRunway(hostId, tipId, tableId) {
+    var W = 720, H = 260, L = 52, R = 16, T = 24, Bm = 32, pw = W - L - R, ph = H - T - Bm;
+    var a = A.filter(function (p) { return p[0] <= HZ; }), b = B.filter(function (p) { return p[0] <= HZ; }), mx = 0;
+    a.concat(b).forEach(function (p) { if (p[1] > mx) mx = p[1]; });
+    var step = niceMax(mx), top = step * 4;
+    function X(d) { return L + (d / HZ) * pw; } function Y(v) { return T + ph - (v / top) * ph; }
+    function path(pts) { return pts.map(function (p, i) { return (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join(" "); }
+    var g = "", i, dx;
+    for (i = 0; i <= 4; i++) { var yv = step * i; g += '<line class="gridl" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(yv).toFixed(1) + '" y2="' + Y(yv).toFixed(1) + '"/><text x="' + (L - 8) + '" y="' + (Y(yv) + 4).toFixed(1) + '" text-anchor="end">' + (yv >= 1000 ? (yv / 1000) + "K" : yv) + '</text>'; }
+    var te = HZ === 30 ? 5 : HZ === 60 ? 10 : 15;
+    for (dx = 0; dx <= HZ; dx += te) g += '<text x="' + X(dx).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle">' + (dx === 0 ? "Today" : dateAt(dx)) + '</text>';
+    var band = "";
+    [[9.2, 15], [26.2, 42]].forEach(function (z) { if (z[0] < HZ) { var z1 = Math.min(z[1], HZ); band += '<rect x="' + X(z[0]).toFixed(1) + '" y="' + T + '" width="' + (X(z1) - X(z[0])).toFixed(1) + '" height="' + ph + '" style="fill:var(--s-crit);fill-opacity:.12"/>'; if (X(z1) - X(z[0]) > 96) band += '<text class="t2" x="' + ((X(z[0]) + X(z1)) / 2).toFixed(1) + '" y="' + (T + 14) + '" text-anchor="middle">Out of stock</text>'; } });
+    var ev = ""; ARR.forEach(function (r) { if (r.d <= HZ) ev += '<circle cx="' + X(r.d).toFixed(1) + '" cy="' + Y(valueAt(A, r.d)).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(r.d).toFixed(1) + '" cy="' + Y(valueAt(A, r.d)).toFixed(1) + '" r="4" style="fill:var(--ser-a)"/><text class="t2" x="' + X(r.d).toFixed(1) + '" y="' + (Y(valueAt(A, r.d)) - 12).toFixed(1) + '" text-anchor="middle">+' + r.u + '</text>'; });
+    if (NEW.d <= HZ) ev += '<circle cx="' + X(NEW.d).toFixed(1) + '" cy="' + Y(valueAt(B, NEW.d)).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(NEW.d).toFixed(1) + '" cy="' + Y(valueAt(B, NEW.d)).toFixed(1) + '" r="4" style="fill:var(--ser-b)"/>';
+    var html = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Projected stock for Mouse over ' + HZ + ' days. Out of stock from day 9 to 15 and day 26 to 42 even if both orders arrive on time.">' + g + band +
+      '<path d="' + path(a) + '" fill="none" style="stroke:var(--ser-a)" stroke-width="2" stroke-linejoin="round"/><path d="' + path(b) + '" fill="none" style="stroke:var(--ser-b)" stroke-width="2" stroke-linejoin="round"/>' + ev +
+      '<line class="rx" x1="0" x2="0" y1="' + T + '" y2="' + (T + ph) + '" style="stroke:var(--ink2)" stroke-width="1" visibility="hidden"/><rect class="rhit" x="' + L + '" y="' + T + '" width="' + pw + '" height="' + ph + '" fill="transparent"/></svg><div class="tip" hidden></div>';
+    var wrap = document.getElementById(hostId); wrap.innerHTML = html;
+    var hit = wrap.querySelector(".rhit"), tip = wrap.querySelector(".tip"), rx = wrap.querySelector(".rx");
+    hit.addEventListener("pointermove", function (e) {
+      var r = wrap.querySelector("svg").getBoundingClientRect(), px = (e.clientX - r.left) * (W / r.width), d = Math.max(0, Math.min(HZ, Math.round(((px - L) / pw) * HZ)));
+      rx.setAttribute("x1", X(d)); rx.setAttribute("x2", X(d)); rx.setAttribute("visibility", "visible"); tip.hidden = false;
+      tip.innerHTML = '<b>' + (d === 0 ? "Today, " : "Day " + d + ", ") + dateAt(d) + '</b><div class="tr"><span><i class="sw" style="background:var(--ser-a)"></i>Current orders</span><b>' + fmt(Math.round(valueAt(A, d))) + '</b></div><div class="tr"><span><i class="sw" style="background:var(--ser-b)"></i>If you order 1,044</span><b>' + fmt(Math.round(valueAt(B, d))) + '</b></div>';
+      var tx = (X(d) / W) * r.width + 12; if (tx + 190 > r.width) tx = (X(d) / W) * r.width - 202; tip.style.left = Math.max(0, tx) + "px"; tip.style.top = "24px";
+    });
+    hit.addEventListener("pointerleave", function () { rx.setAttribute("visibility", "hidden"); tip.hidden = true; });
+    if (tableId) {
+      var rows = "", ev2 = HZ === 30 ? 5 : 10; for (dx = 0; dx <= HZ; dx += ev2) rows += "<tr><td>" + (dx === 0 ? "Today" : dateAt(dx)) + "</td><td>" + fmt(Math.round(valueAt(A, dx))) + "</td><td>" + fmt(Math.round(valueAt(B, dx))) + "</td></tr>";
+      put(tableId, '<table class="tbl"><thead><tr><th>Date</th><th>Current orders</th><th>If you order 1,044</th></tr></thead><tbody>' + rows + '</tbody></table>');
+    }
+  }
+  function drawBoth() { drawRunway("runway", null, "runway-table"); drawRunway("runway-p", null, null); }
+  document.getElementById("hz").addEventListener("click", function (e) { var b = e.target.closest("button[data-h]"); if (!b) return; HZ = +b.dataset.h; drawBoth(); });
+  drawBoth();
+
+  /* ---- history: 30 days of warehouse stock, as a step line ---- */
+  var EV = [
+    { d: -30, k: "sale", dl: -11, why: "Daily sales feed", by: "Import" }, { d: -27, k: "arrival", dl: 120, why: "MOU-000 arrived (earlier order)", by: "Priya N." },
+    { d: -22, k: "sale", dl: -48, why: "Sales, Oct 7 to Oct 11", by: "Import" }, { d: -17, k: "adj", dl: -6, why: "Count correction, shelf count was 6 lower", by: "Priya N." },
+    { d: -13, k: "arrival", dl: 134, why: "Matched to MOU-000, 100 units, and not from an order, 34 units", by: "Sam M." }, { d: -9, k: "sale", dl: -97, why: "Sales, Oct 15 to Oct 22", by: "Import" },
+    { d: -2, k: "move", dl: 0, why: "Moved 20 units from MOU-001 to MOU-002", by: "Sam M." }, { d: 0, k: "sale", dl: -74, why: "Sales, Oct 23 to Oct 29", by: "Import" }
+  ];
+  /* walk back from today's 100 to a starting level, then forward to build the steps */
+  var totalDelta = EV.reduce(function (s, e) { return s + e.dl; }, 0), start = 100 - totalDelta, lvl = start;
+  EV.forEach(function (e) { lvl += e.dl; e.after = lvl; });
+  function drawHist() {
+    var W = 720, H = 220, L = 52, R = 16, T = 16, Bm = 32, pw = W - L - R, ph = H - T - Bm, mx = 0, pts = [[-30, start]], cur = start;
+    EV.forEach(function (e) { pts.push([e.d, cur]); cur += e.dl; pts.push([e.d, cur]); });
+    pts.push([0, 100]); pts.forEach(function (p) { if (p[1] > mx) mx = p[1]; });
+    var step = niceMax(mx), top = step * 4;
+    function X(d) { return L + ((d + 30) / 30) * pw; } function Y(v) { return T + ph - (v / top) * ph; }
+    var g = "", i; for (i = 0; i <= 4; i++) { var yv = step * i; g += '<line class="gridl" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(yv).toFixed(1) + '" y2="' + Y(yv).toFixed(1) + '"/><text x="' + (L - 8) + '" y="' + (Y(yv) + 4).toFixed(1) + '" text-anchor="end">' + yv + '</text>'; }
+    for (i = -30; i <= 0; i += 5) g += '<text x="' + X(i).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle">' + (i === 0 ? "Today" : dateAt(i)) + '</text>';
+    var d = pts.map(function (p, j) { return (j ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); }).join(" ");
+    var dots = ""; EV.forEach(function (e) { if (e.k === "arrival" || e.k === "adj") dots += '<circle cx="' + X(e.d).toFixed(1) + '" cy="' + Y(e.after).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(e.d).toFixed(1) + '" cy="' + Y(e.after).toFixed(1) + '" r="4" style="fill:' + (e.k === "arrival" ? "var(--ser-a)" : "var(--ser-b)") + '"/>'; });
+    var html = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Warehouse stock for Mouse over 30 days, from ' + start + ' units to 100">' + g + '<path d="' + d + '" fill="none" style="stroke:var(--ser-a)" stroke-width="2" stroke-linejoin="round"/>' + dots + '<circle cx="' + X(0).toFixed(1) + '" cy="' + Y(100).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(0).toFixed(1) + '" cy="' + Y(100).toFixed(1) + '" r="4" style="fill:var(--ser-a)"/><text class="t2" x="' + (X(0) - 10).toFixed(1) + '" y="' + (Y(100) - 12).toFixed(1) + '" text-anchor="end">100 now</text></svg>';
+    put("hist", html);
+    put("hist-table", '<table class="tbl"><thead><tr><th>Date</th><th>Change</th><th>Stock after</th></tr></thead><tbody>' + EV.map(function (e) { return "<tr><td>" + dateAt(e.d) + "</td><td>" + (e.dl > 0 ? "+" : "") + e.dl + "</td><td>" + e.after + "</td></tr>"; }).join("") + '</tbody></table>');
+  }
+  drawHist();
+
+  var KIND = { arrival: ["Arrival", "truck"], sale: ["Sales", "trending-down"], adj: ["Adjustment", "pencil"], move: ["Moved between orders", "split"] };
+  function mvrow(e) {
+    var k = KIND[e.k];
+    return '<div class="grow hcols"><span class="cell num"><span class="lab">When</span>' + dateAt(e.d) + '</span><div class="cell"><span class="lab">What</span><span class="kind">' + icon(k[1], 16) + k[0] + '</span></div>' +
+      '<div class="cell r"><span class="lab">Change</span><span class="big">' + (e.dl > 0 ? "+" + e.dl : e.dl === 0 ? "0" : "−" + Math.abs(e.dl)) + '</span></div><div class="cell r"><span class="lab">Stock after</span>' + e.after + '</div>' +
+      '<div class="cell full"><span class="lab">Why</span>' + e.why + '</div><div class="cell"><span class="lab">Who</span>' + e.by + '</div></div>';
+  }
+  var sorted = EV.slice().reverse(); put("mv", sorted.map(mvrow).join("")); put("mv-p", sorted.slice(0, 4).map(mvrow).join(""));
+
+  /* ---- adjustment preview ---- */
+  function adj() {
+    var u = Math.max(0, parseInt(document.getElementById("a-u").value, 10) || 0), kind = document.querySelector('input[name="kind"]:checked').value, sign = kind === "count" ? 1 : -1;
+    document.getElementById("a-dir").textContent = (kind === "count" ? "Adds " : "Removes ") + u + " units";
+    var ns = Math.max(0, 100 + sign * u), days = ns / 10.9;
+    put("a-prev", icon("circle-alert", 16) + "<span>Stock goes from 100 to <b>" + ns + "</b>. That is <b>" + days.toFixed(1) + " days</b> at 10.9 a day, down from 9.2.</span>");
+  }
+  document.getElementById("a-u").addEventListener("input", adj);
+  document.querySelectorAll('input[name="kind"]').forEach(function (r) { r.addEventListener("change", adj); }); adj();
+})();
+</script>

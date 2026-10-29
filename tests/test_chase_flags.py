@@ -80,8 +80,8 @@ def test_levels_sort_urgent_first():
     assert sorted(["good", "crit", "warn", "serious"], key=LEVEL_RANK.get) == ["crit", "serious", "warn", "good"]
 
 
-# ---- order size options (Gizmo Mini: stock 100, 270 on order, 10.9 a day) ----
-def test_order_options_for_gizmo():
+# ---- order size options (Mouse: stock 100, 270 on order, 10.9 a day) ----
+def test_order_options_for_mouse():
     f = fc(100, 270, 9, 6)
     assert f.adjusted_burn == 10.9
     o = order_options(100, 270, f, Params())
@@ -117,9 +117,9 @@ def test_takeaway_sentences():
 
 
 def test_messages_name_the_order_and_sender():
-    m = order_message(supplier="Acme Manufacturing", order="GIZ-003", product="Gizmo Mini", code="GIZ", units=200,
+    m = order_message(supplier="Acme Manufacturing", order="MOU-003", product="Mouse", code="MOU", units=200,
                       notes="Rush", sender="Sam")
-    assert m.startswith("Hi Acme,") and "Order: GIZ-003" in m and "Notes: Rush" in m and m.endswith("Sam")
-    f = follow_up(Chase("where", 14, 10, 4), supplier="Acme Manufacturing", order="GIZ-001", product="Gizmo Mini",
+    assert m.startswith("Hi Acme,") and "Order: MOU-003" in m and "Notes: Rush" in m and m.endswith("Sam")
+    f = follow_up(Chase("where", 14, 10, 4), supplier="Acme Manufacturing", order="MOU-001", product="Mouse",
                   units=120, untracked=0, tracking_number="1Z999AA10123456784", created_days=30, sender="Sam")
     assert "1Z999AA10123456784" in f and "14 days ago" in f

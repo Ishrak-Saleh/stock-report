@@ -1,0 +1,498 @@
+<title>Settings and Outbox</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* Layout concept: same app surface as design-system.html. Each design page is a stack of "stages" (the app at laptop width, then at 390px),
+   followed by a short "Decisions" panel that says why the screen is built the way it is. Dark first; light through data-theme="light". */
+:root {
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-control: 6px; --r-panel: 10px; --r-pill: 999px;
+  --page: #181818; --panel: #1F1F1F; --raised: #272727; --line: #313131;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --danger: #ec7070;
+  --accent: #3987e5; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --s-good: #0ca30c; --s-warn: #fab219; --s-serious: #ec835a; --s-crit: #d03b3b;
+  --ser-a: #3987e5; --ser-b: #d95926;
+  --st1: #184f95; --st2: #2a78d6; --st3: #5598e7; --st4: #86b6ef;
+  --ring: 0 0 0 1px var(--line);
+  --hover: oklch(1 0 0 / .05);
+  --scrim: oklch(0 0 0 / .55);
+  --shadow: oklch(0 0 0 / .35);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #f6f6f4; --panel: #ffffff; --raised: #f0efec; --line: #e1e0d9;
+  --ink: #0b0b0b; --ink2: #52514e; --muted: #75736e; --danger: #b42323;
+  --accent: #2a78d6; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --ser-a: #2a78d6; --ser-b: #eb6834;
+  --st1: #86b6ef; --st2: #5598e7; --st3: #2a78d6; --st4: #1c5cab;
+  --hover: oklch(0 0 0 / .04);
+  --scrim: oklch(0 0 0 / .35);
+  --shadow: oklch(0 0 0 / .18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink); font: 400 14px/20px var(--font);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+h1, h2 { font-size: 20px; line-height: 28px; }
+h3 { font-size: 16px; line-height: 24px; }
+p { margin: 0; max-width: 70ch; text-wrap: pretty; }
+.muted { color: var(--ink2); }
+.meta { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.faint { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+code, .tok { font: 12px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--raised); padding: 0 4px; border-radius: 4px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-control); }
+.ic { flex-shrink: 0; display: inline-block; vertical-align: middle; }
+.sec { display: flex; flex-direction: column; gap: 16px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; align-items: start; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.jump a { color: var(--ink2); text-decoration: none; }
+.jump a:hover { color: var(--ink); }
+.crumb { font-size: 12px; line-height: 16px; color: var(--ink2); display: flex; gap: 8px; flex-wrap: wrap; }
+.crumb a { color: var(--ink2); }
+
+.stage { background: var(--page); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; container-type: inline-size; container-name: stage; position: relative; }
+.panel { background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; min-width: 0; }
+.phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.phead .sub { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.plink { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; font-weight: 500; font-size: 12px; background: none; border: 0; cursor: pointer; font-family: var(--font); padding: 4px 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line);
+  background: transparent; color: var(--ink); cursor: pointer; transition: transform 120ms var(--ease), background-color 120ms var(--ease); touch-action: manipulation; text-decoration: none; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-ink); }
+.btn.quiet { color: var(--ink2); }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.small { padding: 4px 8px; font-size: 12px; line-height: 16px; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) { .btn:hover:not(.primary):not(:disabled) { background: var(--hover); } .btn.primary:hover { filter: brightness(1.08); } }
+.seg { display: inline-flex; background: var(--raised); border-radius: var(--r-control); padding: 2px; gap: 2px; flex-wrap: wrap; }
+.seg button { font: 500 12px/16px var(--font); padding: 4px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--ring); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.field select, .field input, .field textarea { font: 400 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line); background: var(--page); color: var(--ink); width: 100%; }
+.field .hint { color: var(--muted); }
+.field.err input, .field.err select { border-color: var(--s-crit); }
+.field .errmsg { display: flex; gap: 4px; align-items: center; color: var(--ink); }
+.field .errmsg .ic { color: var(--s-crit); }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-pill); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; color: var(--ink);
+  background: color-mix(in srgb, var(--c) 16%, var(--panel)); }
+.badge .ic { color: var(--c); }
+.badge.crit { --c: var(--s-crit); } .badge.serious { --c: var(--s-serious); } .badge.warn { --c: var(--s-warn); } .badge.good { --c: var(--s-good); }
+.badge.plain { --c: var(--muted); } .badge.info { --c: var(--accent); }
+
+.topbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: relative; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.brand .logo { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-fill); color: #fff; display: grid; place-items: center; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--r-control); color: var(--ink2); text-decoration: none; border: 0; background: none; font: 500 14px/20px var(--font); cursor: pointer; }
+.tab[aria-current="page"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+@media (hover: hover) and (pointer: fine) { .tab:hover { background: var(--hover); } }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.avatar { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--raised); color: var(--ink); display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 0; cursor: pointer; box-shadow: var(--ring); }
+.pop { position: absolute; z-index: 5; background: var(--raised); border-radius: var(--r-panel); box-shadow: var(--ring), 0 8px 24px var(--shadow); padding: 4px; min-width: 216px; display: flex; flex-direction: column; }
+.pop[hidden] { display: none; }
+.pop a, .pop button { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); color: var(--ink); text-decoration: none; background: none; border: 0; font: 400 14px/20px var(--font); cursor: pointer; text-align: left; }
+.pop .count { margin-left: auto; }
+.pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+@media (hover: hover) and (pointer: fine) { .pop a:hover, .pop button:hover { background: var(--hover); } }
+
+.headline { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.headline .sentence { font-size: 20px; line-height: 28px; font-weight: 600; max-width: 46ch; text-wrap: balance; }
+.headline .sentence span { color: var(--ink2); font-weight: 400; }
+.hl-meta { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+@container stage (max-width: 560px) { .hl-meta { align-items: flex-start; } .headline .sentence { font-size: 16px; line-height: 24px; } }
+
+/* Generic ranked grid: set --cols on the container */
+.ghead, .grow { display: grid; grid-template-columns: var(--cols); gap: 16px; align-items: center; }
+.ghead { padding: 0 0 8px; font-size: 12px; line-height: 16px; color: var(--ink2); border-bottom: 1px solid var(--line); }
+.grow { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.grow:last-child { border-bottom: 0; }
+.r { text-align: right; font-variant-numeric: tabular-nums; }
+.cell .big { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cell .small { font-size: 12px; line-height: 16px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.cell .lab { display: none; font-size: 12px; line-height: 16px; color: var(--muted); }
+.cell.act { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.strong { font-weight: 600; }
+.stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+@container stage (max-width: 820px) {
+  .ghead { display: none; }
+  .grow { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .grow > .full { grid-column: 1 / -1; }
+  .cell .lab { display: block; }
+  .r { text-align: left; }
+  .cell.act { justify-content: flex-start; }
+  .hide-narrow { display: none !important; }
+}
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; line-height: 16px; color: var(--ink2); align-items: center; margin-bottom: 8px; }
+.legend i { display: inline-block; vertical-align: middle; }
+.k-fill { width: 16px; height: 8px; border-radius: 4px; background: var(--s-serious); }
+.k-tick { width: 2px; height: 12px; background: var(--ink); }
+.k-st { width: 12px; height: 8px; border-radius: 2px; }
+.mc { display: block; overflow: visible; }
+.cwrap { position: relative; }
+.cwrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tip { position: absolute; pointer-events: none; background: var(--raised); box-shadow: var(--ring), 0 4px 12px var(--shadow); border-radius: var(--r-control); padding: 8px 12px; font-size: 12px; line-height: 16px; min-width: 176px; z-index: 3; }
+.tip b { font-weight: 600; }
+.tip .tr { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.tip .sw { width: 12px; height: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+svg text { font-family: var(--font); fill: var(--muted); font-size: 11px; }
+svg .t2 { fill: var(--ink2); font-size: 12px; }
+.gridl { stroke: var(--line); stroke-width: 1; }
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); font-size: 12px; line-height: 16px; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { color: var(--ink2); font-weight: 500; }
+.tablewrap { overflow-x: auto; }
+details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-height: 16px; padding: 8px 0; }
+
+/* Modal (static preview inside a stage) */
+.scrim { background: var(--scrim); border-radius: var(--r-panel); padding: 24px 16px; display: grid; place-items: start center; }
+.modal { background: var(--panel); box-shadow: var(--ring), 0 16px 48px var(--shadow); border-radius: var(--r-panel); width: 100%; max-width: 640px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.mfoot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.callout { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-warn) 14%, var(--panel)); font-size: 12px; line-height: 16px; }
+.callout .ic { color: var(--s-warn); }
+.callout.info { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+.callout.info .ic { color: var(--accent); }
+.callout.crit { background: color-mix(in srgb, var(--s-crit) 14%, var(--panel)); }
+.callout.crit .ic { color: var(--s-crit); }
+.callout.good { background: color-mix(in srgb, var(--s-good) 14%, var(--panel)); }
+.callout.good .ic { color: var(--s-good); }
+.banner { display: flex; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-crit) 16%, var(--panel)); }
+.banner .ic { color: var(--s-crit); margin-top: 2px; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 12px; text-align: center; }
+.skel { height: 12px; border-radius: 4px; background: var(--raised); }
+
+/* Stepper and switch */
+.step { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--page); overflow: hidden; }
+.step button { width: 32px; border: 0; background: transparent; color: var(--ink2); cursor: pointer; display: grid; place-items: center; }
+.step input { width: 64px; text-align: center; border: 0; border-inline: 1px solid var(--line); background: transparent; color: var(--ink); font: 600 14px/20px var(--font); padding: 4px; font-variant-numeric: tabular-nums; }
+.switch { position: relative; width: 40px; height: 24px; border-radius: var(--r-pill); border: 0; background: var(--raised); box-shadow: var(--ring); cursor: pointer; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink2); transition: transform 160ms var(--ease); }
+.switch[aria-checked="true"] { background: var(--accent-fill); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); background: #fff; }
+.setrow { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.setrow:last-child { border-bottom: 0; }
+
+/* Decisions panel */
+.why { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.why ul { margin: 8px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; color: var(--ink2); }
+.phone { width: 100%; max-width: 390px; margin: 0 auto; }
+.phone .btn { min-height: 44px; justify-content: center; }
+.phone .btn.small { min-height: 44px; }
+.phone .field input, .phone .field select, .phone .field textarea { font-size: 16px; min-height: 44px; }
+.phone .tab, .phone .avatar { min-height: 44px; }
+.phone .avatar { width: 44px; height: 44px; }
+.phone .seg button { min-height: 36px; }
+.phone .modal { padding: 16px; }
+.phone .scrim { padding: 12px 8px; }
+.state-label { font-size: 12px; line-height: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+@media (prefers-reduced-motion: reduce) { .btn, .switch::after { transition: none; } .btn:active { transform: none; } }
+
+.pcols { --cols: minmax(140px, 1.1fr) 56px minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(140px, 1.2fr) 72px; }
+.scols { --cols: minmax(160px, 1.2fr) minmax(200px, 1.4fr) 120px 72px; }
+.ocols { --cols: 96px minmax(180px, 1.2fr) minmax(200px, 1.6fr) 144px 72px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 12px; line-height: 16px; padding: 2px 8px; border-radius: var(--r-pill); background: var(--raised); color: var(--ink); }
+.fcalc { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.fcalc > div { background: var(--page); box-shadow: var(--ring); border-radius: var(--r-control); padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.fcalc .v { font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bundle { display: grid; grid-template-columns: 1fr 96px auto; gap: 8px; align-items: end; }
+.stale { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-warn) 14%, var(--panel)); }
+.stale .ic { color: var(--s-warn); margin-top: 2px; }
+.stale .grow-1 { flex: 1; }
+</style>
+
+<main id="top">
+  <div class="sec">
+    <div class="head">
+      <div class="crumb"><span>Stock Report design, screens still to build</span><span>·</span><span>Group 4 of 6</span></div>
+      <h1>Settings and Outbox</h1>
+      <p class="muted">Covers the settings must (edit products, suppliers and the forecast settings, as defaults and per product) and three shoulds: reorder alert emails with a test send, the Outbox that shows what was sent in test mode, and a warning when the data is old. Opens from More in the top bar.</p>
+    </div>
+    <div class="jump meta"><a href="#settings">Settings page</a><a href="#product">Edit a product</a><a href="#outbox">Outbox</a><a href="#stale">Old-data warning</a><a href="#phone">Phone</a><a href="#states">States</a><a href="#why">Decisions</a></div>
+  </div>
+
+  <section class="sec" id="settings">
+    <div class="head"><h2>The Settings page</h2><p class="muted">Decision: are the numbers behind the Stock page set up the way the business works? One page with four sections, in the order people change them: forecast defaults, products, suppliers, alerts. The jump links at the top replace tabs, so nothing is hidden. The sentence under each field says what it changes, using the real numbers.</p></div>
+    <div class="stage">
+      <div class="topbar" data-topbar="Stock"></div>
+      <div class="panel headline">
+        <div class="sentence">Reorder line is 59 days. <span>An order lands 45 days after you place it, and stock should never drop under 14 days after that.</span></div>
+        <div class="hl-meta"><button class="btn primary" type="button">Save settings</button><span class="meta">Changes apply to the Stock page straight away</span></div>
+      </div>
+      <div class="row"><span class="seg" role="group" aria-label="Jump to"><button type="button" aria-pressed="true" data-noseg="1">Forecast</button><button type="button" aria-pressed="false" data-noseg="1">Products 6</button><button type="button" aria-pressed="false" data-noseg="1">Suppliers 2</button><button type="button" aria-pressed="false" data-noseg="1">Alerts</button></span></div>
+
+      <div class="panel">
+        <div class="phead"><div><h3>Forecast defaults</h3><div class="sub">Used by every product that has no override of its own</div></div></div>
+        <div class="fgrid">
+          <label class="field" for="f-lead">Lead time, days<input id="f-lead" type="number" min="0" value="45" inputmode="numeric"><span class="hint">Days from placing an order to it arriving</span></label>
+          <label class="field" for="f-safe">Safety days<input id="f-safe" type="number" min="0" value="14" inputmode="numeric"><span class="hint">Extra cushion on top of lead time</span></label>
+          <label class="field" for="f-targ">Target days<input id="f-targ" type="number" min="1" value="60" inputmode="numeric"><span class="hint">Days of stock a new order should give you</span></label>
+        </div>
+        <div class="fcalc" style="margin-top:12px">
+          <div><span class="meta">Reorder line</span><span class="v" id="c-line">59 days</span><span class="meta">A product with less than this, counting orders, shows Reorder now</span></div>
+          <div><span class="meta">Suggested order covers</span><span class="v" id="c-cover">105 days of sales</span><span class="meta">Target plus lead time, minus warehouse stock</span></div>
+          <div><span class="meta">Example, Mouse at 10.9 a day</span><span class="v" id="c-ex">1,044 units</span><span class="meta">105 days × 10.9 − 100 in stock</span></div>
+        </div>
+      </div>
+
+      <div class="panel" id="s-prod">
+        <div class="phead"><div><h3>Products</h3><div class="sub">Blank forecast numbers use the defaults above</div></div><button class="btn small" type="button" id="addp"></button></div>
+        <div class="ghead pcols"><span>Product</span><span>Code</span><span>Sales are matched by</span><span>Forecast</span><span>Bundles</span><span class="r">Edit</span></div>
+        <div id="plist"></div>
+      </div>
+
+      <div class="panel">
+        <div class="phead"><div><h3>Suppliers</h3><div class="sub">Messages go to the address on file</div></div><button class="btn small" type="button" id="adds"></button></div>
+        <div class="ghead scols"><span>Supplier</span><span>Email</span><span>Open orders</span><span class="r">Edit</span></div>
+        <div id="slist"></div>
+      </div>
+
+      <div class="panel">
+        <div class="phead"><div><h3>Alerts</h3><div class="sub">Email when a product crosses its reorder line</div></div></div>
+        <div class="setrow"><div><div class="strong">Send reorder alert emails</div><div class="meta">Off by default. Turn on when staff want a nudge between weekly reviews.</div></div><button class="switch" type="button" role="switch" aria-checked="true" aria-label="Send reorder alert emails"></button></div>
+        <div class="setrow" style="align-items:flex-end"><label class="field" for="rcp" style="flex:1;max-width:480px">Who gets them<input id="rcp" type="text" value="ops@example.com, sam@example.com"><span class="hint">Separate addresses with commas</span></label><button class="btn" type="button" id="test"></button></div>
+        <div class="callout good" id="testres"><span data-ic="circle-check"></span><span>Test saved to the Outbox at 9:12 am. Nothing was delivered, because test mode is on.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="product">
+    <div class="head"><h2>Editing a product is a modal</h2><p class="muted">Decision: what does this product need that the defaults do not give it? The code and sales identifiers decide which sales rows belong to the product, so they come first. The bundle table is where "buy 2 get 2" becomes 4 units. Each override field shows the default as its placeholder, so a blank field is clearly "use the default".</p></div>
+    <div class="stage">
+      <div class="scrim">
+        <div class="modal" role="dialog" aria-labelledby="pt">
+          <header><div><h3 id="pt">Edit Mouse</h3><div class="meta">Changes apply to the forecast on the next page load</div></div><button class="btn quiet small" type="button" aria-label="Close" data-ic="x"></button></header>
+          <div class="fgrid" style="grid-template-columns:2fr 1fr">
+            <label class="field" for="p-name">Name<input id="p-name" type="text" value="Mouse"></label>
+            <label class="field" for="p-code">Short code<input id="p-code" type="text" value="MOU" maxlength="8"><span class="hint">Up to 8 letters, used in order names</span></label>
+          </div>
+          <label class="field" for="p-ids">Sales titles and SKUs that count as this product<input id="p-ids" type="text" value="MOUSE-01, Mouse, Mouse (black)"><span class="hint">Matched exactly against the sales feed, separated by commas</span></label>
+          <div>
+            <div class="state-label" style="margin-bottom:8px">Bundle variants</div>
+            <div class="bundle"><label class="field" for="b1n">Variant title<input id="b1n" type="text" value="Buy 2 Get 2"></label><label class="field" for="b1u">Units per sale<input id="b1u" type="number" value="4"></label><button class="btn quiet" type="button" aria-label="Remove bundle" data-ic="trash-2"></button></div>
+          </div>
+          <div>
+            <div class="state-label" style="margin-bottom:8px">Forecast overrides, blank uses the default</div>
+            <div class="fgrid">
+              <label class="field" for="o-lead">Lead time<input id="o-lead" type="number" placeholder="45 (default)" inputmode="numeric"></label>
+              <label class="field" for="o-safe">Safety days<input id="o-safe" type="number" placeholder="14 (default)" inputmode="numeric"></label>
+              <label class="field" for="o-targ">Target days<input id="o-targ" type="number" placeholder="60 (default)" inputmode="numeric"></label>
+            </div>
+          </div>
+          <div class="mfoot"><button class="btn danger" type="button" id="delp"></button><div class="row"><button class="btn quiet" type="button">Cancel</button><button class="btn primary" type="button">Save product</button></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="outbox">
+    <div class="head"><h2>The Outbox</h2><p class="muted">Decision: what did the system send, and to whom? Every message the Chase list or the alert test prepared is saved here. A banner says test mode is on, so nobody thinks a supplier received it.</p></div>
+    <div class="stage">
+      <div class="topbar" data-topbar="Stock"></div>
+      <div class="panel headline">
+        <div class="sentence">4 messages saved today. <span>None were delivered, because test mode is on.</span></div>
+        <div class="hl-meta"><span class="meta">Delivery stays off until a mail server is set up</span></div>
+      </div>
+      <div class="callout info"><span data-ic="circle-alert"></span><span>Test mode is on. Messages here are saved only. The To address shows who would have received it.</span></div>
+      <div class="panel">
+        <div class="phead"><div><h3>Messages</h3><div class="sub">Newest first</div></div><span class="seg" role="group" aria-label="Kind"><button type="button" aria-pressed="true">All</button><button type="button" aria-pressed="false">Follow-ups</button><button type="button" aria-pressed="false">Reorder alerts</button><button type="button" aria-pressed="false">Tests</button></span></div>
+        <div class="ghead ocols"><span>When</span><span>To</span><span>Subject</span><span>Kind</span><span class="r">Open</span></div>
+        <div id="olist"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="stale">
+    <div class="head"><h2>Warning when the data is old</h2><p class="muted">Decision: can I trust the numbers on this page? Stock and sales come from imports, so the page says when they were last updated. Under 2 days old it shows quietly in the meta line, as it does today. Older than that, a warning bar appears above the headline, with the date.</p></div>
+    <div class="stage">
+      <div class="stale" role="status"><span data-ic="clock"></span><div class="grow-1"><strong>Sales data is 3 days old.</strong> <span class="muted">Last update Oct 26, 4:30 pm. Burn, days left and reorder dates may be behind.</span></div><a class="plink" href="#settings">Update data</a></div>
+      <div class="panel headline"><div class="sentence">3 products need a reorder, and Phone is out. <span>Suggested order: 1,963 units.</span></div><div class="hl-meta"><button class="btn primary" type="button">Review suggested orders</button><span class="meta">Sales through Oct 26 · lead time 45 days</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="phone">
+    <div class="head"><h2>On a 390px phone</h2><p class="muted">Rows become cards. The three forecast fields stack, and each number field opens the numeric keypad.</p></div>
+    <div class="cols">
+      <div class="phone stage" style="padding:12px;width:100%"><div class="topbar" data-topbar="Stock"></div>
+        <div class="panel headline"><div class="sentence">Reorder line is 59 days.</div><button class="btn primary" type="button" style="width:100%">Save settings</button></div>
+        <div class="panel"><div class="phead"><h3>Forecast defaults</h3></div>
+          <div class="fgrid"><label class="field" for="pf-lead">Lead time, days<input id="pf-lead" type="number" value="45" inputmode="numeric"></label><label class="field" for="pf-safe">Safety days<input id="pf-safe" type="number" value="14" inputmode="numeric"></label><label class="field" for="pf-targ">Target days<input id="pf-targ" type="number" value="60" inputmode="numeric"></label></div></div>
+        <div class="panel"><div class="phead"><h3>Products</h3></div><div id="plist-p"></div></div></div>
+      <div class="phone stage" style="padding:12px;width:100%"><div class="topbar" data-topbar="Stock"></div><div class="panel"><div class="phead"><h3>Outbox</h3></div><div id="olist-p"></div></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="states">
+    <div class="head"><h2>States</h2></div>
+    <div class="cols">
+      <div class="panel"><div class="state-label">Outbox empty</div><div class="empty"><span data-ic="inbox" data-s="24"></span><strong>No messages saved yet</strong><span class="meta">Follow-ups and alert tests will appear here.</span></div></div>
+      <div class="panel"><div class="state-label">Loading</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px"><div class="skel" style="width:60%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:70%"></div></div></div>
+      <div class="panel"><div class="state-label">Field error</div><div class="field err" style="margin-top:8px"><label for="e-c">Short code</label><input id="e-c" type="text" value="MOU"><span class="errmsg" role="alert"><span data-ic="circle-alert"></span>MOU is used by Mouse. Pick a different code.</span></div><div class="field err" style="margin-top:8px"><label for="e-r">Who gets them</label><input id="e-r" type="text" value="ops@example"><span class="errmsg" role="alert"><span data-ic="circle-alert"></span>ops@example is not an email address.</span></div></div>
+      <div class="panel"><div class="state-label">Delete is blocked</div><div class="banner" role="alert" style="margin-top:8px"><span data-ic="circle-alert"></span><span>Mouse has 2 open orders and 31 stock movements. Products with history cannot be deleted. Archive it instead.</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="why">
+    <div class="head"><h2>Decisions and how they fit the system</h2></div>
+    <div class="why">
+      <div class="panel"><h3>Why this layout</h3><ul>
+        <li>The headline sentence states the result of the settings (a 59-day reorder line), so staff see what changing a number does.</li>
+        <li>Defaults first, then per-product overrides, because that is the order in which the SOP defines them.</li>
+        <li>Placeholders show the default, so "blank means default" needs no explanation.</li>
+        <li>Save is the one filled button. Destructive actions stay outlined and live inside the modal.</li>
+      </ul></div>
+      <div class="panel"><h3>How it connects to the code</h3><ul>
+        <li><code>Settings</code> holds one row of defaults. <code>Product.lead_time</code>, <code>safety_days</code> and <code>target_days</code> are the overrides, empty means default. <code>forecast.py</code> already takes these as arguments.</li>
+        <li>Identifiers and <code>bundle_map</code> feed the sales matching that the seed and import already use.</li>
+        <li>The Outbox page lists the <code>Outbox</code> table. The alert test writes one row.</li>
+        <li>The stale warning compares <code>Settings.data_updated_at</code> with today, in store time.</li>
+      </ul></div>
+      <div class="panel"><h3>Rules and honest limits</h3><ul>
+        <li>Test mode is permanent for this assignment. The page says so, and there is no field for a mail password, so no secrets live in the repo.</li>
+        <li>Changing a forecast default changes every product without an override at once. The save button label does not hide that.</li>
+        <li>Deleting a product with history is blocked and offers Archive. Archive is a small addition to the model and goes in the design note.</li>
+      </ul></div>
+    </div>
+  </section>
+</main>
+
+<script>
+var IC = {
+  "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+  "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+  "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  "circle-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+  "trending-up": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  "trending-down": '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+  "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  "minus": '<path d="M5 12h14"/>',
+  "settings": '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  "copy": '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  "check": '<path d="M20 6 9 17l-5-5"/>',
+  "arrow-right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  "trash-2": '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  "log-in": '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>',
+  "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  "send": '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  "bell": '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  "history": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  "user": '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  "split": '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>',
+  "ban": '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>'
+};
+function icon(n, s) {
+  s = s || 16;
+  return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>';
+}
+function fmt(n) { return n.toLocaleString("en-US"); }
+var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dateAt(d) { var t = new Date(2026, 9, 29 + d); return MON[t.getMonth()] + " " + t.getDate(); }
+var LEVEL_ICON = { crit: "circle-alert", serious: "triangle-alert", warn: "clock", good: "circle-check", plain: "clock", info: "circle-check" };
+function badge(level, text, ic) { return '<span class="badge ' + level + '">' + icon(ic || LEVEL_ICON[level], 16) + text + '</span>'; }
+function put(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+function fill(sel, html) { document.querySelectorAll(sel).forEach(function (el) { el.innerHTML = html; }); }
+
+/* Top bar. current is Stock, Orders or Arrivals; role is staff or supplier. */
+function topbar(el, o) {
+  o = o || {};
+  var cur = o.current || "Stock", supplier = o.role === "supplier";
+  var tabs = (supplier ? ["Orders"] : ["Stock", "Orders", "Arrivals"]).map(function (t) {
+    return '<a class="tab" href="#top"' + (t === cur ? ' aria-current="page"' : "") + '>' + t + '</a>';
+  }).join("");
+  var more = supplier ? "" : '<button class="tab" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="more">More ' + icon("chevron-down", 16) + '</button>';
+  var who = supplier ? "AM" : "SM";
+  el.innerHTML = '<span class="brand"><span class="logo">' + icon("package", 16) + '</span>Stock Report</span>' +
+    '<nav class="tabs" aria-label="Primary">' + tabs + more + '</nav>' +
+    '<div class="right"><span class="meta hide-narrow">Today, Oct 29</span><button class="avatar" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="me" aria-label="Account">' + who + '</button></div>' +
+    (supplier ? "" : '<div class="pop" role="menu" data-for="more" hidden style="top:100%;left:160px;margin-top:4px"><a role="menuitem" href="#top">' + icon("mail", 16) + 'Chase list <span class="badge crit count" style="padding:0 8px">5</span></a><a role="menuitem" href="#top">' + icon("settings", 16) + 'Settings</a><a role="menuitem" href="#top">' + icon("inbox", 16) + 'Outbox</a></div>') +
+    '<div class="pop" role="menu" data-for="me" hidden style="top:100%;right:0;margin-top:4px"><span class="meta" style="padding:8px 12px">' + (supplier ? "Acme Manufacturing · supplier" : "Sam Moreno · staff") + '</span><hr><a role="menuitem" href="#top">' + icon("log-out", 16) + 'Sign out</a></div>';
+}
+function closePops() { document.querySelectorAll(".pop").forEach(function (p) { p.hidden = true; }); document.querySelectorAll("[data-pop]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("[data-pop]");
+  if (!b) { if (!e.target.closest(".pop")) closePops(); return; }
+  var bar = b.closest(".topbar"), pop = bar.querySelector('.pop[data-for="' + b.dataset.pop + '"]'), was = !pop.hidden;
+  closePops();
+  if (!was) { pop.hidden = false; b.setAttribute("aria-expanded", "true"); }
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePops(); });
+document.querySelectorAll("[data-topbar]").forEach(function (el) { topbar(el, { current: el.dataset.topbar, role: el.dataset.role }); });
+document.addEventListener("click", function (e) {
+  var s = e.target.closest(".seg button"); if (!s || s.dataset.noSeg) return;
+  s.parentNode.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === s)); });
+});
+document.addEventListener("click", function (e) {
+  var sw = e.target.closest('.switch'); if (!sw) return;
+  sw.setAttribute("aria-checked", String(sw.getAttribute("aria-checked") !== "true"));
+});
+
+(function () {
+  document.querySelectorAll("[data-ic]").forEach(function (el) { el.innerHTML = icon(el.dataset.ic, +el.dataset.s || 16); });
+  put("addp", icon("plus", 16) + "Add product"); put("adds", icon("plus", 16) + "Add supplier");
+  put("test", icon("send", 16) + "Send test"); put("delp", icon("trash-2", 16) + "Delete product");
+
+  function calc() {
+    var l = +document.getElementById("f-lead").value || 0, s = +document.getElementById("f-safe").value || 0, t = +document.getElementById("f-targ").value || 0;
+    put("c-line", (l + s) + " days"); put("c-cover", (t + l) + " days of sales");
+    put("c-ex", fmt(Math.max(0, Math.floor((t + l) * 10.9 - 100))) + " units");
+  }
+  ["f-lead", "f-safe", "f-targ"].forEach(function (id) { document.getElementById(id).addEventListener("input", calc); });
+  document.querySelectorAll("#settings .seg button").forEach(function (b) { b.addEventListener("click", function () { b.parentNode.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); }); });
+
+  var P = [
+    { n: "Mouse", c: "MOU", ids: ["MOUSE-01", "Mouse"], f: "Default", b: "Buy 2 Get 2 = 4 units" },
+    { n: "Phone", c: "PHN", ids: ["PHONE-01", "Phone"], f: "Default", b: "None" },
+    { n: "Monitor", c: "MON", ids: ["MONI-01"], f: "Lead time 60", b: "None", over: true },
+    { n: "Keyboard", c: "KEY", ids: ["KEYB-01", "Keyboard"], f: "Default", b: "3-pack = 3 units" }
+  ];
+  function prow(p) {
+    return '<div class="grow pcols"><div class="cell"><strong>' + p.n + '</strong></div><div class="cell"><span class="lab">Code</span><span class="faint">' + p.c + '</span></div>' +
+      '<div class="cell full"><span class="lab">Sales are matched by</span><div class="chips">' + p.ids.map(function (i) { return '<span class="chip">' + i + '</span>'; }).join("") + '</div></div>' +
+      '<div class="cell"><span class="lab">Forecast</span>' + (p.over ? badge("info", p.f, "pencil") : '<span class="muted">' + p.f + '</span>') + '</div>' +
+      '<div class="cell"><span class="lab">Bundles</span>' + p.b + '</div>' +
+      '<div class="cell act"><button class="btn small quiet" type="button" aria-label="Edit ' + p.n + '">' + icon("pencil", 16) + 'Edit</button></div></div>';
+  }
+  put("plist", P.map(prow).join("")); put("plist-p", P.slice(0, 3).map(prow).join(""));
+  var S = [{ n: "Acme Manufacturing", e: "orders@acme.example.com", o: 3 }, { n: "Nova Imports", e: "orders@novaimports.example.com", o: 2 }];
+  put("slist", S.map(function (s) { return '<div class="grow scols"><strong class="cell">' + s.n + '</strong><div class="cell"><span class="lab">Email</span>' + s.e + '</div><div class="cell"><span class="lab">Open orders</span>' + s.o + '</div><div class="cell act"><button class="btn small quiet" type="button">' + icon("pencil", 16) + 'Edit</button></div></div>'; }).join(""));
+  var O = [
+    { w: "Today 9:12", to: "ops@example.com", s: "Test: reorder alerts are on", k: ["plain", "Test", "bell"] },
+    { w: "Today 9:05", to: "orders@novaimports.example.com", s: "Where is order HDP-001?", k: ["info", "Follow-up", "truck"] },
+    { w: "Today 9:05", to: "orders@novaimports.example.com", s: "Tracking for order KEY-001", k: ["info", "Follow-up", "package"] },
+    { w: "Oct 28", to: "orders@acme.example.com", s: "Where is order MOU-001?", k: ["info", "Follow-up", "truck"] }
+  ];
+  function orow(m) {
+    return '<div class="grow ocols"><span class="cell num"><span class="lab">When</span>' + m.w + '</span><div class="cell"><span class="lab">To</span>' + m.to + '</div><div class="cell full"><span class="lab">Subject</span>' + m.s + '</div><div class="cell">' + badge(m.k[0], m.k[1], m.k[2]) + '</div><div class="cell act"><button class="btn small quiet" type="button">' + icon("chevron-right", 16) + 'Open</button></div></div>';
+  }
+  put("olist", O.map(orow).join("")); put("olist-p", O.slice(0, 3).map(orow).join(""));
+})();
+</script>

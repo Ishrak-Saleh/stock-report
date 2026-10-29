@@ -1,0 +1,513 @@
+<title>Arrivals and Matching</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* Layout concept: same app surface as design-system.html. Each design page is a stack of "stages" (the app at laptop width, then at 390px),
+   followed by a short "Decisions" panel that says why the screen is built the way it is. Dark first; light through data-theme="light". */
+:root {
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-control: 6px; --r-panel: 10px; --r-pill: 999px;
+  --page: #181818; --panel: #1F1F1F; --raised: #272727; --line: #313131;
+  --ink: #f0efec; --ink2: #c3c2b7; --muted: #898781; --danger: #ec7070;
+  --accent: #3987e5; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --s-good: #0ca30c; --s-warn: #fab219; --s-serious: #ec835a; --s-crit: #d03b3b;
+  --ser-a: #3987e5; --ser-b: #d95926;
+  --st1: #184f95; --st2: #2a78d6; --st3: #5598e7; --st4: #86b6ef;
+  --ring: 0 0 0 1px var(--line);
+  --hover: oklch(1 0 0 / .05);
+  --scrim: oklch(0 0 0 / .55);
+  --shadow: oklch(0 0 0 / .35);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --page: #f6f6f4; --panel: #ffffff; --raised: #f0efec; --line: #e1e0d9;
+  --ink: #0b0b0b; --ink2: #52514e; --muted: #75736e; --danger: #b42323;
+  --accent: #2a78d6; --accent-fill: #2a78d6; --accent-ink: #ffffff;
+  --ser-a: #2a78d6; --ser-b: #eb6834;
+  --st1: #86b6ef; --st2: #5598e7; --st3: #2a78d6; --st4: #1c5cab;
+  --hover: oklch(0 0 0 / .04);
+  --scrim: oklch(0 0 0 / .35);
+  --shadow: oklch(0 0 0 / .18);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink); font: 400 14px/20px var(--font);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { margin: 0; font-weight: 600; text-wrap: balance; }
+h1, h2 { font-size: 20px; line-height: 28px; }
+h3 { font-size: 16px; line-height: 24px; }
+p { margin: 0; max-width: 70ch; text-wrap: pretty; }
+.muted { color: var(--ink2); }
+.meta { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.faint { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+code, .tok { font: 12px ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; background: var(--raised); padding: 0 4px; border-radius: 4px; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-control); }
+.ic { flex-shrink: 0; display: inline-block; vertical-align: middle; }
+.sec { display: flex; flex-direction: column; gap: 16px; }
+.sec > .head { display: flex; flex-direction: column; gap: 4px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; align-items: start; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.jump a { color: var(--ink2); text-decoration: none; }
+.jump a:hover { color: var(--ink); }
+.crumb { font-size: 12px; line-height: 16px; color: var(--ink2); display: flex; gap: 8px; flex-wrap: wrap; }
+.crumb a { color: var(--ink2); }
+
+.stage { background: var(--page); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; container-type: inline-size; container-name: stage; position: relative; }
+.panel { background: var(--panel); border-radius: var(--r-panel); box-shadow: var(--ring); padding: 16px; min-width: 0; }
+.phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.phead .sub { font-size: 12px; line-height: 16px; color: var(--ink2); }
+.plink { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; font-weight: 500; font-size: 12px; background: none; border: 0; cursor: pointer; font-family: var(--font); padding: 4px 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line);
+  background: transparent; color: var(--ink); cursor: pointer; transition: transform 120ms var(--ease), background-color 120ms var(--ease); touch-action: manipulation; text-decoration: none; }
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--accent-ink); }
+.btn.quiet { color: var(--ink2); }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+.btn.small { padding: 4px 8px; font-size: 12px; line-height: 16px; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) { .btn:hover:not(.primary):not(:disabled) { background: var(--hover); } .btn.primary:hover { filter: brightness(1.08); } }
+.seg { display: inline-flex; background: var(--raised); border-radius: var(--r-control); padding: 2px; gap: 2px; flex-wrap: wrap; }
+.seg button { font: 500 12px/16px var(--font); padding: 4px 12px; border: 0; border-radius: 4px; background: transparent; color: var(--ink2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: var(--ring); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.field select, .field input, .field textarea { font: 400 14px/20px var(--font); padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line); background: var(--page); color: var(--ink); width: 100%; }
+.field .hint { color: var(--muted); }
+.field.err input, .field.err select { border-color: var(--s-crit); }
+.field .errmsg { display: flex; gap: 4px; align-items: center; color: var(--ink); }
+.field .errmsg .ic { color: var(--s-crit); }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-pill); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; color: var(--ink);
+  background: color-mix(in srgb, var(--c) 16%, var(--panel)); }
+.badge .ic { color: var(--c); }
+.badge.crit { --c: var(--s-crit); } .badge.serious { --c: var(--s-serious); } .badge.warn { --c: var(--s-warn); } .badge.good { --c: var(--s-good); }
+.badge.plain { --c: var(--muted); } .badge.info { --c: var(--accent); }
+
+.topbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: relative; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.brand .logo { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-fill); color: #fff; display: grid; place-items: center; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--r-control); color: var(--ink2); text-decoration: none; border: 0; background: none; font: 500 14px/20px var(--font); cursor: pointer; }
+.tab[aria-current="page"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); }
+@media (hover: hover) and (pointer: fine) { .tab:hover { background: var(--hover); } }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.avatar { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--raised); color: var(--ink); display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 0; cursor: pointer; box-shadow: var(--ring); }
+.pop { position: absolute; z-index: 5; background: var(--raised); border-radius: var(--r-panel); box-shadow: var(--ring), 0 8px 24px var(--shadow); padding: 4px; min-width: 216px; display: flex; flex-direction: column; }
+.pop[hidden] { display: none; }
+.pop a, .pop button { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); color: var(--ink); text-decoration: none; background: none; border: 0; font: 400 14px/20px var(--font); cursor: pointer; text-align: left; }
+.pop .count { margin-left: auto; }
+.pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+@media (hover: hover) and (pointer: fine) { .pop a:hover, .pop button:hover { background: var(--hover); } }
+
+.headline { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.headline .sentence { font-size: 20px; line-height: 28px; font-weight: 600; max-width: 46ch; text-wrap: balance; }
+.headline .sentence span { color: var(--ink2); font-weight: 400; }
+.hl-meta { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+@container stage (max-width: 560px) { .hl-meta { align-items: flex-start; } .headline .sentence { font-size: 16px; line-height: 24px; } }
+
+/* Generic ranked grid: set --cols on the container */
+.ghead, .grow { display: grid; grid-template-columns: var(--cols); gap: 16px; align-items: center; }
+.ghead { padding: 0 0 8px; font-size: 12px; line-height: 16px; color: var(--ink2); border-bottom: 1px solid var(--line); }
+.grow { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.grow:last-child { border-bottom: 0; }
+.r { text-align: right; font-variant-numeric: tabular-nums; }
+.cell .big { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cell .small { font-size: 12px; line-height: 16px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.cell .lab { display: none; font-size: 12px; line-height: 16px; color: var(--muted); }
+.cell.act { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.strong { font-weight: 600; }
+.stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+@container stage (max-width: 820px) {
+  .ghead { display: none; }
+  .grow { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+  .grow > .full { grid-column: 1 / -1; }
+  .cell .lab { display: block; }
+  .r { text-align: left; }
+  .cell.act { justify-content: flex-start; }
+  .hide-narrow { display: none !important; }
+}
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; line-height: 16px; color: var(--ink2); align-items: center; margin-bottom: 8px; }
+.legend i { display: inline-block; vertical-align: middle; }
+.k-fill { width: 16px; height: 8px; border-radius: 4px; background: var(--s-serious); }
+.k-tick { width: 2px; height: 12px; background: var(--ink); }
+.k-st { width: 12px; height: 8px; border-radius: 2px; }
+.mc { display: block; overflow: visible; }
+.cwrap { position: relative; }
+.cwrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tip { position: absolute; pointer-events: none; background: var(--raised); box-shadow: var(--ring), 0 4px 12px var(--shadow); border-radius: var(--r-control); padding: 8px 12px; font-size: 12px; line-height: 16px; min-width: 176px; z-index: 3; }
+.tip b { font-weight: 600; }
+.tip .tr { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.tip .sw { width: 12px; height: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+svg text { font-family: var(--font); fill: var(--muted); font-size: 11px; }
+svg .t2 { fill: var(--ink2); font-size: 12px; }
+.gridl { stroke: var(--line); stroke-width: 1; }
+.tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { padding: 4px 8px; text-align: right; border-bottom: 1px solid var(--line); font-size: 12px; line-height: 16px; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl th { color: var(--ink2); font-weight: 500; }
+.tablewrap { overflow-x: auto; }
+details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-height: 16px; padding: 8px 0; }
+
+/* Modal (static preview inside a stage) */
+.scrim { background: var(--scrim); border-radius: var(--r-panel); padding: 24px 16px; display: grid; place-items: start center; }
+.modal { background: var(--panel); box-shadow: var(--ring), 0 16px 48px var(--shadow); border-radius: var(--r-panel); width: 100%; max-width: 640px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.mfoot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.callout { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-warn) 14%, var(--panel)); font-size: 12px; line-height: 16px; }
+.callout .ic { color: var(--s-warn); }
+.callout.info { background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+.callout.info .ic { color: var(--accent); }
+.callout.crit { background: color-mix(in srgb, var(--s-crit) 14%, var(--panel)); }
+.callout.crit .ic { color: var(--s-crit); }
+.callout.good { background: color-mix(in srgb, var(--s-good) 14%, var(--panel)); }
+.callout.good .ic { color: var(--s-good); }
+.banner { display: flex; gap: 8px; padding: 8px 12px; border-radius: var(--r-control); background: color-mix(in srgb, var(--s-crit) 16%, var(--panel)); }
+.banner .ic { color: var(--s-crit); margin-top: 2px; }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px 12px; text-align: center; }
+.skel { height: 12px; border-radius: 4px; background: var(--raised); }
+
+/* Stepper and switch */
+.step { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--page); overflow: hidden; }
+.step button { width: 32px; border: 0; background: transparent; color: var(--ink2); cursor: pointer; display: grid; place-items: center; }
+.step input { width: 64px; text-align: center; border: 0; border-inline: 1px solid var(--line); background: transparent; color: var(--ink); font: 600 14px/20px var(--font); padding: 4px; font-variant-numeric: tabular-nums; }
+.switch { position: relative; width: 40px; height: 24px; border-radius: var(--r-pill); border: 0; background: var(--raised); box-shadow: var(--ring); cursor: pointer; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink2); transition: transform 160ms var(--ease); }
+.switch[aria-checked="true"] { background: var(--accent-fill); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); background: #fff; }
+.setrow { display: flex; justify-content: space-between; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.setrow:last-child { border-bottom: 0; }
+
+/* Decisions panel */
+.why { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.why ul { margin: 8px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; color: var(--ink2); }
+.phone { width: 100%; max-width: 390px; margin: 0 auto; }
+.phone .btn { min-height: 44px; justify-content: center; }
+.phone .btn.small { min-height: 44px; }
+.phone .field input, .phone .field select, .phone .field textarea { font-size: 16px; min-height: 44px; }
+.phone .tab, .phone .avatar { min-height: 44px; }
+.phone .avatar { width: 44px; height: 44px; }
+.phone .seg button { min-height: 36px; }
+.phone .modal { padding: 16px; }
+.phone .scrim { padding: 12px 8px; }
+.state-label { font-size: 12px; line-height: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+@media (prefers-reduced-motion: reduce) { .btn, .switch::after { transition: none; } .btn:active { transform: none; } }
+
+.acols { --cols: 80px minmax(140px, 1.2fr) 64px minmax(200px, 1.6fr) 96px 120px; }
+.ucols { --cols: 80px minmax(140px, 1fr) 64px minmax(160px, 1.4fr) auto; }
+.k-free { width: 12px; height: 8px; border-radius: 2px; background: var(--muted); }
+.k-none { width: 12px; height: 8px; border-radius: 2px; border: 1px dashed var(--s-warn); }
+.pre { display: grid; grid-template-columns: minmax(80px, auto) 1fr auto; gap: 8px 12px; align-items: center; font-size: 12px; line-height: 16px; }
+.pre .bar { height: 8px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+.pre .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+.pre .lead { font-weight: 600; color: var(--ink); font-size: 14px; line-height: 20px; }
+.alloc { display: grid; grid-template-columns: minmax(96px, 1fr) auto; gap: 8px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.alloc:last-of-type { border-bottom: 0; }
+.sumline { display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+</style>
+
+<main id="top">
+  <div class="sec">
+    <div class="head">
+      <div class="crumb"><span>Stock Report design, screens still to build</span><span>·</span><span>Group 1 of 6</span></div>
+      <h1>Arrivals and Matching</h1>
+      <p class="muted">Answers question 9: what arrived at the warehouse, and which order did it belong to. Covers four SOP musts: record an arrival, match it to the oldest open order first, fix a match by hand, and show arrivals that matched nothing. The example data below is made up and follows the same products as the Stock page.</p>
+    </div>
+    <div class="jump meta"><a href="#list">Arrivals list</a><a href="#record">Record an arrival</a><a href="#fix">Fix a match</a><a href="#phone">Phone</a><a href="#states">States</a><a href="#why">Decisions</a></div>
+  </div>
+
+  <section class="sec" id="list">
+    <div class="head"><h2>The Arrivals page</h2><p class="muted">Decision: what do I do with the arrivals that matched nothing? The headline says how many. The queue sits directly under it, above the full list, because it is the only part that needs action.</p></div>
+    <div class="stage" id="s-list">
+      <div class="topbar" data-topbar="Arrivals"></div>
+      <div class="panel headline">
+        <div class="sentence">2 arrivals, 90 units in all, match no order. <span>Decide what they were so the stock numbers stay clean.</span></div>
+        <div class="hl-meta"><button class="btn primary" type="button">Record arrival</button><span class="meta">Warehouse counts last updated Oct 28, 4:30 pm</span></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><div><h3>Needs a decision</h3><div class="sub">Oldest first. Units stay in warehouse stock either way.</div></div><span id="badge-un"></span></div>
+        <div class="ghead ucols"><span>Arrived</span><span>Product</span><span class="r">Units</span><span>Why it matched nothing</span><span class="r">Decide</span></div>
+        <div id="unlist"></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><div><h3>All arrivals</h3><div class="sub">Newest first</div></div>
+          <span class="seg" role="group" aria-label="Filter"><button type="button" aria-pressed="true">All 4</button><button type="button" aria-pressed="false">Unmatched 2</button><button type="button" aria-pressed="false">Matched 2</button></span></div>
+        <div class="legend"><span><i class="k-st" style="background:var(--st2)"></i> First order</span><span><i class="k-st" style="background:var(--st3)"></i> Next order (spill-over)</span><span><i class="k-free"></i> Marked "not from an order"</span><span><i class="k-none"></i> Unmatched</span></div>
+        <div class="ghead acols"><span>Arrived</span><span>Product</span><span class="r">Units</span><span>Matched to</span><span>Logged by</span><span class="r">Match</span></div>
+        <div id="alist"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="record">
+    <div class="head"><h2>Record an arrival opens as a modal</h2><p class="muted">Decision: how many units came in, and which orders do they fill? The preview answers the second part before anything is saved, so nobody finds out afterward that an order was filled twice. Type a different number to see the spill-over change.</p></div>
+    <div class="stage">
+      <div class="scrim">
+        <div class="modal" role="dialog" aria-labelledby="rt">
+          <header><div><h3 id="rt">Record arrival</h3><div class="meta">Counts as a stock increase the moment you save</div></div><button class="btn quiet small" type="button" aria-label="Close" data-ic="x"></button></header>
+          <div class="fgrid">
+            <label class="field" for="r-prod">Product<select id="r-prod"><option>Mouse · MOU</option><option>Phone · PHN</option><option>Keyboard · KEY</option></select></label>
+            <label class="field" for="r-units">Units that arrived<input id="r-units" type="number" min="1" value="300" inputmode="numeric"></label>
+            <label class="field" for="r-date">Arrival date<input id="r-date" type="date" value="2026-10-29"></label>
+          </div>
+          <div>
+            <div class="state-label" style="margin-bottom:8px">Match preview, oldest open order first</div>
+            <div class="pre" id="r-pre"></div>
+          </div>
+          <div id="r-note"></div>
+          <label class="field" for="r-nt">Note (optional)<input id="r-nt" type="text" placeholder="Pallet count checked at the dock"></label>
+          <div class="mfoot"><span class="meta" id="r-sum"></span><div class="row"><button class="btn quiet" type="button">Cancel</button><button class="btn primary" type="button">Record arrival</button></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="fix">
+    <div class="head"><h2>Fixing a match by hand</h2><p class="muted">Decision: which orders did these units really belong to? One arrival can be split across several orders, and any part can be marked "not from an order". The total must equal the arrival, so the Save button stays off until it does. Use the steppers to try it.</p></div>
+    <div class="stage">
+      <div class="scrim">
+        <div class="modal" role="dialog" aria-labelledby="ft">
+          <header><div><h3 id="ft">Edit match, Keyboard</h3><div class="meta">80 units arrived Oct 28 · logged by Sam Moreno</div></div><button class="btn quiet small" type="button" aria-label="Close" data-ic="x"></button></header>
+          <div id="f-rows"></div>
+          <div class="sumline"><span id="f-state"></span><button class="btn quiet small" type="button" id="f-reset">Reset to automatic</button></div>
+          <div class="callout info"><span data-ic="circle-alert"></span><span>Each change is saved to the product history as a move between orders, with your name and the time.</span></div>
+          <div class="mfoot"><span class="meta">Orders list their own arrived units, so both pages stay in step.</span><div class="row"><button class="btn quiet" type="button">Cancel</button><button class="btn primary" type="button" id="f-save">Save match</button></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="phone">
+    <div class="head"><h2>On a 390px phone</h2><p class="muted">Rows become cards with a label above each value. Buttons and inputs are 44px tall and inputs are 16px so iOS does not zoom. The modal fills the width.</p></div>
+    <div class="cols">
+      <div class="phone stage" style="padding:12px;width:100%"><div class="topbar" data-topbar="Arrivals"></div>
+        <div class="panel headline"><div class="sentence">2 arrivals, 90 units, match no order.</div><button class="btn primary" type="button" style="width:100%">Record arrival</button></div>
+        <div class="panel"><div class="phead"><h3>Needs a decision</h3></div><div id="unlist-p"></div></div>
+      </div>
+      <div class="phone stage" style="padding:12px;width:100%"><div class="scrim" style="padding:12px 8px">
+        <div class="modal" style="padding:16px"><header><h3>Edit match</h3><button class="btn quiet small" type="button" aria-label="Close" data-ic="x"></button></header>
+          <div class="meta">Keyboard · 80 units · Oct 28</div>
+          <div id="f-rows-p"></div>
+          <div class="callout good"><span data-ic="circle-check"></span><span>80 of 80 units assigned</span></div>
+          <div class="row" style="flex-direction:column;align-items:stretch"><button class="btn primary" type="button">Save match</button><button class="btn quiet" type="button">Cancel</button></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="states">
+    <div class="head"><h2>States</h2></div>
+    <div class="cols">
+      <div class="panel"><div class="state-label">Nothing unmatched</div><div class="empty"><span data-ic="circle-check" data-s="24"></span><strong>Every arrival has an order</strong><span class="meta">Arrivals that match nothing will appear here.</span></div></div>
+      <div class="panel"><div class="state-label">No arrivals yet</div><div class="empty"><span data-ic="package" data-s="24"></span><strong>Nothing has arrived yet</strong><span class="meta">Record the first delivery when a truck is unloaded.</span><button class="btn small" type="button">Record arrival</button></div></div>
+      <div class="panel"><div class="state-label">Loading</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px"><div class="skel" style="width:70%"></div><div class="skel" style="width:95%"></div><div class="skel" style="width:60%"></div></div></div>
+      <div class="panel"><div class="state-label">Error in the form</div>
+        <div class="field err" style="margin-top:8px"><label for="e-u">Units that arrived</label><input id="e-u" type="number" value="0"><span class="errmsg" role="alert"><span data-ic="circle-alert"></span>Enter at least 1 unit.</span></div>
+        <div class="banner" role="alert" style="margin-top:8px"><span data-ic="circle-alert"></span><span>The assigned units add up to 90, but 80 arrived. Remove 10 units to save.</span></div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="why">
+    <div class="head"><h2>Decisions and how they fit the system</h2></div>
+    <div class="why">
+      <div class="panel"><h3>Why this layout</h3><ul>
+        <li>The unmatched queue comes first. Everything else on the page is history.</li>
+        <li>The matched-to column is a small stacked bar in the blue stage ramp, so spill-over shows without reading names.</li>
+        <li>"Not from an order" is gray and unmatched is dashed, so neither is confused with an order.</li>
+        <li>The only filled button is Record arrival, the main action here.</li>
+      </ul></div>
+      <div class="panel"><h3>How it connects to the code</h3><ul>
+        <li><code>domain/matching.py</code>: a pure function, open orders oldest first plus units in, allocations out. The preview and the saved result use the same function.</li>
+        <li>An arrival writes one <code>Arrival</code>, several <code>Allocation</code> rows (order_id empty means not from an order) and one <code>StockMovement</code> of kind arrival.</li>
+        <li>Editing a match deletes and rewrites that arrival's allocations and adds a reallocation movement. Stock does not change.</li>
+        <li>Order stages come from allocations, so the Orders page updates by itself.</li>
+      </ul></div>
+      <div class="panel"><h3>Rules this screen must follow</h3><ul>
+        <li>Open means not cancelled and not closed, with units still to come (SOP section 4).</li>
+        <li>Oldest order first, by order date, spilling into the next.</li>
+        <li>Units beyond all open orders are unmatched, not lost. Warehouse stock still goes up.</li>
+        <li>Modals are native dialogs opened by an HTMX swap into the modal host, as with the other dialogs.</li>
+      </ul></div>
+    </div>
+  </section>
+</main>
+
+<script>
+var IC = {
+  "chevron-down": '<path d="m6 9 6 6 6-6"/>',
+  "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+  "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  "x": '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  "circle-alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  "truck": '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  "circle-check": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  "package": '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/><path d="m7.5 4.27 9 5.15"/>',
+  "trending-up": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  "trending-down": '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+  "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  "minus": '<path d="M5 12h14"/>',
+  "settings": '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  "triangle-alert": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  "copy": '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  "check": '<path d="M20 6 9 17l-5-5"/>',
+  "arrow-right": '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  "pencil": '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  "trash-2": '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  "lock": '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  "log-in": '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/>',
+  "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+  "send": '<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  "bell": '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  "history": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  "user": '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  "split": '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>',
+  "ban": '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>'
+};
+function icon(n, s) {
+  s = s || 16;
+  return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>';
+}
+function fmt(n) { return n.toLocaleString("en-US"); }
+var MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function dateAt(d) { var t = new Date(2026, 9, 29 + d); return MON[t.getMonth()] + " " + t.getDate(); }
+var LEVEL_ICON = { crit: "circle-alert", serious: "triangle-alert", warn: "clock", good: "circle-check", plain: "clock", info: "circle-check" };
+function badge(level, text, ic) { return '<span class="badge ' + level + '">' + icon(ic || LEVEL_ICON[level], 16) + text + '</span>'; }
+function put(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+function fill(sel, html) { document.querySelectorAll(sel).forEach(function (el) { el.innerHTML = html; }); }
+
+/* Top bar. current is Stock, Orders or Arrivals; role is staff or supplier. */
+function topbar(el, o) {
+  o = o || {};
+  var cur = o.current || "Stock", supplier = o.role === "supplier";
+  var tabs = (supplier ? ["Orders"] : ["Stock", "Orders", "Arrivals"]).map(function (t) {
+    return '<a class="tab" href="#top"' + (t === cur ? ' aria-current="page"' : "") + '>' + t + '</a>';
+  }).join("");
+  var more = supplier ? "" : '<button class="tab" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="more">More ' + icon("chevron-down", 16) + '</button>';
+  var who = supplier ? "AM" : "SM";
+  el.innerHTML = '<span class="brand"><span class="logo">' + icon("package", 16) + '</span>Stock Report</span>' +
+    '<nav class="tabs" aria-label="Primary">' + tabs + more + '</nav>' +
+    '<div class="right"><span class="meta hide-narrow">Today, Oct 29</span><button class="avatar" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="me" aria-label="Account">' + who + '</button></div>' +
+    (supplier ? "" : '<div class="pop" role="menu" data-for="more" hidden style="top:100%;left:160px;margin-top:4px"><a role="menuitem" href="#top">' + icon("mail", 16) + 'Chase list <span class="badge crit count" style="padding:0 8px">5</span></a><a role="menuitem" href="#top">' + icon("settings", 16) + 'Settings</a><a role="menuitem" href="#top">' + icon("inbox", 16) + 'Outbox</a></div>') +
+    '<div class="pop" role="menu" data-for="me" hidden style="top:100%;right:0;margin-top:4px"><span class="meta" style="padding:8px 12px">' + (supplier ? "Acme Manufacturing · supplier" : "Sam Moreno · staff") + '</span><hr><a role="menuitem" href="#top">' + icon("log-out", 16) + 'Sign out</a></div>';
+}
+function closePops() { document.querySelectorAll(".pop").forEach(function (p) { p.hidden = true; }); document.querySelectorAll("[data-pop]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
+document.addEventListener("click", function (e) {
+  var b = e.target.closest("[data-pop]");
+  if (!b) { if (!e.target.closest(".pop")) closePops(); return; }
+  var bar = b.closest(".topbar"), pop = bar.querySelector('.pop[data-for="' + b.dataset.pop + '"]'), was = !pop.hidden;
+  closePops();
+  if (!was) { pop.hidden = false; b.setAttribute("aria-expanded", "true"); }
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePops(); });
+document.querySelectorAll("[data-topbar]").forEach(function (el) { topbar(el, { current: el.dataset.topbar, role: el.dataset.role }); });
+document.addEventListener("click", function (e) {
+  var s = e.target.closest(".seg button"); if (!s || s.dataset.noSeg) return;
+  s.parentNode.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === s)); });
+});
+document.addEventListener("click", function (e) {
+  var sw = e.target.closest('.switch'); if (!sw) return;
+  sw.setAttribute("aria-checked", String(sw.getAttribute("aria-checked") !== "true"));
+});
+
+(function () {
+  document.querySelectorAll("[data-ic]").forEach(function (el) { el.innerHTML = icon(el.dataset.ic, +el.dataset.s || 16); });
+  put("badge-un", badge("warn", "2 to decide", "triangle-alert"));
+
+  var C2 = "var(--st2)", C3 = "var(--st3)", C4 = "var(--st4)", FREE = "var(--muted)";
+  var UN = [
+    { d: "Oct 28", p: "Monitor", code: "MON", u: 60, why: "Nothing is on order for this product.", canMatch: false },
+    { d: "Oct 28", p: "Headphones", code: "HDP", u: 30, why: "HDP-001 is already full. 280 arrived against 250 ordered.", canMatch: true }
+  ];
+  var AL = [
+    { d: "Oct 28", p: "Monitor", code: "MON", u: 60, by: "Sam M.", seg: [{ k: "none", u: 60 }] },
+    { d: "Oct 28", p: "Headphones", code: "HDP", u: 280, by: "Sam M.", seg: [{ k: "o", n: "HDP-001", u: 250 }, { k: "none", u: 30 }] },
+    { d: "Oct 28", p: "Keyboard", code: "KEY", u: 80, by: "Sam M.", seg: [{ k: "o", n: "KEY-001", u: 30 }, { k: "o", n: "KEY-002", u: 20 }, { k: "free", u: 30 }], edited: true },
+    { d: "Oct 24", p: "Mouse", code: "MOU", u: 200, by: "Priya N.", seg: [{ k: "o", n: "MOU-001", u: 120 }, { k: "o", n: "MOU-002", u: 80 }] }
+  ];
+  function matchbar(a, W) {
+    W = W || 180; var x = 0, out = "", ci = 0, cols = [C2, C3, C4], i, scale = (W - 2 * a.seg.length) / a.u;
+    for (i = 0; i < a.seg.length; i++) {
+      var s = a.seg[i], w = Math.max(s.u * scale, 4);
+      if (s.k === "o") { out += '<rect x="' + x.toFixed(1) + '" y="2" width="' + w.toFixed(1) + '" height="8" rx="2" style="fill:' + cols[ci++ % 3] + '"/>'; }
+      else if (s.k === "free") { out += '<rect x="' + x.toFixed(1) + '" y="2" width="' + w.toFixed(1) + '" height="8" rx="2" style="fill:' + FREE + '"/>'; }
+      else { out += '<rect x="' + (x + .5).toFixed(1) + '" y="2.5" width="' + (w - 1).toFixed(1) + '" height="7" rx="2" fill="none" style="stroke:var(--s-warn)" stroke-dasharray="3 2"/>'; }
+      x += w + 2;
+    }
+    return '<svg class="mc" width="' + W + '" height="12" viewBox="0 0 ' + W + ' 12" role="img" aria-label="' + txt(a) + '">' + out + '</svg>';
+  }
+  function txt(a) { return a.seg.map(function (s) { return (s.k === "o" ? s.n : s.k === "free" ? "Not from an order" : "Unmatched") + " " + s.u; }).join(" · "); }
+  function arow(a) {
+    return '<div class="grow acols"><span class="cell num"><span class="lab">Arrived</span>' + a.d + '</span>' +
+      '<div class="cell"><span class="lab">Product</span><span class="strong">' + a.p + '</span> <span class="faint meta">' + a.code + '</span></div>' +
+      '<div class="cell r"><span class="lab">Units</span><span class="big">' + fmt(a.u) + '</span></div>' +
+      '<div class="cell full"><span class="lab">Matched to</span>' + matchbar(a) + '<div class="small">' + txt(a) + (a.edited ? " · edited by hand" : "") + '</div></div>' +
+      '<div class="cell"><span class="lab">Logged by</span>' + a.by + '</div>' +
+      '<div class="cell act"><button class="btn small" type="button">' + icon("split", 16) + 'Edit match</button></div></div>';
+  }
+  function urow(a) {
+    return '<div class="grow ucols"><span class="cell num"><span class="lab">Arrived</span>' + a.d + '</span>' +
+      '<div class="cell"><span class="lab">Product</span><span class="strong">' + a.p + '</span> <span class="faint meta">' + a.code + '</span></div>' +
+      '<div class="cell r"><span class="lab">Units</span><span class="big">' + a.u + '</span></div>' +
+      '<div class="cell full"><span class="lab">Why</span><span class="meta" style="color:var(--ink)">' + a.why + '</span></div>' +
+      '<div class="cell act full"><button class="btn small" type="button"' + (a.canMatch ? "" : ' disabled aria-disabled="true" title="No open order to match"') + '>' + icon("split", 16) + 'Match to an order</button><button class="btn small" type="button">' + icon("ban", 16) + 'Not from an order</button></div></div>';
+  }
+  put("alist", AL.map(arow).join(""));
+  put("unlist", UN.map(urow).join(""));
+  put("unlist-p", UN.map(urow).join(""));
+
+  /* ---- record arrival preview: FIFO over two open orders ---- */
+  var OPEN = [{ n: "MOU-001", ord: "Sep 29", open: 120 }, { n: "MOU-002", ord: "Oct 26", open: 150 }];
+  function fifo(units) { var left = units, res = OPEN.map(function (o) { var g = Math.min(o.open, left); left -= g; return { n: o.n, ord: o.ord, open: o.open, get: g }; }); return { res: res, left: left }; }
+  function draw() {
+    var u = Math.max(0, parseInt(document.getElementById("r-units").value, 10) || 0), f = fifo(u), html = "", cols = [C2, C3];
+    f.res.forEach(function (r, i) {
+      html += '<span class="lead">' + r.n + '</span><span class="bar"><i style="width:' + (r.open ? (r.get / r.open * 100) : 0) + '%;background:' + cols[i] + '"></i></span><span class="num">' + r.get + ' of ' + r.open + ' open · ordered ' + r.ord + '</span>';
+    });
+    html += '<span class="lead">Unmatched</span><span class="bar"><i style="width:' + (f.left ? 100 : 0) + '%;background:var(--s-warn)"></i></span><span class="num">' + f.left + ' units</span>';
+    put("r-pre", html);
+    put("r-note", f.left > 0 ? '<div class="callout">' + icon("triangle-alert", 16) + '<span>' + f.left + ' units match no open order. They still count in warehouse stock and will wait in the "Needs a decision" list.</span></div>' : (u > 0 ? '<div class="callout good">' + icon("circle-check", 16) + '<span>Every unit matches an open order.</span></div>' : ""));
+    put("r-sum", "Warehouse stock goes from 100 to " + fmt(100 + u) + ".");
+  }
+  document.getElementById("r-units").addEventListener("input", draw); draw();
+
+  /* ---- match editor ---- */
+  var TOTAL = 80, AUTO = [30, 20, 30], ROWS = [{ n: "KEY-001", sub: "Ordered Oct 11 · 200 open" }, { n: "KEY-002", sub: "Ordered Oct 20 · 150 open" }, { n: "Not from an order", sub: "Sample, return or correction" }];
+  var cur = AUTO.slice();
+  function stepRow(i, idp) {
+    return '<div class="alloc"><div><div class="strong">' + ROWS[i].n + '</div><div class="meta">' + ROWS[i].sub + '</div></div>' +
+      '<div class="step"><button type="button" aria-label="Fewer units for ' + ROWS[i].n + '" data-i="' + i + '" data-d="-1">' + icon("minus", 16) + '</button><input id="' + idp + i + '" type="number" min="0" value="' + cur[i] + '" data-i="' + i + '" aria-label="Units for ' + ROWS[i].n + '"><button type="button" aria-label="More units for ' + ROWS[i].n + '" data-i="' + i + '" data-d="1">' + icon("plus", 16) + '</button></div></div>';
+  }
+  function drawFix() {
+    put("f-rows", [0, 1, 2].map(function (i) { return stepRow(i, "f-"); }).join(""));
+    var s = cur[0] + cur[1] + cur[2], ok = s === TOTAL;
+    put("f-state", ok ? badge("good", s + " of " + TOTAL + " units assigned", "circle-check") : badge("crit", s + " of " + TOTAL + " units assigned. " + (s > TOTAL ? "Remove " + (s - TOTAL) : "Assign " + (TOTAL - s) + " more") + ".", "circle-alert"));
+    var b = document.getElementById("f-save"); b.disabled = !ok; b.setAttribute("aria-disabled", String(!ok));
+  }
+  function bind(root) {
+    root.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-i]"); if (!b) return;
+      var i = +b.dataset.i; cur[i] = Math.max(0, cur[i] + (+b.dataset.d)); drawFix();
+    });
+    root.addEventListener("change", function (e) { var t = e.target; if (t.dataset && t.dataset.i !== undefined && t.tagName === "INPUT") { cur[+t.dataset.i] = Math.max(0, parseInt(t.value, 10) || 0); drawFix(); } });
+  }
+  bind(document.getElementById("f-rows"));
+  document.getElementById("f-reset").addEventListener("click", function () { cur = AUTO.slice(); drawFix(); });
+  drawFix();
+  cur = AUTO.slice();
+  put("f-rows-p", [0, 1, 2].map(function (i) { return stepRow(i, "p-"); }).join(""));
+})();
+</script>

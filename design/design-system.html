@@ -238,7 +238,7 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
     <div class="stage" id="stock-stage">
       <div class="topbar" id="topbar1"></div>
       <div class="panel headline">
-        <div class="sentence">3 products need a reorder, and Gadget Pro is out. <span>Suggested order: 1,963 units.</span></div>
+        <div class="sentence">3 products need a reorder, and Phone is out. <span>Suggested order: 1,963 units.</span></div>
         <div class="hl-meta"><button class="btn primary" type="button">Review suggested orders</button><span class="meta">Sales through Oct 28, the last full day · lead time 45 days</span></div>
       </div>
       <div class="panel">
@@ -280,13 +280,13 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
       <p class="muted">The chart type follows the question. Marks are thin, bars are capped at 24px with 4px rounded ends, gaps are 2px, and the data is the loudest thing on screen. The sparklines here use illustrative earlier days; the last 7 days match the seed data.</p></div>
     <div class="panel">
       <div class="phead">
-        <div><h3>Gizmo Mini runway</h3><div class="sub">Opens when you click a row. Stock projected at the current burn of 10.9 a day. Arrivals are assumed on the order date plus the 45-day lead time, because the SOP has no expected-date field.</div></div>
+        <div><h3>Mouse runway</h3><div class="sub">Opens when you click a row. Stock projected at the current burn of 10.9 a day. Arrivals are assumed on the order date plus the 45-day lead time, because the SOP has no expected-date field.</div></div>
         <span class="seg" role="group" aria-label="Horizon" id="hz"><button type="button" data-h="30" aria-pressed="false">30 days</button><button type="button" data-h="60" aria-pressed="false">60 days</button><button type="button" data-h="90" aria-pressed="true">90 days</button></span>
       </div>
       <div class="legend" style="margin-bottom:12px"><span><i style="width:16px;height:2px;background:var(--ser-a)"></i> Current orders only</span><span><i style="width:16px;height:2px;background:var(--ser-b)"></i> If you order 1,044 today</span></div>
       <div class="cwrap" id="runway"></div>
       <details><summary>Show as a table</summary><div class="tablewrap" id="runway-table"></div></details>
-      <p class="meta" style="margin-top:8px"><b style="color:var(--ink)">Insight.</b> An order placed today lands on day 45. Even if GIZ-001 and GIZ-002 arrive on schedule, Gizmo Mini is out of stock for about 22 days, from day 9 to 15 and from day 26 to 42. Ordering now cannot close those gaps, so the useful move is to chase the two open orders.</p>
+      <p class="meta" style="margin-top:8px"><b style="color:var(--ink)">Insight.</b> An order placed today lands on day 45. Even if MOU-001 and MOU-002 arrive on schedule, Mouse is out of stock for about 22 days, from day 9 to 15 and from day 26 to 42. Ordering now cannot close those gaps, so the useful move is to chase the two open orders.</p>
     </div>
     <div class="panel tablewrap">
       <table class="dtbl">
@@ -308,7 +308,7 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
     <div class="stage">
       <div class="scrim">
         <div class="modal" role="dialog" aria-labelledby="mt">
-          <header><div><h3 id="mt">New order for Gizmo Mini</h3><div class="meta">Stock 100 · already ordered 270 · selling 10.9 a day</div></div><button class="btn quiet small" type="button" aria-label="Close"><span id="ic-x1"></span></button></header>
+          <header><div><h3 id="mt">New order for Mouse</h3><div class="meta">Stock 100 · already ordered 270 · selling 10.9 a day</div></div><button class="btn quiet small" type="button" aria-label="Close"><span id="ic-x1"></span></button></header>
           <div class="plans" id="plans" role="radiogroup" aria-label="Order size"></div>
           <div class="callout"><span id="ic-warn1"></span><span>The SOP's suggested size uses warehouse stock only. It does not subtract the 270 units already on order, so on a product with orders in transit it can overshoot.</span></div>
           <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))">
@@ -374,7 +374,7 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
     <div class="cols">
       <div class="panel"><div class="scale">
         <span class="meta">20 / 28</span><span style="font-size:20px;line-height:28px;font-weight:600">3 products need a reorder</span>
-        <span class="meta">16 / 24</span><span style="font-size:16px;line-height:24px;font-weight:600">Gizmo Mini, 1,044 units</span>
+        <span class="meta">16 / 24</span><span style="font-size:16px;line-height:24px;font-weight:600">Mouse, 1,044 units</span>
         <span class="meta">14 / 20</span><span>Body text and controls</span>
         <span class="meta">12 / 16</span><span style="font-size:12px;line-height:16px">Labels, badges, axis text</span>
       </div></div>
@@ -450,12 +450,12 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
 
   /* ---------- data (same shape as the seed data) ---------- */
   var P = [
-    { code: "GAD", name: "Gadget Pro", stock: 0, burn: 7.4, trend: 1.01, days: 0.0, incl: 40.5, out: "Oct 29", by: "Aug 31", st: [0, 300, 0], sugg: 777, level: "crit", flag: "Out of stock", note: "Reorder now. Ordered units not enough.", l3: [7, 7, 8], p4: [7, 7, 7, 8], base: 7 },
-    { code: "GIZ", name: "Gizmo Mini", stock: 100, burn: 10.9, trend: 1.50, days: 9.2, incl: 33.9, out: "Nov 07", by: "Sep 09", st: [150, 0, 120], sugg: 1044, level: "crit", flag: "Under 21 days", note: "Reorder now. Ordered units not enough.", l3: [9, 9, 9], p4: [6, 6, 6, 6], base: 6 },
-    { code: "DOO", name: "Doohickey Set", stock: 120, burn: 2.5, trend: 0.89, days: 48.0, incl: 48.0, out: "Dec 16", by: "Oct 18", st: [0, 0, 0], sugg: 142, level: "serious", flag: "Reorder now", note: "Nothing is on order.", l3: [3, 3, 2], p4: [3, 3, 3, 3], base: 3 },
-    { code: "WID", name: "Widget Classic", stock: 320, burn: 4.3, trend: 0.96, days: 74.4, incl: 120.9, out: "Jan 11", by: "Nov 13", st: [0, 200, 0], sugg: 132, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [5, 4, 5, 4], base: 5 },
-    { code: "THI", name: "Thingamajig XL", stock: 900, burn: 5.0, trend: 1.33, days: 180.0, incl: 230.0, out: "Apr 27", by: "Feb 27", st: [0, 0, 250], sugg: 0, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [3, 3, 4, 3], base: 4 },
-    { code: "SPR", name: "Sprocket Spare", stock: 50, burn: 0, trend: 1, days: null, incl: null, out: null, by: null, st: [0, 0, 0], sugg: 0, level: "good", flag: "Healthy", note: "No sales yet.", l3: [0, 0, 0], p4: [0, 0, 0, 0], base: 0 }
+    { code: "PHN", name: "Phone", stock: 0, burn: 7.4, trend: 1.01, days: 0.0, incl: 40.5, out: "Oct 29", by: "Aug 31", st: [0, 300, 0], sugg: 777, level: "crit", flag: "Out of stock", note: "Reorder now. Ordered units not enough.", l3: [7, 7, 8], p4: [7, 7, 7, 8], base: 7 },
+    { code: "MOU", name: "Mouse", stock: 100, burn: 10.9, trend: 1.50, days: 9.2, incl: 33.9, out: "Nov 07", by: "Sep 09", st: [150, 0, 120], sugg: 1044, level: "crit", flag: "Under 21 days", note: "Reorder now. Ordered units not enough.", l3: [9, 9, 9], p4: [6, 6, 6, 6], base: 6 },
+    { code: "MON", name: "Monitor", stock: 120, burn: 2.5, trend: 0.89, days: 48.0, incl: 48.0, out: "Dec 16", by: "Oct 18", st: [0, 0, 0], sugg: 142, level: "serious", flag: "Reorder now", note: "Nothing is on order.", l3: [3, 3, 2], p4: [3, 3, 3, 3], base: 3 },
+    { code: "KEY", name: "Keyboard", stock: 320, burn: 4.3, trend: 0.96, days: 74.4, incl: 120.9, out: "Jan 11", by: "Nov 13", st: [0, 200, 0], sugg: 132, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [5, 4, 5, 4], base: 5 },
+    { code: "HDP", name: "Headphones", stock: 900, burn: 5.0, trend: 1.33, days: 180.0, incl: 230.0, out: "Apr 27", by: "Feb 27", st: [0, 0, 250], sugg: 0, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [3, 3, 4, 3], base: 4 },
+    { code: "CBL", name: "Cable", stock: 50, burn: 0, trend: 1, days: null, incl: null, out: null, by: null, st: [0, 0, 0], sugg: 0, level: "good", flag: "Healthy", note: "No sales yet.", l3: [0, 0, 0], p4: [0, 0, 0, 0], base: 0 }
   ];
   var LEVEL_ICON = { crit: "circle-alert", serious: "triangle-alert", warn: "clock", good: "circle-check" };
   function series(p) {
@@ -543,11 +543,11 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
 
   /* ---------- chase dot plot ---------- */
   var CH = [
-    { n: "THI-001", sup: "Nova Imports", rule: "Where is it? On the way 25 days", d: 25, t: 10 },
-    { n: "WID-001", sup: "Nova Imports", rule: "Send tracking. Confirmed 18 days ago", d: 18, t: 10 },
-    { n: "GIZ-001", sup: "Acme Manufacturing", rule: "Where is it? On the way 14 days", d: 14, t: 10 },
-    { n: "GAD-001", sup: "Acme Manufacturing", rule: "Send tracking. Confirmed 11 days ago", d: 11, t: 10 },
-    { n: "GIZ-002", sup: "Acme Manufacturing", rule: "Confirm the order. Placed 3 days ago", d: 3, t: 2 }
+    { n: "HDP-001", sup: "Nova Imports", rule: "Where is it? On the way 25 days", d: 25, t: 10 },
+    { n: "KEY-001", sup: "Nova Imports", rule: "Send tracking. Confirmed 18 days ago", d: 18, t: 10 },
+    { n: "MOU-001", sup: "Acme Manufacturing", rule: "Where is it? On the way 14 days", d: 14, t: 10 },
+    { n: "PHN-001", sup: "Acme Manufacturing", rule: "Send tracking. Confirmed 11 days ago", d: 11, t: 10 },
+    { n: "MOU-002", sup: "Acme Manufacturing", rule: "Confirm the order. Placed 3 days ago", d: 3, t: 2 }
   ];
   function dotplot(c) {
     var W = 176, H = 20, M = 30;
@@ -565,7 +565,7 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
   document.getElementById("ic-chev1").innerHTML = icon("chevron-right", 16);
 
   /* ---------- runway chart ---------- */
-  var BURN = 10.9, ARR = [{ d: 15, u: 120, n: "GIZ-001" }, { d: 42, u: 150, n: "GIZ-002" }], NEW = { d: 45, u: 1044 };
+  var BURN = 10.9, ARR = [{ d: 15, u: 120, n: "MOU-001" }, { d: 42, u: 150, n: "MOU-002" }], NEW = { d: 45, u: 1044 };
   function simulate(withNew) {
     var pts = [[0, 100]], s = 100, d, k;
     for (d = 1; d <= 90; d++) {
@@ -618,7 +618,7 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
     var endA = a[a.length - 1], endB = b[b.length - 1];
     var ends = '<circle cx="' + X(endA[0]).toFixed(1) + '" cy="' + Y(endA[1]).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(endA[0]).toFixed(1) + '" cy="' + Y(endA[1]).toFixed(1) + '" r="4" style="fill:var(--ser-a)"/>' +
       '<circle cx="' + X(endB[0]).toFixed(1) + '" cy="' + Y(endB[1]).toFixed(1) + '" r="6" style="fill:var(--panel)"/><circle cx="' + X(endB[0]).toFixed(1) + '" cy="' + Y(endB[1]).toFixed(1) + '" r="4" style="fill:var(--ser-b)"/>';
-    var html = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Projected stock for Gizmo Mini over ' + HZ + ' days. Out of stock from day 9 to 15 and day 26 to 42 even if both shipments arrive on time. Ordering 1,044 units today lifts stock from day 45.">' +
+    var html = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Projected stock for Mouse over ' + HZ + ' days. Out of stock from day 9 to 15 and day 26 to 42 even if both shipments arrive on time. Ordering 1,044 units today lifts stock from day 45.">' +
       g + band + lead +
       '<path d="' + path(a) + '" fill="none" style="stroke:var(--ser-a)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
       '<path d="' + path(b) + '" fill="none" style="stroke:var(--ser-b)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="0.95"/>' +

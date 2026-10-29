@@ -1,0 +1,32 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Log adjustment">
+  <div class="mbody">
+    {{ dialog_head("Log adjustment for " ~ p.name, "Stock now " ~ (p.stock|num) ~ " · selling " ~ burn ~ " a day") }}
+    <form method="post" action="/products/{{ p.id }}/adjust" data-adjust data-stock="{{ p.stock }}" data-burn="{{ burn }}">
+      <div class="plans" role="radiogroup" aria-label="Kind of change">
+        {% for key, (label, sign) in kinds.items() %}
+        <label class="plan">
+          <input type="radio" name="kind" value="{{ key }}" data-sign="{{ sign }}" {{ "checked" if loop.first }}>
+          <span class="title">{{ label }}</span>
+          <span class="meta">{{ {"sale": "Units left the warehouse outside the sales feed", "damage": "Units that can no longer be sold", "found": "The shelf count is higher than the system"}[key] }}</span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if p.bundle_map %}
+      <label class="field">Sold as (manual sales only)
+        <select name="variant"><option value="" data-per="1">Single units</option>
+          {% for title, per in p.bundle_map.items() %}<option value="{{ title }}" data-per="{{ per }}">{{ title }} ({{ per }} units each)</option>{% endfor %}</select>
+        <span class="hint">With a bundle chosen, the number below counts sales, not units.</span></label>
+      {% endif %}
+      <div class="grid2">
+        <label class="field">{{ "Units, or sales if a bundle is chosen" if p.bundle_map else "Units" }}<input name="units" type="number" min="1" max="1000000" required inputmode="numeric" value="1">
+          <span class="hint" data-dir>Removes 1 unit</span></label>
+        <label class="field">Date<input name="day" type="date" required value="{{ today.isoformat() }}" max="{{ today.isoformat() }}"></label>
+      </div>
+      <label class="field">Why (required)<input name="note" required minlength="3" maxlength="200" placeholder="Trade show sample, 12 units"></label>
+      <div class="callout info" data-preview>{{ icon("circle-alert") }}<span></span></div>
+      <div class="mfoot"><span class="meta">Saved with your name and the time. It cannot be edited, only corrected with a new entry.</span>
+        <div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Save adjustment</button></div></div>
+    </form>
+  </div>
+</dialog>

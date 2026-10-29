@@ -69,3 +69,13 @@ def test_status_precedence():
 
 def test_tracking_cap():
     assert tracking_fits(10, 6, 4) and not tracking_fits(10, 6, 5) and not tracking_fits(10, 0, 0)
+
+
+def test_bundle_variants_count_every_unit():
+    from app.domain.bundles import units_sold
+    bundles = {"Buy 2 Get 2": 4}
+    assert units_sold(3, "Buy 2 Get 2", bundles) == 12
+    assert units_sold(3, "", bundles) == 3
+    import pytest
+    with pytest.raises(ValueError, match="not a bundle"):
+        units_sold(1, "Buy 9 Get 9", bundles)

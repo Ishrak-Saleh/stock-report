@@ -1,0 +1,24 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="{{ 'Edit ' ~ p.name if p else 'Add product' }}">
+  <div class="mbody">
+    {{ dialog_head("Edit " ~ p.name if p else "Add product", "Changes apply to the forecast on the next page load" if p else "A new product starts with 0 units in stock") }}
+    <form method="post" action="/settings/products{{ '/' ~ p.id if p }}">
+      <div class="grid2">
+        <label class="field">Name<input name="name" required maxlength="80" value="{{ p.name if p }}"></label>
+        <label class="field">Short code<input name="code" required maxlength="8" pattern="[A-Za-z0-9]{1,8}" value="{{ p.code if p }}"><span class="hint">Up to 8 letters or digits, used in order names</span></label>
+      </div>
+      <label class="field">Sales titles and SKUs that count as this product<input name="identifiers" maxlength="500" value="{{ ids if p }}"><span class="hint">Matched exactly against the sales feed, separated by commas</span></label>
+      <label class="field">Bundle variants<textarea name="bundles" rows="2" maxlength="500" placeholder="Buy 2 Get 2 = 4">{{ bundles }}</textarea><span class="hint">One per line: the variant title, then how many units one sale means</span></label>
+      <div>
+        <div class="state-label" style="margin-bottom:8px">Forecast overrides, blank uses the default</div>
+        <div class="grid3">
+          <label class="field">Lead time<input name="lead" type="number" min="0" inputmode="numeric" placeholder="{{ s.lead_time }} (default)" value="{{ p.lead_time if p and p.lead_time is not none }}"></label>
+          <label class="field">Safety days<input name="safety" type="number" min="0" inputmode="numeric" placeholder="{{ s.safety_days }} (default)" value="{{ p.safety_days if p and p.safety_days is not none }}"></label>
+          <label class="field">Target days<input name="target" type="number" min="1" inputmode="numeric" placeholder="{{ s.target_days }} (default)" value="{{ p.target_days if p and p.target_days is not none }}"></label>
+        </div>
+      </div>
+      <div class="mfoot"><span class="meta">Products with history cannot be deleted, so there is no delete button.</span>
+        <div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Save product</button></div></div>
+    </form>
+  </div>
+</dialog>

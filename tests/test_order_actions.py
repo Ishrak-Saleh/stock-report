@@ -13,7 +13,7 @@ def db():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     with sessionmaker(engine, expire_on_commit=False)() as session:
-        session.add_all([Product(code="GIZ", name="Gizmo"), Supplier(name="Acme", email="a@example.com")])
+        session.add_all([Product(code="MOU", name="Mouse"), Supplier(name="Acme", email="a@example.com")])
         session.commit()
         yield session
 
@@ -27,7 +27,7 @@ def actions(o):
 
 
 def test_names_count_up_per_product(db):
-    assert [new_order(db).name for _ in range(3)] == ["GIZ-001", "GIZ-002", "GIZ-003"]
+    assert [new_order(db).name for _ in range(3)] == ["MOU-001", "MOU-002", "MOU-003"]
 
 
 def test_confirm_moves_to_in_production(db):

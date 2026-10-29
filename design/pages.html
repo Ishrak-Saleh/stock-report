@@ -244,23 +244,23 @@ var SR = {};
 
   var SUP = { Acme: "Acme Manufacturing", Nova: "Nova Imports" };
   var PRODUCTS = [
-    { code: "GAD", name: "Gadget Pro", stock: 0, burn: 7.4, trend: 1.01, days: 0.0, incl: 40.5, out: "Oct 29", by: "Aug 31", st: [0, 300, 0], sugg: 777, level: "crit", flag: "Out of stock", note: "Reorder now. Ordered units not enough.", l3: [7, 7, 8], p4: [7, 7, 7, 8], base: 7 },
-    { code: "GIZ", name: "Gizmo Mini", stock: 100, burn: 10.9, trend: 1.50, days: 9.2, incl: 33.9, out: "Nov 07", by: "Sep 09", st: [150, 0, 120], sugg: 1044, level: "crit", flag: "Under 21 days", note: "Reorder now. Ordered units not enough.", l3: [9, 9, 9], p4: [6, 6, 6, 6], base: 6 },
-    { code: "DOO", name: "Doohickey Set", stock: 120, burn: 2.5, trend: 0.89, days: 48.0, incl: 48.0, out: "Dec 16", by: "Oct 18", st: [0, 0, 0], sugg: 142, level: "serious", flag: "Reorder now", note: "Nothing is on order.", l3: [3, 3, 2], p4: [3, 3, 3, 3], base: 3 },
-    { code: "WID", name: "Widget Classic", stock: 320, burn: 4.3, trend: 0.96, days: 74.4, incl: 120.9, out: "Jan 11", by: "Nov 13", st: [0, 200, 0], sugg: 132, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [5, 4, 5, 4], base: 5 },
-    { code: "THI", name: "Thingamajig XL", stock: 900, burn: 5.0, trend: 1.33, days: 180.0, incl: 230.0, out: "Apr 27", by: "Feb 27", st: [0, 0, 250], sugg: 0, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [3, 3, 4, 3], base: 4 },
-    { code: "SPR", name: "Sprocket Spare", stock: 50, burn: 0, trend: 1, days: null, incl: null, out: null, by: null, st: [0, 0, 0], sugg: 0, level: "good", flag: "Healthy", note: "No sales yet.", l3: [0, 0, 0], p4: [0, 0, 0, 0], base: 0 }
+    { code: "PHN", name: "Phone", stock: 0, burn: 7.4, trend: 1.01, days: 0.0, incl: 40.5, out: "Oct 29", by: "Aug 31", st: [0, 300, 0], sugg: 777, level: "crit", flag: "Out of stock", note: "Reorder now. Ordered units not enough.", l3: [7, 7, 8], p4: [7, 7, 7, 8], base: 7 },
+    { code: "MOU", name: "Mouse", stock: 100, burn: 10.9, trend: 1.50, days: 9.2, incl: 33.9, out: "Nov 07", by: "Sep 09", st: [150, 0, 120], sugg: 1044, level: "crit", flag: "Under 21 days", note: "Reorder now. Ordered units not enough.", l3: [9, 9, 9], p4: [6, 6, 6, 6], base: 6 },
+    { code: "MON", name: "Monitor", stock: 120, burn: 2.5, trend: 0.89, days: 48.0, incl: 48.0, out: "Dec 16", by: "Oct 18", st: [0, 0, 0], sugg: 142, level: "serious", flag: "Reorder now", note: "Nothing is on order.", l3: [3, 3, 2], p4: [3, 3, 3, 3], base: 3 },
+    { code: "KEY", name: "Keyboard", stock: 320, burn: 4.3, trend: 0.96, days: 74.4, incl: 120.9, out: "Jan 11", by: "Nov 13", st: [0, 200, 0], sugg: 132, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [5, 4, 5, 4], base: 5 },
+    { code: "HDP", name: "Headphones", stock: 900, burn: 5.0, trend: 1.33, days: 180.0, incl: 230.0, out: "Apr 27", by: "Feb 27", st: [0, 0, 250], sugg: 0, level: "good", flag: "Healthy", note: "", l3: [4, 4, 5], p4: [3, 3, 4, 3], base: 4 },
+    { code: "CBL", name: "Cable", stock: 50, burn: 0, trend: 1, days: null, incl: null, out: null, by: null, st: [0, 0, 0], sugg: 0, level: "good", flag: "Healthy", note: "No sales yet.", l3: [0, 0, 0], p4: [0, 0, 0, 0], base: 0 }
   ];
   function product(code) { return PRODUCTS.filter(function (p) { return p.code === code; })[0]; }
 
   /* The seed orders. createdAgo and the other "Ago" fields are days before today, Oct 29. */
   var ORDERS = [
-    { name: "GIZ-001", code: "GIZ", sup: "Acme", units: 120, createdAgo: 30, confirmedAgo: 28, trk: [{ n: "1Z999AA10123456784", c: "UPS", u: 120, ago: 14 }], arrived: 0, arrivedAgo: null, notes: "" },
-    { name: "GIZ-002", code: "GIZ", sup: "Acme", units: 150, createdAgo: 3, confirmedAgo: null, trk: [], arrived: 0, arrivedAgo: null, notes: "" },
-    { name: "WID-001", code: "WID", sup: "Nova", units: 200, createdAgo: 20, confirmedAgo: 18, trk: [], arrived: 0, arrivedAgo: null, notes: "" },
-    { name: "THI-001", code: "THI", sup: "Nova", units: 400, createdAgo: 40, confirmedAgo: 38, trk: [{ n: "794644790138", c: "FedEx", u: 400, ago: 25 }], arrived: 150, arrivedAgo: 5, notes: "" },
-    { name: "GAD-001", code: "GAD", sup: "Acme", units: 300, createdAgo: 12, confirmedAgo: 11, trk: [], arrived: 0, arrivedAgo: null, notes: "Rush if possible" },
-    { name: "DOO-001", code: "DOO", sup: "Nova", units: 100, createdAgo: 60, confirmedAgo: 58, trk: [{ n: "9400111899223344556677", c: "USPS", u: 100, ago: 40 }], arrived: 100, arrivedAgo: 20, notes: "" }
+    { name: "MOU-001", code: "MOU", sup: "Acme", units: 120, createdAgo: 30, confirmedAgo: 28, trk: [{ n: "1Z999AA10123456784", c: "UPS", u: 120, ago: 14 }], arrived: 0, arrivedAgo: null, notes: "" },
+    { name: "MOU-002", code: "MOU", sup: "Acme", units: 150, createdAgo: 3, confirmedAgo: null, trk: [], arrived: 0, arrivedAgo: null, notes: "" },
+    { name: "KEY-001", code: "KEY", sup: "Nova", units: 200, createdAgo: 20, confirmedAgo: 18, trk: [], arrived: 0, arrivedAgo: null, notes: "" },
+    { name: "HDP-001", code: "HDP", sup: "Nova", units: 400, createdAgo: 40, confirmedAgo: 38, trk: [{ n: "794644790138", c: "FedEx", u: 400, ago: 25 }], arrived: 150, arrivedAgo: 5, notes: "" },
+    { name: "PHN-001", code: "PHN", sup: "Acme", units: 300, createdAgo: 12, confirmedAgo: 11, trk: [], arrived: 0, arrivedAgo: null, notes: "Rush if possible" },
+    { name: "MON-001", code: "MON", sup: "Nova", units: 100, createdAgo: 60, confirmedAgo: 58, trk: [{ n: "9400111899223344556677", c: "USPS", u: 100, ago: 40 }], arrived: 100, arrivedAgo: 20, notes: "" }
   ];
   function order(name) { return ORDERS.filter(function (o) { return o.name === name; })[0]; }
 
@@ -318,10 +318,10 @@ var SR = {};
   }
 
   var ARRIVALS = [
-    { id: "A-2", code: "THI", ago: 5, units: 150, allocs: [{ order: "THI-001", u: 150 }] },
-    { id: "A-1", code: "DOO", ago: 20, units: 100, allocs: [{ order: "DOO-001", u: 100 }] }
+    { id: "A-2", code: "HDP", ago: 5, units: 150, allocs: [{ order: "HDP-001", u: 150 }] },
+    { id: "A-1", code: "MON", ago: 20, units: 100, allocs: [{ order: "MON-001", u: 100 }] }
   ];
-  var EXAMPLE_ARRIVAL = { id: "A-3", code: "GAD", ago: 0, units: 330, allocs: [{ order: "GAD-001", u: 300 }], example: true };
+  var EXAMPLE_ARRIVAL = { id: "A-3", code: "PHN", ago: 0, units: 330, allocs: [{ order: "PHN-001", u: 300 }], example: true };
 
   SR.TODAY = TODAY; SR.dayStr = dayStr; SR.fmt = fmt; SR.esc = esc; SR.SUP = SUP; SR.PRODUCTS = PRODUCTS; SR.product = product; SR.ORDERS = ORDERS; SR.order = order;
   SR.stagesOf = stagesOf; SR.chaseOf = chaseOf; SR.expectedOffset = expectedOffset; SR.openOrdersFor = openOrdersFor; SR.fifo = fifo;
@@ -348,7 +348,7 @@ var SR = {};
   };
   function icon(n, s) { s = s || 16; return '<svg class="ic" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
   var fmt = SR.fmt, esc = SR.esc, dayStr = SR.dayStr;
-  var S = { page: "orders", orderName: "GIZ-001", flags: {}, device: "laptop", filter: "all", showExample: false };
+  var S = { page: "orders", orderName: "MOU-001", flags: {}, device: "laptop", filter: "all", showExample: false };
 
   /* ---------- shared pieces ---------- */
   var STATUS = {
@@ -560,7 +560,7 @@ var SR = {};
       return '<svg class="mc" width="' + W + '" height="20" viewBox="0 0 ' + W + ' 20" role="img" aria-label="Waited ' + c.days + ' days, limit ' + c.thr + '"><line x1="4" x2="' + (W - 4) + '" y1="10" y2="10" style="stroke:var(--line)" stroke-width="1"/><rect x="' + (X(c.thr) - 1).toFixed(1) + '" y="2" width="2" height="16" rx="1" style="fill:var(--ink)"/><circle cx="' + X(c.days).toFixed(1) + '" cy="10" r="6" style="fill:var(--panel)"/><circle cx="' + X(c.days).toFixed(1) + '" cy="10" r="4" style="fill:' + col + '"/></svg>'; }
     var ch = chase.map(function (x) { var nx = nextStep(x.o, SR.stagesOf(x.o), x.ch); return '<div class="crow"><b>' + x.o.name + '</b><div><div>' + sup(x.o) + '</div><div class="meta">' + nx.text + '. ' + nx.detail + '</div></div>' + dp(x.ch) + '<button class="btn small" type="button" data-act="modal" data-m="message" data-k="' + x.ch.kind + '" data-id="' + x.o.name + '">' + icon("copy") + 'Copy message</button></div>'; }).join("");
     return topbar("stock") +
-      '<div class="panel headline"><div class="sentence">3 products need a reorder, and Gadget Pro is out. <span>Suggested order: 1,963 units.</span></div><button class="btn primary" type="button" data-act="new-order">Review suggested orders</button></div>' +
+      '<div class="panel headline"><div class="sentence">3 products need a reorder, and Phone is out. <span>Suggested order: 1,963 units.</span></div><button class="btn primary" type="button" data-act="new-order">Review suggested orders</button></div>' +
       '<div class="panel"><div class="phead"><div><h3>Products</h3><div class="sub">Most urgent first</div></div><span class="seg" role="group" aria-label="Filter"><button type="button" aria-pressed="true">All 6</button><button type="button" aria-pressed="false">Critical 2</button><button type="button" aria-pressed="false">Reorder now 1</button><button type="button" aria-pressed="false">Healthy 3</button></span></div>' +
       '<div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, 40 days</span><span>Ordered</span><span style="text-align:right">In stock</span><span style="text-align:right">Suggested order</span></div>' + SR.PRODUCTS.map(stockRow).join("") + '</div>' +
       '<div class="panel"><div class="phead"><div><h3>Orders to chase</h3><div class="sub">' + chase.length + ' orders need a message</div></div><button class="plink" type="button" data-go="chase">Open chase list ' + icon("chevron-right") + '</button></div>' + ch + '</div>' +
@@ -587,7 +587,7 @@ var SR = {};
       orders: ["Operations staff, daily", "Which orders to act on first", ordersHeadline()],
       order: ["Operations staff, for one order", "What happens next for this order", null],
       arrivals: ["Operations staff, when goods arrive", "Whether the goods matched the right order", "2 arrivals this month, all matched."],
-      stock: ["Operations staff, weekly reorder", "What to order today, and how much", "3 products need a reorder, and Gadget Pro is out."]
+      stock: ["Operations staff, weekly reorder", "What to order today, and how much", "3 products need a reorder, and Phone is out."]
     }[S.page];
     if (S.page === "order") { var o = SR.order(S.orderName), st = SR.stagesOf(o, S.flags); b[2] = takeaway(o, st, SR.chaseOf(o, S.flags)); }
     if (!b) { var n = NEXT[S.page]; b = [n[1], n[2], n[3]]; }
@@ -624,9 +624,9 @@ var SR = {};
     else if (kind === "delete") { o = SR.order(S.orderName); html = modalShell("Delete " + o.name + "?", "", '<p class="muted">This removes the order, its tracking and its history for good. To stop it counting as ordered, close or cancel it instead.</p>', '<span></span><div class="row"><button class="btn quiet" type="button" data-act="close">Keep it</button><button class="btn danger" type="button" data-act="close">Yes, delete</button></div>'); }
     else if (kind === "edit") { o = SR.order(S.orderName); var stE = SR.stagesOf(o); var floor = Math.max(stE.tracked, stE.arrived, 1);
       html = modalShell("Edit " + o.name, "", '<div class="grid2"><label class="field" for="e-sup">Supplier<select id="e-sup"><option>' + SR.SUP.Acme + '</option><option' + (o.sup === "Nova" ? " selected" : "") + '>' + SR.SUP.Nova + '</option></select></label><label class="field" for="e-units">Units<input id="e-units" type="number" min="' + floor + '" value="' + o.units + '"></label></div><div class="hint">Units cannot go below ' + fmt(floor) + ', which is already on tracking or has arrived.</div><label class="field" for="e-notes">Notes<textarea id="e-notes" rows="2">' + esc(o.notes) + '</textarea></label>', '<span></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="close">Save changes</button></div>'); }
-    else if (kind === "new") { var code = ctx.code || "GIZ"; var opts = SR.PRODUCTS.map(function (p) { return '<option value="' + p.code + '"' + (p.code === code ? " selected" : "") + '>' + p.name + '</option>'; }).join("");
+    else if (kind === "new") { var code = ctx.code || "MOU"; var opts = SR.PRODUCTS.map(function (p) { return '<option value="' + p.code + '"' + (p.code === code ? " selected" : "") + '>' + p.name + '</option>'; }).join("");
       html = modalShell("New order", "Pick a size, then adjust the units if you need to", '<div class="grid2"><label class="field" for="n-prod">Product<select id="n-prod" data-act="new-prod">' + opts + '</select></label><label class="field" for="n-sup">Supplier<select id="n-sup"><option>' + SR.SUP.Acme + '</option><option>' + SR.SUP.Nova + '</option></select></label></div><div id="n-plans">' + planCards(code) + '</div><div class="grid2"><label class="field" for="n-units">Units<input id="n-units" type="number" min="1" value="' + (SR.product(code).sugg || "") + '"></label><label class="field" for="n-notes">Notes (optional)<input id="n-notes" placeholder="Rush if possible"></label></div>', '<span class="meta" id="n-sum"></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="close">Create order</button></div>'); }
-    else if (kind === "arrival") { var opts2 = SR.PRODUCTS.map(function (p) { return '<option value="' + p.code + '"' + (p.code === "GIZ" ? " selected" : "") + '>' + p.name + '</option>'; }).join("");
+    else if (kind === "arrival") { var opts2 = SR.PRODUCTS.map(function (p) { return '<option value="' + p.code + '"' + (p.code === "MOU" ? " selected" : "") + '>' + p.name + '</option>'; }).join("");
       html = modalShell("Record arrival", "The preview shows which orders the units go to", '<div class="grid2"><label class="field" for="a-prod">Product<select id="a-prod" data-act="arr-prod">' + opts2 + '</select></label><label class="field" for="a-units">Units<input id="a-units" type="number" min="1" value="250"></label></div><label class="field" for="a-date">Date<input id="a-date" type="date" value="2026-10-29"></label><div id="a-prev"></div>', '<span class="meta" id="a-sum"></span><div class="row"><button class="btn quiet" type="button" data-act="close">Cancel</button><button class="btn primary" type="button" data-act="close">Record arrival</button></div>'); }
     else if (kind === "fix") { var a = (SR.ARRIVALS.concat([SR.EXAMPLE_ARRIVAL])).filter(function (x) { return x.id === ctx.id; })[0], p2 = SR.product(a.code);
       var cands = SR.ORDERS.filter(function (x) { return x.code === a.code && SR.stagesOf(x).open; });

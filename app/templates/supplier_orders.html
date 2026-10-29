@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, order_bar, dialog_link %}
+{% block title %}Your orders · Stock Report{% endblock %}
+{% block content %}
+{% set user = me(request) %}
+<div class="panel headline">
+  <div class="sentence">{{ head }} <span>{{ sub }}</span></div>
+  <div class="stack" style="align-items:flex-end;gap:4px">
+    {% if first %}<form method="post" action="/orders/{{ first.order.id }}/confirm" class="inline"><button class="btn primary" type="submit">{{ icon("check") }}Confirm {{ first.order.name }}</button></form>
+    <span class="meta">Confirming tells the buyer you accept the units</span>{% endif %}
+  </div>
+</div>
+
+<div class="panel">
+  <div class="phead"><div><h3>Your orders</h3><div class="sub">Waiting on you first</div></div>
+    <span class="seg" role="group" aria-label="Filter orders">
+      <a href="/orders" {% if show == "open" %}aria-current="true"{% endif %}>Open {{ open_n }}</a>
+      <a href="/orders?show=arrived" {% if show == "arrived" %}aria-current="true"{% endif %}>Finished {{ done_n }}</a>
+    </span></div>
+  {% if rows %}
+  <div class="lhead sohead"><span>Order</span><span>Product</span><span style="text-align:right">Units</span><span>Where it is</span><span>Waiting on</span><span style="text-align:right">Your action</span></div>
+  {% for r in rows %}{% set o = r.order %}{% set st = r.stages %}{% set w = waiting[o.id] %}
+  <div class="orow sorow link" role="link" tabindex="0" data-href="/orders/{{ o.id }}">
+    <div class="cell"><a class="plain" href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a></div>
+    <div class="cell"><span class="lab">Product</span>{{ o.product.name }}</div>
+    <div class="cell num"><span class="lab">Units</span><span class="big">{{ o.units|num }}</span></div>
+    <div class="cell"><span class="lab">Where it is</span>{{ order_bar(o, st) }}<div class="small">{{ st.status|capitalize }} · {{ st.arrived|num }} of {{ o.units|num }} arrived</div></div>
+    <div class="cell"><span class="lab">Waiting on</span>{{ badge(w[0], w[2], w[1]) }}</div>
+    <div class="cell act">
+      {% if st.status not in ("received", "closed", "cancelled") and not st.confirmed %}
+      <form method="post" action="/orders/{{ o.id }}/confirm" class="inline"><button class="btn small" type="submit">{{ icon("check") }}Confirm</button></form>
+      {% elif st.status not in ("received", "closed", "cancelled") and w[0] == "warn" %}
+      {{ dialog_link("/orders/" ~ o.id ~ "/dialog/tracking", "Add tracking", "btn small", "truck") }}
+      {% else %}<span class="meta">{{ "Fully tracked" if w[0] == "good" else "Nothing to do" }}</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty">{{ icon("package", 24) }}<strong>{{ "No finished orders yet" if show == "arrived" else "No open orders" }}</strong><span class="meta">New orders from the buyer will appear here.</span></div>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <div class="phead"><div><h3>What this login can do</h3><div class="sub">Set by the account and checked on the server for every request</div></div></div>
+  <div class="perm">
+    <div class="yes"><span class="strong">Can</span><ul>
+      <li>{{ icon("circle-check") }}See orders addressed to {{ user.supplier }}</li><li>{{ icon("circle-check") }}Confirm an order</li><li>{{ icon("circle-check") }}Add tracking numbers with unit counts</li></ul></div>
+    <div class="no"><span class="strong">Cannot</span><ul>
+      <li>{{ icon("lock") }}See other suppliers, stock, sales or forecasts</li><li>{{ icon("lock") }}Create, edit, cancel, close or delete an order</li><li>{{ icon("lock") }}Open Arrivals, the Chase list, Settings or the Outbox</li></ul></div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, dialog_link, stale_banner %}
+{% block title %}Settings · Stock Report{% endblock %}
+{% block stale %}{{ stale_banner(stale) }}{% endblock %}
+{% block content %}
+<div class="panel headline">
+  <div class="sentence">Reorder line is {{ reorder_line }} days. <span>An order lands {{ s.lead_time }} days after you place it, and stock should not drop under {{ s.safety_days }} days after that.</span></div>
+  <div class="stack" style="align-items:flex-end;gap:4px">
+    <button class="btn primary" type="submit" form="defaults-form">Save settings</button>
+    <span class="meta">Changes apply to the Stock page straight away</span>
+  </div>
+</div>
+{% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
+{% if notice %}<div class="callout good" role="status">{{ icon("circle-check") }}<span>{{ notice }}</span></div>{% endif %}
+<div class="row"><span class="seg" role="group" aria-label="Jump to a section">
+  <a href="#forecast">Forecast</a><a href="#products">Products {{ products|length }}</a><a href="#suppliers">Suppliers {{ suppliers|length }}</a><a href="#alerts">Alerts</a>
+</span></div>
+
+<div class="panel" id="forecast">
+  <div class="phead"><div><h3>Forecast defaults</h3><div class="sub">Used by every product that has no override of its own</div></div></div>
+  <form id="defaults-form" method="post" action="/settings/defaults" data-forecast>
+    <div class="grid3">
+      <label class="field">Lead time, days<input name="lead_time" type="number" min="0" max="3650" required inputmode="numeric" value="{{ s.lead_time }}"><span class="hint">Days from placing an order to it arriving</span></label>
+      <label class="field">Safety days<input name="safety_days" type="number" min="0" max="3650" required inputmode="numeric" value="{{ s.safety_days }}"><span class="hint">Extra cushion on top of lead time</span></label>
+      <label class="field">Target days<input name="target_days" type="number" min="1" max="3650" required inputmode="numeric" value="{{ s.target_days }}"><span class="hint">Days of stock a new order should give you</span></label>
+    </div>
+  </form>
+  <div class="calc">
+    <div><span class="meta">Reorder line</span><span class="v" data-line>{{ reorder_line }} days</span><span class="meta">A product with fewer days than this, counting orders, shows Reorder now</span></div>
+    <div><span class="meta">Suggested order covers</span><span class="v" data-cover>{{ s.target_days + s.lead_time }} days of sales</span><span class="meta">Target plus lead time, minus the warehouse stock</span></div>
+  </div>
+</div>
+
+<div class="panel" id="products">
+  <div class="phead"><div><h3>Products</h3><div class="sub">Blank forecast numbers use the defaults above</div></div>
+    {{ dialog_link("/settings/products/new", "Add product", "btn small", "plus") }}</div>
+  <div class="lhead phd"><span>Product</span><span>Code</span><span>Sales are matched by</span><span>Forecast</span><span>Bundles</span><span style="text-align:right">Edit</span></div>
+  {% for p in products %}
+  <div class="orow prw">
+    <div class="cell"><a class="plain" href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a></div>
+    <div class="cell"><span class="lab">Code</span><span class="faint">{{ p.code }}</span></div>
+    <div class="cell"><span class="lab">Sales are matched by</span><div class="chips">{% for i in p.identifiers %}<span class="chip">{{ i }}</span>{% endfor %}</div></div>
+    <div class="cell"><span class="lab">Forecast</span>
+      {% if p.lead_time is not none or p.safety_days is not none or p.target_days is not none %}
+      {% set pr = params[p.id] %}<span class="badge info">{{ icon("pencil") }}{{ "Lead " ~ pr.lead_time if p.lead_time is not none }}{{ " · Safety " ~ pr.safety_days if p.safety_days is not none }}{{ " · Target " ~ pr.target_days if p.target_days is not none }}</span>
+      {% else %}<span class="muted">Default</span>{% endif %}</div>
+    <div class="cell"><span class="lab">Bundles</span>{% if p.bundle_map %}{% for k, v in p.bundle_map.items() %}{{ k }} = {{ v }} units{{ ", " if not loop.last }}{% endfor %}{% else %}<span class="muted">None</span>{% endif %}</div>
+    <div class="cell act">{{ dialog_link("/settings/products/" ~ p.id, "Edit", "btn small quiet", "pencil") }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="panel" id="suppliers">
+  <div class="phead"><div><h3>Suppliers</h3><div class="sub">Messages go to the address on file</div></div>
+    {{ dialog_link("/settings/suppliers/new", "Add supplier", "btn small", "plus") }}</div>
+  <div class="lhead shd"><span>Supplier</span><span>Email</span><span>Open orders</span><span style="text-align:right">Edit</span></div>
+  {% for sp in suppliers %}
+  <div class="orow srw">
+    <div class="cell"><strong>{{ sp.name }}</strong></div>
+    <div class="cell"><span class="lab">Email</span>{{ sp.email }}</div>
+    <div class="cell num"><span class="lab">Open orders</span>{{ open_counts.get(sp.id, 0) }}</div>
+    <div class="cell act">{{ dialog_link("/settings/suppliers/" ~ sp.id, "Edit", "btn small quiet", "pencil") }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="panel" id="alerts">
+  <div class="phead"><div><h3>Alerts</h3><div class="sub">Email when a product is under its reorder line</div></div></div>
+  <form method="post" action="/settings/alerts" class="stack" style="gap:0">
+    <div class="setrow"><div><label for="alerts-on" class="strong">Send reorder alert emails</label><div class="meta">Off by default. Turn on when staff want a nudge between weekly reviews.</div></div>
+      <input id="alerts-on" class="switchbox" type="checkbox" role="switch" name="enabled" value="1" {{ "checked" if s.alerts_enabled }}></div>
+    <div class="setrow" style="align-items:flex-end">
+      <label class="field" style="flex:1;max-width:480px">Who gets them<input name="recipients" type="text" maxlength="300" value="{{ s.recipients }}" placeholder="ops@example.com, sam@example.com"><span class="hint">Separate addresses with commas</span></label>
+      <button class="btn" type="submit">Save alert settings</button>
+    </div>
+  </form>
+  <div class="setrow">
+    <div><div class="strong">Test it</div><div class="meta">Saves the real alert for each address in the Outbox, marked as a test. Nothing is delivered.</div></div>
+    <div class="row">
+      <form method="post" action="/settings/alerts/test" class="inline"><button class="btn" type="submit">{{ icon("send") }}Send test</button></form>
+      <form method="post" action="/settings/alerts/send" class="inline"><button class="btn quiet" type="submit" {{ "disabled" if not s.alerts_enabled }} {% if not s.alerts_enabled %}title="Turn alerts on first"{% endif %}>{{ icon("bell") }}Send alert now</button></form>
+    </div>
+  </div>
+  <div class="setrow">
+    <div><div class="strong">Data freshness</div><div class="meta">Stock and sales last updated {{ s.data_updated_at|clock }}. A warning shows on the Stock page after 2 days.</div></div>
+    <form method="post" action="/settings/data-updated" class="inline"><button class="btn" type="submit">Mark as updated today</button></form>
+  </div>
+</div>
+{% endblock %}

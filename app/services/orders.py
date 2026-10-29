@@ -10,7 +10,7 @@ from app.domain.carriers import clean, detect_carrier
 from app.domain.chase import Chase, chase_of
 from app.domain.messages import chase_step, quiet_step
 from app.domain.orders import Stages, stages, tracking_fits
-from app.models import Order, OrderEvent, Product, Tracking
+from app.models import AlertLog, Order, OrderEvent, Product, Tracking
 
 STATUSES = ["placed", "in production", "on the way", "partial", "received", "closed", "cancelled"]
 
@@ -77,12 +77,15 @@ def tracked_units(o: Order) -> int:
 
 
 def list_orders(db: Session, product_id: int | None = None, status: str | None = None, only_chase: bool = False,
-                today: date | None = None) -> list[OrderRow]:
-    """Orders that need attention first (most overdue on top), finished orders last."""
+                today: date | None = None, supplier_id: int | None = None) -> list[OrderRow]:
+    """Orders that need attention first (most overdue on top), finished orders last.
+    A supplier login passes its own supplier_id, so it can never receive another supplier's orders."""
     today = today or store_today()
     q = select(Order)
     if product_id:
         q = q.where(Order.product_id == product_id)
+    if supplier_id:
+        q = q.where(Order.supplier_id == supplier_id)
     rows = [build_row(o, today) for o in db.scalars(q)]
     rows = [r for r in rows if (not status or r.stages.status == status) and (not only_chase or r.chase)]
     return sorted(rows, key=lambda r: (-r.attention, -r.age))
@@ -93,6 +96,32 @@ def orders_headline(rows: list[OrderRow]) -> str:
     text = "No order needs a message." if not n else f"{n} order{'s' if n != 1 else ''} need{'s' if n == 1 else ''} a message."
     done = [r.order.name for r in rows if r.stages.status == "received"]
     return text + (f" {', '.join(done)} {'is' if len(done) == 1 else 'are'} complete." if done else "")
+
+
+def supplier_headline(rows: list[OrderRow], supplier: str) -> tuple[str, str]:
+    """(sentence, quiet second half) for a supplier's own orders page."""
+    open_rows = [r for r in rows if r.stages.status not in DONE]
+    to_confirm = [r.order.name for r in open_rows if not r.stages.confirmed]
+    to_track = [r.order.name for r in open_rows if r.stages.confirmed and tracked_units(r.order) < r.order.units
+                and r.stages.arrived < r.order.units]
+    n = len(open_rows)
+    text = f"{n} order{'s' if n != 1 else ''} from {supplier} {'is' if n == 1 else 'are'} open."
+    bits = ([f"{len(to_confirm)} need{'s' if len(to_confirm) == 1 else ''} confirming"] if to_confirm else []) + \
+           ([f"{len(to_track)} need{'s' if len(to_track) == 1 else ''} tracking"] if to_track else [])
+    return text, (" and ".join(bits) + ".").capitalize() if bits else "Nothing is waiting on you."
+
+
+def waiting_on_supplier(r: OrderRow) -> tuple[str, str, str]:
+    """(tone, what we wait for, icon) for the supplier's list."""
+    o, st = r.order, r.stages
+    if st.status in DONE:
+        return "plain", {"received": "Nothing, all arrived", "closed": "Nothing, closed", "cancelled": "Nothing, cancelled"}[st.status], "circle-check"
+    if not st.confirmed:
+        return "warn", "Your confirmation", "clock"
+    left = o.units - tracked_units(o)
+    if left > 0 and st.arrived < o.units:
+        return "warn", f"Tracking for {min(left, o.units - st.arrived):,} units", "package"
+    return "good", "Nothing, all tracked", "circle-check"
 
 
 @dataclass
@@ -125,7 +154,7 @@ def add_event(o: Order, action: str, detail: str = "", by: str = "staff") -> Non
 
 
 def next_order_name(db: Session, product: Product) -> str:
-    """Product code + next number, e.g. GIZ-003."""
+    """Product code + next number, e.g. MOU-003."""
     names = db.scalars(select(Order.name).where(Order.product_id == product.id)).all()
     last = max((int(n.rsplit("-", 1)[1]) for n in names), default=0)
     return f"{product.code}-{last + 1:03d}"
@@ -220,5 +249,7 @@ def reopen_order(db: Session, o: Order, by: str = "staff") -> None:
 def delete_order(db: Session, o: Order) -> None:
     if o.allocations:
         raise OrderError("This order has arrivals matched to it, so it can't be deleted. Cancel or close it instead.")
+    for log in db.scalars(select(AlertLog).where(AlertLog.order_id == o.id)):
+        db.delete(log)
     db.delete(o)
     db.commit()

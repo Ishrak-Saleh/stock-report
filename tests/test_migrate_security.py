@@ -1,0 +1,58 @@
+from sqlalchemy import create_engine, inspect, text
+
+from app.migrate import ensure_columns
+from app.security import Throttle, hash_password, verify_password
+
+
+def old_database():
+    """A database made before Outbox.kind and Arrival.by existed, with a row in each."""
+    e = create_engine("sqlite://")
+    with e.begin() as c:
+        c.execute(text('CREATE TABLE outbox (id INTEGER PRIMARY KEY, "to" VARCHAR, subject VARCHAR, body VARCHAR, at DATETIME)'))
+        c.execute(text("CREATE TABLE arrival (id INTEGER PRIMARY KEY, product_id INTEGER, units INTEGER, day DATE, note VARCHAR)"))
+        c.execute(text("INSERT INTO outbox VALUES (1, 'a@b.co', 's', 'b', '2026-10-01')"))
+        c.execute(text("INSERT INTO arrival VALUES (1, 1, 10, '2026-10-01', '')"))
+    return e
+
+
+def test_new_columns_are_added_to_an_old_database_and_keep_its_rows():
+    e = old_database()
+    ensure_columns(e)
+    cols = {c["name"] for c in inspect(e).get_columns("arrival")}
+    assert {"by", "edited"} <= cols and "kind" in {c["name"] for c in inspect(e).get_columns("outbox")}
+    with e.connect() as c:
+        assert c.execute(text("SELECT kind FROM outbox")).scalar() == ""
+        assert c.execute(text("SELECT by, edited FROM arrival")).one() == ("", 0)
+
+
+def test_running_the_migration_twice_changes_nothing():
+    e = old_database()
+    ensure_columns(e)
+    ensure_columns(e)
+    assert [c["name"] for c in inspect(e).get_columns("arrival")].count("by") == 1
+
+
+def test_a_missing_table_is_left_for_create_all():
+    ensure_columns(create_engine("sqlite://"))  # no error
+
+
+def test_passwords_are_hashed_and_checked():
+    h = hash_password("correct horse")
+    assert "correct horse" not in h and h.startswith("scrypt$")
+    assert verify_password("correct horse", h) and not verify_password("wrong", h)
+    assert hash_password("correct horse") != h  # a new salt each time
+    assert not verify_password("x", "not-a-hash") and not verify_password("x", "a$zz$zz")
+
+
+def test_the_lock_opens_again_after_the_wait(monkeypatch):
+    t = Throttle(tries=3, lock=300)
+    clock = [1000.0]
+    monkeypatch.setattr("app.security.time.time", lambda: clock[0])
+    for _ in range(3):
+        t.fail("a@b.co")
+    assert t.locked("a@b.co") and not t.locked("other@b.co")
+    clock[0] += 301
+    assert not t.locked("a@b.co")
+    t.fail("a@b.co")
+    t.ok("a@b.co")
+    assert not t.locked("a@b.co") and "a@b.co" not in t.fails

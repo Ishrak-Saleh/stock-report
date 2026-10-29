@@ -1,0 +1,31 @@
+{% set page = not closable %}
+<div id="runway-{{ p.id }}" class="drawer" {% if page %}style="box-shadow:none;padding:0;background:none"{% endif %}>
+  <div class="phead">
+    <div><h3>{{ p.name }} runway</h3>
+      <div class="sub">{% if rw %}Stock projected at {{ rw.row.forecast.adjusted_burn }} a day. Arrivals are assumed on order date plus the {{ rw.row.params.lead_time }}-day lead time, because the SOP has no expected-date field.{% else %}Needs sales to draw.{% endif %}</div></div>
+    <div class="row">
+      {% if rw %}
+      <span class="seg" role="group" aria-label="Horizon">
+        {% for h in horizons %}<a href="/products/{{ p.id }}#runway" hx-get="/products/{{ p.id }}/runway?horizon={{ h }}{{ '&from=page' if page }}" hx-target="#runway-{{ p.id }}" hx-swap="outerHTML" {% if rw.horizon == h %}aria-current="true"{% endif %}>{{ h }} days</a>{% endfor %}
+      </span>
+      {% endif %}
+      {% if closable %}<button class="btn quiet small" type="button" hx-get="/products/{{ p.id }}/runway?closed=1" hx-target="#runway-{{ p.id }}" hx-swap="outerHTML" aria-label="Close the runway chart">{{ icon("x") }}</button>{% endif %}
+    </div>
+  </div>
+  {% if rw %}
+  <div class="legend">
+    <span><i class="k line a"></i>Current orders only</span>
+    {% if rw.b %}<span><i class="k line b"></i>If you order {{ rw.extra.units|num }} today (the SOP suggestion)</span>{% endif %}
+    <span><i class="k dot"></i>An order lands</span><span><i class="k band"></i>Out of stock</span>
+  </div>
+  {{ charts.step_chart(rw.series(), 0, rw.horizon, rw.today, rw.label(), markers=rw.markers(), bands=rw.a.empty|list, tick=rw.tick) }}
+  <details><summary>Show as a table</summary>
+    <div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Current orders</th>{% if rw.b %}<th>If you order {{ rw.extra.units|num }}</th>{% endif %}</tr></thead>
+      <tbody>{% for when, a, b in rw.rows() %}<tr><td>{{ when }}</td><td>{{ a|num }}</td>{% if rw.b %}<td>{{ b|num }}</td>{% endif %}</tr>{% endfor %}</tbody></table></div>
+  </details>
+  <p class="meta" style="margin-top:8px"><b>Insight.</b> {{ rw.insight }}</p>
+  {% if closable %}<a class="plink" href="/products/{{ p.id }}">Open stock history {{ icon("chevron-right") }}</a>{% endif %}
+  {% else %}
+  <div class="empty">{{ icon("clock", 24) }}<strong>Days left cannot be worked out</strong><span class="meta">{{ p.name }} has no sales in the last 7 days, so there is no runway to draw.</span></div>
+  {% endif %}
+</div>

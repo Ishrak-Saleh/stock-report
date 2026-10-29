@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.config import SENDER_NAME, today
 from app.db import get_session
+from app.deps import is_staff, require_staff, require_user
 from app.domain import messages
 from app.domain.carriers import CARRIERS
 from app.domain.orders import expected_arrival
@@ -17,10 +18,13 @@ router = APIRouter()
 NOTES_MAX, UNITS_MAX = 500, 1_000_000
 
 
-def _get(db: Session, order_id: int) -> Order:
+def _get(db: Session, order_id: int, user: dict) -> Order:
+    """The order, or 404. A supplier asking for another supplier's order gets 403."""
     order = db.get(Order, order_id)
     if not order:
         raise HTTPException(404, "Order not found")
+    if not is_staff(user) and order.supplier_id != user["supplier_id"]:
+        raise HTTPException(403, "This order is not yours.")
     return order
 
 
@@ -28,38 +32,55 @@ def _suppliers(db: Session) -> list[Supplier]:
     return db.scalars(select(Supplier).order_by(Supplier.name)).all()
 
 
-def _detail(request: Request, db: Session, o: Order, error: str = "", status_code: int = 200):
+def _detail(request: Request, db: Session, o: Order, user: dict, error: str = "", status_code: int = 200):
     t = today()
     r = svc.build_row(o, t)
     st = r.stages
     tracked = svc.tracked_units(o)
     lead = params_for(o.product, get_settings(db)).lead_time
+    staff = is_staff(user)
     ctx = {
-        "o": o, "r": r, "st": st, "open": svc.is_open(o), "error": error,
+        "o": o, "r": r, "st": st, "open": svc.is_open(o), "error": error, "staff": staff,
         "steps": svc.order_steps(o, st), "tracked": tracked, "untracked": o.units - tracked,
         "expected": expected_arrival(o.created_at.date(), lead), "lead_time": lead,
         "events": list(reversed(o.events)),
         "takeaway": messages.takeaway(
             status=st.status, units=o.units, arrived=st.arrived, remaining=o.units - st.arrived,
-            on_the_way=st.on_the_way, untracked=o.units - tracked, chase=r.chase, supplier=o.supplier.name),
+            on_the_way=st.on_the_way, untracked=o.units - tracked, chase=r.chase, supplier=o.supplier.name)
+        if staff else messages.supplier_takeaway(
+            status=st.status, units=o.units, arrived=st.arrived, confirmed=st.confirmed, untracked=o.units - tracked),
     }
     return templates.TemplateResponse(request, "order_detail.html", ctx, status_code=status_code)
 
 
-def _run(request: Request, db: Session, o: Order, action, to: str | None = None):
+def _run(request: Request, db: Session, o: Order, user: dict, action, to: str | None = None):
     """Run an order action. Rule breaks show on the detail page instead of crashing."""
     try:
         action()
     except svc.OrderError as e:
         db.rollback()
-        return _detail(request, db, o, str(e), 400)
+        return _detail(request, db, o, user, str(e), 400)
     return RedirectResponse(to or f"/orders/{o.id}", status_code=303)
 
 
 # ---- lists and the new order form ----
 
+def _supplier_list(request: Request, db: Session, user: dict, show: str):
+    rows = svc.list_orders(db, supplier_id=user["supplier_id"])
+    head, sub = svc.supplier_headline(rows, user["supplier"])
+    shown = [r for r in rows if (r.stages.status in svc.DONE) == (show == "arrived")]
+    open_n = sum(1 for r in rows if r.stages.status not in svc.DONE)
+    return templates.TemplateResponse(request, "supplier_orders.html", {
+        "rows": shown, "head": head, "sub": sub, "show": show, "open_n": open_n, "done_n": len(rows) - open_n,
+        "waiting": {r.order.id: svc.waiting_on_supplier(r) for r in rows}, "first": next(
+            (r for r in rows if r.stages.status not in svc.DONE and not r.stages.confirmed), None)})
+
+
 @router.get("/orders", response_class=HTMLResponse)
-def orders(request: Request, product: str = "", status: str = "", chase: str = "", db: Session = Depends(get_session)):
+def orders(request: Request, product: str = "", status: str = "", chase: str = "", show: str = "",
+           user: dict = Depends(require_user), db: Session = Depends(get_session)):
+    if not is_staff(user):
+        return _supplier_list(request, db, user, show if show == "arrived" else "open")
     product_id = int(product) if product.isdigit() else None
     status = status if status in svc.STATUSES else ""
     rows = svc.list_orders(db, product_id, status or None, only_chase=bool(chase))
@@ -73,7 +94,7 @@ def orders(request: Request, product: str = "", status: str = "", chase: str = "
 
 @router.get("/orders/new", response_class=HTMLResponse)
 def new_order_form(request: Request, product: int | None = None, product_id: int | None = None,
-                   units: int | None = None, db: Session = Depends(get_session)):
+                   units: int | None = None, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     """The New order dialog (HTMX) or, without JavaScript, the same form as a page."""
     t, settings = today(), get_settings(db)
     chosen = db.get(Product, product or product_id) if (product or product_id) else None
@@ -91,24 +112,28 @@ def new_order_form(request: Request, product: int | None = None, product_id: int
 
 @router.post("/orders")
 def create(product_id: int = Form(), supplier_id: int = Form(), units: int = Form(gt=0, le=UNITS_MAX),
-           notes: str = Form("", max_length=NOTES_MAX), db: Session = Depends(get_session)):
+           notes: str = Form("", max_length=NOTES_MAX), user: dict = Depends(require_staff),
+           db: Session = Depends(get_session)):
     product, supplier = db.get(Product, product_id), db.get(Supplier, supplier_id)
     if not product or not supplier:
         raise HTTPException(404, "Unknown product or supplier")
-    order = svc.create_order(db, product, supplier.id, units, notes)
+    order = svc.create_order(db, product, supplier.id, units, notes, user["label"])
     return RedirectResponse(f"/orders/{order.id}", status_code=303)
 
 
 # ---- one order ----
 
 @router.get("/orders/{order_id}", response_class=HTMLResponse)
-def order_detail(request: Request, order_id: int, db: Session = Depends(get_session)):
-    return _detail(request, db, _get(db, order_id))
+def order_detail(request: Request, order_id: int, user: dict = Depends(require_user), db: Session = Depends(get_session)):
+    return _detail(request, db, _get(db, order_id, user), user)
 
 
 @router.get("/orders/{order_id}/dialog/{what}", response_class=HTMLResponse)
-def dialog(request: Request, order_id: int, what: str, kind: str = "order", db: Session = Depends(get_session)):
-    o = _get(db, order_id)
+def dialog(request: Request, order_id: int, what: str, kind: str = "order", user: dict = Depends(require_user),
+           db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    if what != "tracking" and not is_staff(user):
+        raise HTTPException(403, "Only staff can open this.")
     r = svc.build_row(o, today())
     tracked = svc.tracked_units(o)
     ctx: dict = {"o": o}
@@ -118,6 +143,7 @@ def dialog(request: Request, order_id: int, what: str, kind: str = "order", db: 
                 r.chase, supplier=o.supplier.name, order=o.name, product=o.product.name, units=o.units,
                 untracked=o.units - tracked, tracking_number=o.trackings[0].number if o.trackings else "",
                 created_days=r.age, sender=SENDER_NAME)
+            ctx["chase_kind"] = kind
         else:
             ctx["message"] = messages.order_message(
                 supplier=o.supplier.name, order=o.name, product=o.product.name, code=o.product.code, units=o.units,
@@ -136,52 +162,54 @@ def dialog(request: Request, order_id: int, what: str, kind: str = "order", db: 
 # ---- actions ----
 
 @router.post("/orders/{order_id}/confirm")
-def confirm(request: Request, order_id: int, db: Session = Depends(get_session)):
-    o = _get(db, order_id)
-    return _run(request, db, o, lambda: svc.confirm_order(db, o))
+def confirm(request: Request, order_id: int, user: dict = Depends(require_user), db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    return _run(request, db, o, user, lambda: svc.confirm_order(db, o, user["label"]))
 
 
 @router.post("/orders/{order_id}/tracking")
 def add_tracking(request: Request, order_id: int, number: str = Form(max_length=64), units: int = Form(gt=0, le=UNITS_MAX),
-                 carrier: str = Form("", pattern="^(|UPS|FedEx|USPS|DHL)$"), db: Session = Depends(get_session)):
-    o = _get(db, order_id)
-    return _run(request, db, o, lambda: svc.add_tracking(db, o, number, carrier, units))
+                 carrier: str = Form("", pattern="^(|UPS|FedEx|USPS|DHL)$"), user: dict = Depends(require_user),
+                 db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    return _run(request, db, o, user, lambda: svc.add_tracking(db, o, number, carrier, units, user["label"]))
 
 
 @router.post("/orders/{order_id}/tracking/{tracking_id}/remove")
-def remove_tracking(request: Request, order_id: int, tracking_id: int, db: Session = Depends(get_session)):
-    o = _get(db, order_id)
-    return _run(request, db, o, lambda: svc.remove_tracking(db, o, tracking_id))
+def remove_tracking(request: Request, order_id: int, tracking_id: int, user: dict = Depends(require_staff),
+                    db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    return _run(request, db, o, user, lambda: svc.remove_tracking(db, o, tracking_id, user["label"]))
 
 
 @router.post("/orders/{order_id}/edit")
 def edit(request: Request, order_id: int, units: int = Form(gt=0, le=UNITS_MAX), supplier_id: int = Form(),
-         notes: str = Form("", max_length=NOTES_MAX), db: Session = Depends(get_session)):
-    o = _get(db, order_id)
+         notes: str = Form("", max_length=NOTES_MAX), user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
     if not db.get(Supplier, supplier_id):
         raise HTTPException(404, "Unknown supplier")
-    return _run(request, db, o, lambda: svc.edit_order(db, o, units, notes, supplier_id))
+    return _run(request, db, o, user, lambda: svc.edit_order(db, o, units, notes, supplier_id, user["label"]))
 
 
 @router.post("/orders/{order_id}/cancel")
-def cancel(request: Request, order_id: int, db: Session = Depends(get_session)):
-    o = _get(db, order_id)
-    return _run(request, db, o, lambda: svc.cancel_order(db, o))
+def cancel(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    return _run(request, db, o, user, lambda: svc.cancel_order(db, o, user["label"]))
 
 
 @router.post("/orders/{order_id}/close")
-def close(request: Request, order_id: int, db: Session = Depends(get_session)):
-    o = _get(db, order_id)
-    return _run(request, db, o, lambda: svc.close_order(db, o))
+def close(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    return _run(request, db, o, user, lambda: svc.close_order(db, o, user["label"]))
 
 
 @router.post("/orders/{order_id}/reopen")
-def reopen(request: Request, order_id: int, db: Session = Depends(get_session)):
-    o = _get(db, order_id)
-    return _run(request, db, o, lambda: svc.reopen_order(db, o))
+def reopen(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    return _run(request, db, o, user, lambda: svc.reopen_order(db, o, user["label"]))
 
 
 @router.post("/orders/{order_id}/delete")
-def delete(request: Request, order_id: int, db: Session = Depends(get_session)):
-    o = _get(db, order_id)
-    return _run(request, db, o, lambda: svc.delete_order(db, o), to="/orders")
+def delete(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    o = _get(db, order_id, user)
+    return _run(request, db, o, user, lambda: svc.delete_order(db, o), to="/orders")

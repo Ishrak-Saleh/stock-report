@@ -43,7 +43,7 @@ class DailySale(Base):
 class Order(Base):
     __tablename__ = "order"
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(unique=True)  # product code + number, e.g. GIZ-002
+    name: Mapped[str] = mapped_column(unique=True)  # product code + number, e.g. MOU-002
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
     supplier_id: Mapped[int] = mapped_column(ForeignKey("supplier.id"))
     units: Mapped[int]
@@ -78,6 +78,8 @@ class Arrival(Base):
     units: Mapped[int]
     day: Mapped[date]
     note: Mapped[str] = mapped_column(default="")
+    by: Mapped[str] = mapped_column(default="")
+    edited: Mapped[bool] = mapped_column(default=False)  # the match was changed by hand
     product: Mapped[Product] = relationship()
     allocations: Mapped[list["Allocation"]] = relationship(back_populates="arrival", cascade="all, delete-orphan")
 
@@ -130,6 +132,7 @@ class Outbox(Base):
     subject: Mapped[str]
     body: Mapped[str]
     at: Mapped[datetime]
+    kind: Mapped[str] = mapped_column(default="")  # follow-up | alert | test
 
 
 class Settings(Base):
@@ -150,3 +153,4 @@ class User(Base):
     password_hash: Mapped[str]
     role: Mapped[str]  # staff | supplier
     supplier_id: Mapped[int | None] = mapped_column(ForeignKey("supplier.id"))
+    supplier: Mapped["Supplier | None"] = relationship()

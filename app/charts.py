@@ -75,3 +75,92 @@ def dot_plot(days: int, threshold: int, over: int, label: str, w: int = 176, sca
             f'<rect x="{x(threshold) - 1:.1f}" y="2" width="2" height="16" rx="1" class="fill-ink"/>'
             f'<circle cx="{x(days):.1f}" cy="10" r="6" class="fill-panel"/><circle cx="{x(days):.1f}" cy="10" r="4" class="{cls}"/>')
     return _svg(w, 20, label, body)
+
+
+def match_bar(parts: list[tuple[str, int]], label: str, w: int = 180) -> Markup:
+    """Where an arrival's units went. `parts` is (kind, units): order (blue ramp), free ("not from an order", gray),
+    none (unmatched, dashed). Names are written beside the bar, so color is never the only signal."""
+    total = sum(u for _, u in parts)
+    if not total:
+        return _svg(w, 12, label, "")
+    scale, x, out, step = (w - 2 * len(parts)) / total, 0.0, "", 2
+    for kind, units in parts:
+        seg = max(units * scale, 4)
+        if kind == "order":
+            out += f'<rect x="{x:.1f}" y="2" width="{seg:.1f}" height="8" rx="2" class="fill-st{step}"/>'
+            step = min(step + 1, 4)
+        elif kind == "free":
+            out += f'<rect x="{x:.1f}" y="2" width="{seg:.1f}" height="8" rx="2" class="fill-muted"/>'
+        else:
+            out += (f'<rect x="{x + .5:.1f}" y="2.5" width="{seg - 1:.1f}" height="7" rx="2" fill="none" '
+                    f'class="stroke-warn" stroke-dasharray="3 2"/>')
+        x += seg + 2
+    return _svg(w, 12, label, out)
+
+
+def _nice_max(m: float) -> float:
+    from math import floor, log10
+    raw = max(m, 1) / 4
+    mag = 10 ** floor(log10(raw))
+    return next(c * mag for c in (1, 2, 2.5, 5, 10) if c * mag >= raw) * 4
+
+
+def step_chart(series: list[tuple[str, str, list[tuple[float, float]]]], x_min: int, x_max: int, today,
+               label: str, *, markers: list[tuple[float, float, str, str]] = (), bands: list[tuple[float, float]] = (),
+               tick: int = 15, w: int = 720, h: int = 240) -> Markup:
+    """A step line over days (negative = past, 0 = today). `series` is (name, ser-a | ser-b, points). `markers` are
+    (day, level, ser-a | ser-b, text). `bands` are spans with no stock. app.js turns data-chart into a hover tooltip."""
+    from datetime import timedelta
+    from json import dumps
+
+    left, right, top, bottom = 52, 16, 24, 32
+    pw, ph = w - left - right, h - top - bottom
+    span = x_max - x_min or 1
+    top_val = _nice_max(max((y for _, _, pts in series for _, y in pts), default=1))
+
+    def x(d: float) -> float:
+        return left + (d - x_min) / span * pw
+
+    def y(v: float) -> float:
+        return top + ph - v / top_val * ph
+
+    def level(pts, d):
+        v = pts[0][1]
+        for px, py in pts:
+            if px <= d:
+                v = py
+            else:
+                break
+        return v
+
+    out = ""
+    for i in range(5):
+        v = top_val / 4 * i
+        txt = f"{v / 1000:g}K" if v >= 1000 else f"{v:g}"
+        out += (f'<line class="stroke-line" stroke-width="1" x1="{left}" x2="{w - right}" y1="{y(v):.1f}" y2="{y(v):.1f}"/>'
+                f'<text x="{left - 8}" y="{y(v) + 4:.1f}" text-anchor="end">{txt}</text>')
+    for d in range(x_max, x_min - 1, -tick):  # ticks count back from the right edge
+        day = today + timedelta(days=d)
+        when = "Today" if d == 0 else f"{day:%b} {day.day}"
+        out += f'<text x="{x(d):.1f}" y="{h - 10}" text-anchor="middle">{when}</text>'
+    for a, b in bands:
+        if a < x_max:
+            b = min(b, x_max)
+            out += (f'<rect x="{x(a):.1f}" y="{top}" width="{x(b) - x(a):.1f}" height="{ph}" class="band-crit"/>')
+            if x(b) - x(a) >= 96:
+                out += f'<text class="t2" x="{(x(a) + x(b)) / 2:.1f}" y="{top + 14}" text-anchor="middle">Out of stock</text>'
+    for _, cls, pts in series:
+        d = " ".join(f"{'M' if i == 0 else 'L'}{x(px):.1f} {y(py):.1f}" for i, (px, py) in enumerate(pts) if px <= x_max)
+        out += f'<path d="{d}" class="line stroke-{cls}"/>'
+    for mx, my, cls, text in markers:
+        if x_min <= mx <= x_max:
+            out += (f'<circle cx="{x(mx):.1f}" cy="{y(my):.1f}" r="6" class="fill-panel"/>'
+                    f'<circle cx="{x(mx):.1f}" cy="{y(my):.1f}" r="4" class="fill-{cls}"/>')
+            if text:
+                out += f'<text class="t2" x="{x(mx):.1f}" y="{y(my) - 12:.1f}" text-anchor="middle">{escape(text)}</text>'
+    data = {"x0": x_min, "x1": x_max, "today": today.isoformat(),
+            "series": [{"name": n, "cls": c, "v": [round(level(p, d)) for d in range(x_min, x_max + 1)]} for n, c, p in series]}
+    svg = (f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="{escape(label)}" data-w="{w}" data-l="{left}" data-pw="{pw}" '
+           f'data-t="{top}" data-ph="{ph}">{out}<line class="xhair stroke-ink2" stroke-width="1" y1="{top}" y2="{top + ph}" '
+           f'visibility="hidden"/><rect class="chit" x="{left}" y="{top}" width="{pw}" height="{ph}" fill="transparent"/></svg>')
+    return Markup(f'<div class="cwrap" data-chart="{escape(dumps(data))}">{svg}<div class="tip" hidden></div></div>')

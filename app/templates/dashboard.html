@@ -1,6 +1,7 @@
 {% extends "base.html" %}
-{% from "_macros.html" import level_badge, dialog_link %}
+{% from "_macros.html" import level_badge, dialog_link, stale_banner %}
 {% block title %}Stock · Stock Report{% endblock %}
+{% block stale %}{{ stale_banner(stale) }}{% endblock %}
 {% block content %}
 <div class="panel headline">
   <div class="sentence">{{ head.text }} {% if head.sub %}<span>{{ head.sub }}</span>{% endif %}</div>
@@ -28,22 +29,24 @@
   <div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span style="text-align:right">In stock</span><span style="text-align:right">Suggested order</span></div>
   {% for r in rows %}{% set f = r.forecast %}{% set p = r.product %}
   <div class="orow srow">
-    <div class="pname"><strong>{{ p.name }}</strong><span class="code">{{ p.code }}</span>
+    <div class="pname"><a class="plain" href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a><span class="code">{{ p.code }}</span>
       <div class="flags">{{ level_badge(r.flag.level, r.flag.label) }}{% if r.flag.note %}<span class="meta">{{ r.flag.note }}</span>{% endif %}</div></div>
     <div class="cell"><span class="lab">Runway</span>
       {{ charts.bullet(f.days_of_stock, f.days_with_ordered, r.flag.level, r.reorder_line,
-          (f.days_of_stock|days ~ " days left, " ~ f.days_with_ordered|days ~ " including orders, reorder line at " ~ r.reorder_line ~ " days") if f.days_of_stock is not none else "No sales, so days left cannot be worked out") }}
+          (f.days_of_stock|days ~ " days left, " ~ f.days_with_ordered|days ~ " including orders, reorder line at " ~ r.reorder_line ~ " days") if f.days_of_stock is not none else "No sales, so days left cannot be worked out", w=232) }}
       <div class="small">{% if f.days_of_stock is none %}<span class="big">No sales yet</span>{% else %}<span class="big">{{ f.days_of_stock|days }} days left</span> · out {{ f.sells_out_on|short_date }} · reorder by {{ f.reorder_by|short_date }}{% endif %}</div></div>
     <div class="cell"><span class="lab">Sales, 40 days</span>
-      {{ charts.sparkline(r.spark, "Daily sales over 40 days for " ~ p.name ~ ", last 3 days highlighted") }}
+      {{ charts.sparkline(r.spark, "Daily sales over 40 days for " ~ p.name ~ ", last 3 days highlighted", w=168, h=32) }}
       <div class="small">{{ f.adjusted_burn }} a day {% if f.trend > 1.005 %}<span title="Trend ×{{ '%.2f'|format(f.trend) }} against the 4 days before">{{ icon("trending-up") }}</span>{% elif f.trend < 0.995 %}<span title="Trend ×{{ '%.2f'|format(f.trend) }} against the 4 days before">{{ icon("trending-down") }}</span>{% endif %}</div></div>
     <div class="cell"><span class="lab">Ordered</span>
-      {{ charts.stage_bar([(r.placed, 1), (r.in_production, 2), (r.on_the_way, 3)], (r.ordered ~ " units on order") if r.ordered else "Nothing on order", scale_max=300) }}
+      {{ charts.stage_bar([(r.placed, 1), (r.in_production, 2), (r.on_the_way, 3)], (r.ordered ~ " units on order") if r.ordered else "Nothing on order", w=208, scale_max=300) }}
       <div class="small">{% if r.ordered %}{{ r.ordered|num }} on order{% else %}Nothing on order{% endif %}</div></div>
     <div class="cell num"><span class="lab">In stock</span><span class="big">{{ p.stock|num }}</span></div>
     <div class="cell act"><span class="lab">Suggested</span><b>{{ f.suggested_order|num if f.suggested_order else "None" }}</b>
+      <button class="btn small quiet" type="button" hx-get="/products/{{ p.id }}/runway?horizon=90" hx-target="#runway-{{ p.id }}" hx-swap="outerHTML" aria-label="Show the runway chart for {{ p.name }}">{{ icon("trending-down") }}Runway</button>
       {{ dialog_link("/orders/new?product=" ~ p.id, "Order", "btn small") }}</div>
   </div>
+  <div id="runway-{{ p.id }}"></div>
   {% else %}
   <div class="empty">{{ icon("package", 24) }}<strong>No products match this filter</strong><a class="btn small" href="/">Show all products</a></div>
   {% endfor %}
@@ -58,7 +61,7 @@
   <div class="crow">
     <b><a href="/orders/{{ r.order.id }}" style="color:inherit;text-decoration:none">{{ r.order.name }}</a></b>
     <div><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[1] }}. {{ r.step[2] }}</div></div>
-    {{ charts.dot_plot(c.days, c.threshold, c.over, "Waited " ~ c.days ~ " days, the limit is " ~ c.threshold) }}
+    {{ charts.dot_plot(c.days, c.threshold, c.over, "Waited " ~ c.days ~ " days, the limit is " ~ c.threshold, w=320) }}
     {{ dialog_link("/orders/" ~ r.order.id ~ "/dialog/message?kind=" ~ c.kind, "Copy message", "btn small", "copy") }}
   </div>
   {% else %}

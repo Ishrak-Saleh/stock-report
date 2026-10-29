@@ -53,6 +53,19 @@ def takeaway(*, status: str, units: int, arrived: int, remaining: int, on_the_wa
     return f"{remaining:,} units are still to come. Nothing to chase yet."
 
 
+def supplier_takeaway(*, status: str, units: int, arrived: int, confirmed: bool, untracked: int) -> str:
+    """The one sentence a supplier's order page leads with: what, if anything, the supplier owes."""
+    if status in ("cancelled", "closed"):
+        return f"This order is {status}. Nothing more is needed from you."
+    if status == "received":
+        return f"All {units:,} units arrived. Nothing more is needed from you."
+    if not confirmed:
+        return f"Please confirm this order of {units:,} units."
+    if untracked > 0 and arrived < units:
+        return f"Please add tracking for the {min(untracked, units - arrived):,} units that have none."
+    return "Everything is confirmed and tracked. Nothing is waiting on you."
+
+
 def order_message(*, supplier: str, order: str, product: str, code: str, units: int, notes: str, sender: str) -> str:
     lines = [f"Hi {short_name(supplier)},", "", "Please confirm this order:", "", f"Order: {order}",
              f"Product: {product} ({code})", f"Units: {units:,}"]
@@ -60,6 +73,27 @@ def order_message(*, supplier: str, order: str, product: str, code: str, units: 
         lines.append(f"Notes: {notes}")
     lines += ["", "Please reply to confirm, and send tracking numbers when it ships.", "", "Thanks,", sender]
     return "\n".join(lines)
+
+
+def follow_up_subject(chase: Chase, order: str) -> str:
+    return {"confirm": f"Please confirm order {order}", "tracking": f"Tracking for order {order}"}.get(
+        chase.kind, f"Where is order {order}?")
+
+
+def reorder_alert(items: list[tuple[str, float | None, int]], sender: str) -> tuple[str, str]:
+    """(subject, body) for the reorder alert. items are (product, days with everything ordered, suggested units)."""
+    n = len(items)
+    subject = f"Reorder alert: {n} product{'s' if n != 1 else ''} need{'s' if n == 1 else ''} a reorder" if n else \
+        "Reorder alert: nothing needs a reorder"
+    lines = ["Hello,", ""]
+    if n:
+        lines.append("These products are under their reorder line, counting everything already on order:")
+        lines.append("")
+        lines += [f"- {name}: {'no sales' if days is None else f'{days:.1f} days'} left, suggested order {units:,} units"
+                  for name, days, units in items]
+    else:
+        lines.append("No product is under its reorder line today.")
+    return subject, "\n".join(lines + ["", "Thanks,", sender])
 
 
 def follow_up(chase: Chase, *, supplier: str, order: str, product: str, units: int, untracked: int,

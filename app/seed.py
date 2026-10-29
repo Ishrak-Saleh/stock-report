@@ -11,12 +11,12 @@ from app.models import (Allocation, Arrival, DailySale, Order, OrderEvent, Produ
 
 # code, name, base/day, last-3-days multiplier, stock, bundle map
 PRODUCTS = [
-    ("WID", "Widget Classic", 5, 1.0, 320, {}),            # healthy
-    ("GAD", "Gadget Pro", 8, 1.0, 0, {}),                  # out of stock
-    ("GIZ", "Gizmo Mini", 6, 1.5, 100, {"Buy 2 Get 2": 4}),  # urgent, speeding up, ordered not enough
-    ("DOO", "Doohickey Set", 3, 0.7, 120, {}),             # watch, slowing, reorder now with nothing ordered
-    ("THI", "Thingamajig XL", 4, 1.0, 900, {}),            # plenty
-    ("SPR", "Sprocket Spare", 0, 1.0, 50, {}),             # no sales -> blank days
+    ("KEY", "Keyboard", 5, 1.0, 320, {}),            # healthy
+    ("PHN", "Phone", 8, 1.0, 0, {}),                  # out of stock
+    ("MOU", "Mouse", 6, 1.5, 100, {"Buy 2 Get 2": 4}),  # urgent, speeding up, ordered not enough
+    ("MON", "Monitor", 3, 0.7, 120, {}),             # watch, slowing, reorder now with nothing ordered
+    ("HDP", "Headphones", 4, 1.0, 900, {}),            # plenty
+    ("CBL", "Cable", 0, 1.0, 50, {}),             # no sales -> blank days
 ]
 
 
@@ -56,21 +56,27 @@ def seed(db: Session) -> None:
         db.add(o)
         return o
 
-    order("GIZ", 1, acme, 120, 30, 28, [("1Z999AA10123456784", 120, 14, "UPS")])       # on the way > 10 days
-    order("GIZ", 2, acme, 150, 3)                                                       # unconfirmed, chase
-    order("WID", 1, nova, 200, 20, 18)                                                  # confirmed, no tracking
-    partial = order("THI", 1, nova, 400, 40, 38, [("794644790138", 400, 25, "FedEx")])  # partially arrived
-    order("GAD", 1, acme, 300, 12, 11, notes="Rush if possible")                        # in production, 11 days
-    done = order("DOO", 1, nova, 100, 60, 58, [("9400111899223344556677", 100, 40, "USPS")])
+    order("MOU", 1, acme, 120, 30, 28, [("1Z999AA10123456784", 120, 14, "UPS")])       # on the way > 10 days
+    order("MOU", 2, acme, 150, 3)                                                       # unconfirmed, chase
+    order("KEY", 1, nova, 200, 20, 18)                                                  # confirmed, no tracking
+    partial = order("HDP", 1, nova, 400, 40, 38, [("794644790138", 400, 25, "FedEx")])  # partially arrived
+    order("PHN", 1, acme, 300, 12, 11, notes="Rush if possible")                        # in production, 11 days
+    done = order("MON", 1, nova, 100, 60, 58, [("9400111899223344556677", 100, 40, "USPS")])
     db.flush()
 
-    # THI-001 partially arrived (150 of 400); DOO-001 fully received.
-    for prod, ordr, units, days_ago in ((prods["THI"], partial, 150, 5), (prods["DOO"], done, 100, 20)):
-        arr = Arrival(product_id=prod.id, units=units, day=t - timedelta(days=days_ago), note="Dock receipt")
+    # HDP-001 partially arrived (150 of 400); MON-001 fully received.
+    for prod, ordr, units, days_ago in ((prods["HDP"], partial, 150, 5), (prods["MON"], done, 100, 20)):
+        arr = Arrival(product_id=prod.id, units=units, day=t - timedelta(days=days_ago), note="Dock receipt", by="seed")
         arr.allocations.append(Allocation(order_id=ordr.id, units=units))
         db.add(arr)
         db.add(StockMovement(product_id=prod.id, kind="arrival", delta=units, note=f"Arrival matched to {ordr.name}",
                              at=n - timedelta(days=days_ago), by="seed"))
         ordr.events.append(OrderEvent(action="arrival matched", detail=f"{units} units", by="seed",
                                       at=n - timedelta(days=days_ago)))
+    # Monitor has nothing on order, so this delivery matches no order and waits on the Arrivals page.
+    db.add(Arrival(product_id=prods["MON"].id, units=60, day=t - timedelta(days=1), note="Extra pallet, no paperwork", by="seed"))
+    db.add(StockMovement(product_id=prods["MON"].id, kind="arrival", delta=60, note="Arrival not matched to an order",
+                         at=n - timedelta(days=1), by="seed"))
+    db.add(StockMovement(product_id=prods["MOU"].id, kind="adjustment", delta=-6,
+                         note="Count correction: shelf count was 6 lower", at=n - timedelta(days=17), by="seed"))
     db.commit()

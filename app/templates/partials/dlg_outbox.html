@@ -1,0 +1,15 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Saved message">
+  <div class="mbody">
+    {{ dialog_head(m.subject, kinds.get(m.kind, "Message") ~ " · saved " ~ (m.at|clock)) }}
+    <div class="msg">
+      <div class="hdr"><span>To</span><b>{{ m.to }}</b><span>Subject</span><b>{{ m.subject }}</b></div>
+      <div class="msgbox" id="msg-text">{{ m.body }}</div>
+    </div>
+    <div class="callout info">{{ icon("circle-alert") }}<span>Test mode: this message was saved and not delivered.</span></div>
+    <div class="mfoot">
+      <span class="meta" id="copy-state" aria-live="polite"></span>
+      <div class="row"><button class="btn quiet" type="button" data-close>Close</button><button class="btn" type="button" data-copy="msg-text">{{ icon("copy") }}Copy message</button></div>
+    </div>
+  </div>
+</dialog>

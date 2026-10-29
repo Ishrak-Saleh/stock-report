@@ -1,4 +1,6 @@
 <!doctype html>
+{% set user = me(request) %}
+{% set path = request.url.path %}
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -17,19 +19,48 @@
   <a class="skip" href="#main">Skip to content</a>
   <div class="page">
     <header class="topbar">
-      <a class="brand" href="/"><span class="logo">{{ icon("package") }}</span>Stock Report</a>
+      <a class="brand" href="{{ '/' if user and user.role == 'staff' else '/orders' if user else '/login' }}"><span class="logo">{{ icon("package") }}</span>Stock Report</a>
+      {% if user %}
       <nav class="tabs" aria-label="Primary">
-        <a class="tab" href="/" {% if request.url.path == "/" %}aria-current="page"{% endif %}>Stock</a>
-        <a class="tab" href="/orders" {% if request.url.path.startswith("/orders") %}aria-current="page"{% endif %}>Orders</a>
+        {% if user.role == "staff" %}
+        <a class="tab" href="/" {% if path == "/" or path.startswith("/products") %}aria-current="page"{% endif %}>Stock</a>
+        <a class="tab" href="/orders" {% if path.startswith("/orders") %}aria-current="page"{% endif %}>Orders</a>
+        <a class="tab" href="/arrivals" {% if path.startswith("/arrivals") %}aria-current="page"{% endif %}>Arrivals</a>
+        <div class="rel">
+          <button class="tab" type="button" data-pop aria-haspopup="menu" aria-expanded="false" {% if path.startswith(("/chase", "/settings", "/outbox")) %}aria-current="page"{% endif %}>More {{ icon("chevron-down") }}</button>
+          <div class="pop left" role="menu" hidden>
+            {% set chase_due = chase_count() %}
+            <a role="menuitem" href="/chase">{{ icon("mail") }}Chase list{% if chase_due %} <span class="badge crit count" style="padding:0 8px">{{ chase_due }}</span>{% endif %}</a>
+            <a role="menuitem" href="/settings">{{ icon("settings") }}Settings</a>
+            <a role="menuitem" href="/outbox">{{ icon("inbox") }}Outbox</a>
+          </div>
+        </div>
+        {% else %}
+        <a class="tab" href="/orders" aria-current="page">Orders</a>
+        {% endif %}
       </nav>
+      {% endif %}
       <div class="right">
-        <span class="meta">Today, {{ store_today()|short_date }}</span>
+        {% if user %}<span class="meta hide-narrow">Today, {{ store_today()|short_date }}</span>{% endif %}
         <button class="iconbtn" type="button" id="theme-toggle" aria-label="Switch between dark and light">
           <span class="theme-sun">{{ icon("sun") }}</span><span class="theme-moon">{{ icon("moon") }}</span>
         </button>
+        {% if user %}
+        <div class="rel">
+          <button class="avatar" type="button" data-pop aria-haspopup="menu" aria-expanded="false" aria-label="Account menu for {{ user.name }}">{{ user.name[:2]|upper }}</button>
+          <div class="pop" role="menu" hidden>
+            <span class="meta" style="padding:8px 12px">{{ user.name }} · {{ user.supplier + ", supplier" if user.role == "supplier" else "staff" }}</span>
+            <hr>
+            <form method="post" action="/logout"><button type="submit" role="menuitem">{{ icon("log-out") }}Sign out</button></form>
+          </div>
+        </div>
+        {% endif %}
       </div>
     </header>
-    <main id="main">{% block content %}{% endblock %}</main>
+    <main id="main">
+      {% block stale %}{% endblock %}
+      {% block content %}{% endblock %}
+    </main>
   </div>
   <div id="modal-host"></div>
 </body>

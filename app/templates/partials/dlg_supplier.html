@@ -1,0 +1,13 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="{{ 'Edit ' ~ sp.name if sp else 'Add supplier' }}">
+  <div class="mbody">
+    {{ dialog_head("Edit " ~ sp.name if sp else "Add supplier", "Follow-up messages go to this address") }}
+    <form method="post" action="/settings/suppliers{{ '/' ~ sp.id if sp }}">
+      <div class="grid2">
+        <label class="field">Name<input name="name" required maxlength="80" value="{{ sp.name if sp }}"></label>
+        <label class="field">Email<input name="email" type="email" required maxlength="120" value="{{ sp.email if sp }}" placeholder="orders@example.com"></label>
+      </div>
+      <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Save supplier</button></div></div>
+    </form>
+  </div>
+</dialog>

@@ -1,0 +1,24 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Record arrival">
+  <div class="mbody">
+    {{ dialog_head("Record arrival", "Counts as a stock increase the moment you save") }}
+    <form method="post" action="/arrivals" hx-get="/arrivals/preview" hx-trigger="change from:#a-product, input changed delay:200ms from:#a-units"
+          hx-target="#arrival-preview" hx-include="#a-product, #a-units">
+      <div class="grid2">
+        <label class="field">Product
+          <select id="a-product" name="product_id">{% for p in products %}<option value="{{ p.id }}" {{ "selected" if p.id == product.id }}>{{ p.name }} ({{ p.code }})</option>{% endfor %}</select>
+        </label>
+        <label class="field">Units that arrived
+          <input id="a-units" name="units" type="number" min="1" max="1000000" required inputmode="numeric" value="{{ units }}">
+        </label>
+        <label class="field">Arrival date
+          <input name="day" type="date" required value="{{ today.isoformat() }}" max="{{ today.isoformat() }}">
+        </label>
+      </div>
+      <div id="arrival-preview">{% include "partials/arrival_preview.html" %}</div>
+      <label class="field">Note (optional)<input name="note" maxlength="200" placeholder="Pallet count checked at the dock"></label>
+      <div class="mfoot"><span class="meta">Arrivals match the oldest open order first. You can change the split after saving.</span>
+        <div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Record arrival</button></div></div>
+    </form>
+  </div>
+</dialog>
