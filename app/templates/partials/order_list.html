@@ -1,0 +1,23 @@
+{% if not rows %}<p class="muted">No orders match.</p>{% else %}
+<div class="overflow-auto">
+<table>
+  <thead><tr>
+    <th>Order</th><th>Product</th><th>Supplier</th><th>Status</th>
+    <th>Units</th><th>Placed</th><th>In prod.</th><th>On the way</th><th>Arrived</th><th>Age</th>
+  </tr></thead>
+  <tbody>
+  {% for r in rows %}{% set o = r.order %}{% set s = r.stages %}
+    <tr>
+      <td><a href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a></td>
+      <td>{{ o.product.name }}</td>
+      <td>{{ o.supplier.name }}</td>
+      <td><span class="badge status-{{ s.status|replace(' ', '-') }}">{{ s.status|capitalize }}</span></td>
+      <td>{{ o.units }}</td>
+      <td>{{ s.placed }}</td><td>{{ s.in_production }}</td><td>{{ s.on_the_way }}</td><td>{{ s.arrived }}</td>
+      <td>{{ (now - o.created_at).days }}d</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}

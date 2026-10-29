@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}New order · Stock Report{% endblock %}
+{% block content %}
+<h2>New supplier order</h2>
+<form method="post" action="/orders">
+  <label>Product
+    <select name="product_id" required>
+      {% for p in products %}<option value="{{ p.id }}" {{ "selected" if p.id == product }}>{{ p.name }} ({{ p.code }})</option>{% endfor %}
+    </select>
+  </label>
+  <label>Supplier
+    <select name="supplier_id" required>
+      {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Units
+    <input type="number" name="units" min="1" required placeholder="e.g. 200" {% if units %}value="{{ units }}"{% endif %}>
+  </label>
+  <label>Notes (optional)
+    <textarea name="notes" rows="2" placeholder="Anything the supplier should know"></textarea>
+  </label>
+  <div class="actions">
+    <button type="submit">Create order</button>
+    <a href="/orders" role="button" class="secondary outline">Cancel</a>
+  </div>
+</form>
+{% endblock %}

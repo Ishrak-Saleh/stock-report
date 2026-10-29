@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Orders · Stock Report{% endblock %}
+{% block content %}
+<hgroup>
+  <h2>Supplier orders</h2>
+  <p><a href="/orders/new" role="button">New order</a></p>
+</hgroup>
+<form class="filters" hx-get="/orders" hx-target="#order-list" hx-trigger="change" hx-push-url="true">
+  <label>Product
+    <select name="product">
+      <option value="">All products</option>
+      {% for p in products %}<option value="{{ p.id }}" {{ "selected" if p.id == product }}>{{ p.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label>Stage
+    <select name="status">
+      <option value="">All stages</option>
+      {% for s in statuses %}<option value="{{ s }}" {{ "selected" if s == status }}>{{ s|capitalize }}</option>{% endfor %}
+    </select>
+  </label>
+</form>
+<div id="order-list">{% include "partials/order_list.html" %}</div>
+{% endblock %}

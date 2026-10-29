@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.db import SessionLocal, engine
 from app.models import Base
-from app.routers import dashboard
+from app.routers import dashboard, orders
 from app.seed import seed
 
 
@@ -20,3 +20,4 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="Stock Report", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(dashboard.router)
+app.include_router(orders.router)

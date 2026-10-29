@@ -30,6 +30,7 @@
                hx-target="next .try" hx-include="this">
       </label>
       <div class="try"></div>
+      <a role="button" class="outline" href="/orders/new?product={{ row.product.id }}{% if f.suggested_order %}&units={{ f.suggested_order }}{% endif %}">Order {{ row.product.code }}{% if f.suggested_order %} ({{ f.suggested_order }} suggested){% endif %}</a>
     </footer>
   </article>
 {% endfor %}

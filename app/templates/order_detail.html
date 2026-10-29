@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ o.name }} · Stock Report{% endblock %}
+{% block content %}
+<p><a href="/orders">← All orders</a></p>
+<hgroup>
+  <h2>{{ o.name }} <span class="badge status-{{ s.status|replace(' ', '-') }}">{{ s.status|capitalize }}</span></h2>
+  <p>{{ o.product.name }} · {{ o.supplier.name }} · {{ o.units }} units{% if s.confirmed %} · confirmed{% endif %}</p>
+</hgroup>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+{% if o.notes %}<p><strong>Notes:</strong> {{ o.notes }}</p>{% endif %}
+
+<div class="calc" role="group" aria-label="Where the units are">
+  <div class="chip"><b>{{ s.placed }}</b><span>placed</span></div>
+  <div class="chip"><b>{{ s.in_production }}</b><span>in production</span></div>
+  <div class="chip"><b>{{ s.on_the_way }}</b><span>on the way</span></div>
+  <div class="chip"><b>{{ s.arrived }}</b><span>arrived</span></div>
+</div>
+
+<div class="actions top">
+  {% if open and not o.confirmed_at %}
+    <form method="post" action="/orders/{{ o.id }}/confirm"><button>Mark confirmed</button></form>
+  {% endif %}
+  {% if open %}
+    <form method="post" action="/orders/{{ o.id }}/close"><button class="secondary outline">Close (no more coming)</button></form>
+    <form method="post" action="/orders/{{ o.id }}/cancel"><button class="secondary outline">Cancel order</button></form>
+  {% else %}
+    <form method="post" action="/orders/{{ o.id }}/reopen"><button>Reopen</button></form>
+  {% endif %}
+  <button type="button" class="contrast outline" onclick="document.getElementById('delete-dialog').showModal()">Delete</button>
+</div>
+
+<details>
+  <summary role="button" class="outline secondary">Edit order</summary>
+  <form method="post" action="/orders/{{ o.id }}/edit">
+    <label>Supplier
+      <select name="supplier_id">
+        {% for sup in suppliers %}<option value="{{ sup.id }}" {{ "selected" if sup.id == o.supplier_id }}>{{ sup.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Units <input type="number" name="units" min="1" value="{{ o.units }}" required></label>
+    <label>Notes <textarea name="notes" rows="2">{{ o.notes }}</textarea></label>
+    <button type="submit">Save changes</button>
+  </form>
+</details>
+
+<h3>Tracking</h3>
+{% if o.trackings %}
+<div class="overflow-auto"><table>
+  <thead><tr><th>Number</th><th>Carrier</th><th>Units</th><th></th></tr></thead>
+  <tbody>
+  {% for t in o.trackings %}
+    <tr>
+      <td>{% set url = t|tracking_url %}{% if url %}<a href="{{ url }}" target="_blank" rel="noopener">{{ t.number }}</a>{% else %}{{ t.number }}{% endif %}</td>
+      <td>{{ t.carrier or "—" }}</td>
+      <td>{{ t.units }}</td>
+      <td>{% if open %}<form method="post" action="/orders/{{ o.id }}/tracking/{{ t.id }}/remove"><button class="secondary outline small">Remove</button></form>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}<p class="muted">No tracking numbers yet.</p>{% endif %}
+
+{% if open %}
+  {% if untracked > 0 %}
+  <form method="post" action="/orders/{{ o.id }}/tracking" class="track-form">
+    <p class="muted">{{ untracked }} of {{ o.units }} units still have no tracking. You can add more later.</p>
+    <div class="filters">
+      <label>Tracking number <input name="number" required placeholder="1Z999AA10123456784"></label>
+      <label>Units <input type="number" name="units" min="1" max="{{ untracked }}" value="{{ untracked }}" required></label>
+      <label>Carrier
+        <select name="carrier">
+          <option value="">Detect from number</option>
+          {% for c in carriers %}<option>{{ c }}</option>{% endfor %}
+        </select>
+      </label>
+    </div>
+    <button type="submit">Add tracking</button>
+  </form>
+  {% else %}<p class="muted">All units are on tracking.</p>{% endif %}
+{% endif %}
+
+<h3>History</h3>
+<div class="overflow-auto"><table>
+  <thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead>
+  <tbody>
+  {% for e in o.events|reverse %}
+    <tr><td>{{ e.at.strftime("%b %d, %H:%M") }}</td><td>{{ e.by }}</td><td>{{ e.action|capitalize }}{% if e.detail %} · {{ e.detail }}{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+<dialog id="delete-dialog">
+  <article>
+    <h3>Delete {{ o.name }}?</h3>
+    <p>This removes the order, its tracking and its history for good. If you only want to stop it counting as ordered, close or cancel it instead.</p>
+    <footer>
+      <button type="button" class="secondary" onclick="document.getElementById('delete-dialog').close()">Keep it</button>
+      <form method="post" action="/orders/{{ o.id }}/delete"><button class="contrast">Yes, delete</button></form>
+    </footer>
+  </article>
+</dialog>
+{% endblock %}
