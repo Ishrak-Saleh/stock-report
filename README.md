@@ -16,7 +16,8 @@ scripts\demo.ps1                           # starts the app on a throwaway datab
 
 On macOS or Linux use `.venv/bin/pip` and `scripts/demo.sh`.
 
-Open <http://127.0.0.1:8000>. The terminal prints a new random password for three demo accounts:
+Open the `localhost` address the terminal prints. The demo script gives three demo accounts the placeholder password
+`P@ss123`, which is for demo data only (use `scripts\demo.ps1 -Password 'other'` to change it):
 
 | Account | Role | Sees |
 |---|---|---|
@@ -30,7 +31,7 @@ you may need to allow Python through the firewall.
 
 `scripts/demo.ps1` uses a fresh database every time, so you can click anything and start over. To run on your own
 `stock.db` instead: `.venv\Scripts\python -u -m uvicorn app.main:app --port 8000`. The first start creates the
-accounts and prints the password once. Do not use `--reload` on Windows: it leaves stray server processes behind.
+accounts and prints a random password once (set `DEMO_PASSWORD` first to choose one). Do not use `--reload` on Windows: it leaves stray server processes behind.
 
 `TESTING.md` is a click-through script for every (must) and (should) in the SOP.
 

@@ -1,12 +1,13 @@
 # Starts Stock Report on a throwaway database with fresh fake data, so you can click through everything.
-# It never touches stock.db. A new random password is made for the demo accounts each time and printed.
+# It never touches stock.db. The demo accounts use the placeholder password P@ss123 (demo data only).
 # Add -Lan to open it from a phone or another computer on your network (it then listens on every address).
-param([switch]$Lan)
+# Add -Password 'something' to use a different demo password.
+param([switch]$Lan, [string]$Password)
 $root = Split-Path $PSScriptRoot -Parent
 $dir = Join-Path ([IO.Path]::GetTempPath()) ("stockreport-demo-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
 New-Item -ItemType Directory -Path $dir | Out-Null
 $env:DATABASE_URL = "sqlite:///" + ($dir -replace "\\", "/") + "/demo.db"
-$env:DEMO_PASSWORD = -join ((48..57) + (97..122) | Get-Random -Count 12 | ForEach-Object { [char]$_ })
+$env:DEMO_PASSWORD = if ($Password) { $Password } else { 'P@ss123' }
 Write-Host "Demo database: $dir"
 $bind = "127.0.0.1"
 # Use the first free port from 8000, so an older server that is still running never blocks a new one.
