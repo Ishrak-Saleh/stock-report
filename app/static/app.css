@@ -22,10 +22,10 @@
   --ease: cubic-bezier(.2, 0, 0, 1); --ease-decel: cubic-bezier(.05, .7, .1, 1);
   --d1: 100ms; --d2: 150ms; --d3: 250ms;
   /* color roles (dark) */
-  --page: #0f0f0f; --panel: #181818; --raised: #202020; --line: #2c2c2c;
-  --ink: #f8f8f8; --ink2: #c2c2bc; --muted: #8a8a85; --danger: #ec7070;
+  --page: #0f0f0f; --panel: #161616; --raised: #232323; --line: #303030;
+  --ink: #f8f8f8; --ink2: #cfcfc9; --muted: #9a9a94; --danger: #ec7070;
   --accent: #5dd62c; --accent-fill: #5dd62c; --accent-ink: #0f0f0f;
-  --s-good: #0ca30c; --s-warn: #ff6b2c; --s-serious: #d9481c; --s-crit: #d03b3b;
+  --s-good: #2fc02f; --s-warn: #ff6b2c; --s-serious: #d9481c; --s-crit: #d03b3b;
   --st1: #337418; --st2: #4a9e23; --st3: #5dd62c; --st4: #a8ef85;
   --ser-a: #5dd62c; --ser-b: #ff6b2c;
   --tonal: color-mix(in srgb, var(--accent) 16%, var(--raised));  /* secondary container: the tonal button and the active tab */
@@ -34,9 +34,10 @@
   color-scheme: dark;
 }
 :root[data-theme="light"] {
-  --page: #f8f8f8; --panel: #ffffff; --raised: #f0f0ee; --line: #e2e2dd;
-  --ink: #0f0f0f; --ink2: #525250; --muted: #757571; --danger: #b42323;
-  --accent: #337418; --accent-fill: #337418; --accent-ink: #ffffff; --ser-a: #337418; --ser-b: #f2601f;
+  --page: #f4f5f0; --panel: #ffffff; --raised: #eceee7; --line: #d9dcd2;
+  --ink: #0f0f0f; --ink2: #464843; --muted: #62645e; --danger: #b42323;
+  --accent: #1f6b1a; --accent-fill: #2a8a1e; --accent-ink: #ffffff; --ser-a: #2a8a1e; --ser-b: #c2490f;
+  --s-good: #1a7f1a; --s-warn: #c2490f; --s-serious: #b23a12;
   --st1: #b9e8a0; --st2: #86d357; --st3: #4a9e23; --st4: #2b5f15;
   --scrim: oklch(0 0 0 / .4);
   color-scheme: light;
@@ -109,7 +110,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .back .ic { transform: rotate(180deg); }
 
 /* Buttons: tonal by default, filled for the one main action, text for quiet ones. Hover and press are a state layer of the text color. */
-.btn { --bg: transparent; --fg: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: var(--r-md); border: 0;
+.btn { --bg: transparent; --fg: var(--accent); --edge: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: inset 0 0 0 1px var(--edge); display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: var(--r-md); border: 0;
   background: var(--bg); color: var(--fg); cursor: pointer; font: var(--t-label-lg); text-decoration: none;
   transition: transform var(--d1) var(--ease), background-color var(--d1) var(--ease); }
 .btn:active { transform: scale(.98); background: color-mix(in srgb, var(--bg) 88%, var(--fg)); }
@@ -120,7 +121,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn:disabled:active { transform: none; background: var(--bg); }
 .btn form, form.inline { display: inline; margin: 0; }
-@media (hover: hover) and (pointer: fine) { .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--bg) 92%, var(--fg)); } }
+@media (hover: hover) and (pointer: fine) { .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--bg) 92%, var(--fg)); } .btn:not(.primary):not(.quiet):not(.danger):hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--accent); } }
 .field { display: flex; flex-direction: column; gap: 4px; font: var(--t-label-md); color: var(--ink2); }
 .field select, .field input, .field textarea { min-height: 40px; padding: 8px 12px; border-radius: var(--r-md); border: 0; background: var(--raised); color: var(--ink); width: 100%; font: var(--t-body-md);
   box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow var(--d1) var(--ease); }
@@ -128,7 +129,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .hint { font: var(--t-body-sm); color: var(--ink2); }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
 .seg { display: inline-flex; background: var(--raised); border-radius: var(--r-md); padding: 4px; gap: 2px; }
-.seg a, .seg label { font: var(--t-label-md); padding: 6px 16px; border-radius: var(--r-sm); color: var(--ink2); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color var(--d1) var(--ease), color var(--d1) var(--ease); }
+.seg a, .seg label { display: inline-flex; align-items: center; min-height: 32px; font: var(--t-label-md); padding: 0 16px; border-radius: var(--r-sm); color: var(--ink2); cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color var(--d1) var(--ease), color var(--d1) var(--ease); }
 .seg a[aria-current="true"], .seg label:has(input:checked) { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); }
@@ -407,7 +408,7 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
   .qty input { font-size: var(--fs-input); }
   .headline .sentence { font: var(--t-title-md); }
   .stepper { grid-template-columns: 1fr 1fr; row-gap: 12px; }
-  .seg a, .seg label { padding: 6px 8px; }
+  .seg a, .seg label { padding: 0 8px; min-height: 36px; }
   input, select, textarea { font-size: var(--fs-input); }
   dialog.modal { padding: 16px; }
 }
