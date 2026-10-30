@@ -162,6 +162,10 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .lhead, .orow { display: grid; grid-template-columns: minmax(168px, 1.2fr) minmax(188px, 1.2fr) 168px 88px 56px minmax(96px, .8fr); gap: 16px; align-items: center; }
 .lhead { padding: 0 0 8px; font: var(--t-label-md); color: var(--ink2); border-bottom: 1px solid var(--line); }
 .orow, .trow, .crow { padding: 12px 0; border-bottom: 1px solid var(--line); }
+/* a table wider than its card scrolls sideways inside the card; rows stretch to their columns' minimum so the lines reach the end */
+.panel:has(.lhead, .orow, .trow, .crow) { overflow-x: auto; }
+.panel:has(.lhead, .orow, .trow, .crow) > :is(.phead, .legend) { position: sticky; left: 0; }
+.lhead, .orow, .trow, .crow { min-width: min-content; }
 .orow:last-child, .trow:last-child, .crow:last-child { border-bottom: 0; }
 .orow.srow, .lhead.shead { grid-template-columns: minmax(200px, 1.2fr) minmax(250px, 1.3fr) minmax(190px, .9fr) minmax(220px, 1fr) 72px 236px; }
 .orow.srow .cell.act { flex-wrap: nowrap; }
@@ -391,20 +395,10 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
 /* Phone and narrow screens */
 @media (max-width: 760px) {
   body { padding-top: 12px; }
-  .lhead { display: none; }
-  .orow, .orow.srow { grid-template-columns: 1fr 1fr; gap: 8px 16px; }
-  .orow .pname, .orow .cell.act { grid-column: 1 / -1; }
-  .cell .lab { display: block; }
-  .cell.num { text-align: left; }
-  .cell.act { justify-content: flex-start; }
+  .panel { padding: 16px; }  /* tables keep their columns and scroll sideways inside the card */
   .twocol { grid-template-columns: minmax(0, 1fr); }
-  .trow { grid-template-columns: 1fr 1fr; gap: 4px 12px; }
-  .trow > :first-child { grid-column: 1 / -1; }
-  .crow { grid-template-columns: 1fr 1fr; }
-  .crow > :nth-child(2), .crow > :nth-child(3) { grid-column: 1 / -1; }
   .legend.hide-narrow { display: none; }
   .hide-narrow { display: none; }
-  .cell.full { grid-column: 1 / -1; }
   .qty input { font-size: var(--fs-input); }
   .headline .sentence { font: var(--t-title-md); }
   .stepper { grid-template-columns: 1fr 1fr; row-gap: 12px; }
