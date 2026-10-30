@@ -99,3 +99,13 @@ def test_there_are_no_pills_and_every_control_uses_the_same_corner_language():
     for value in decls("border-radius"):
         assert value.strip() in {"var(--r-xs)", "var(--r-sm)", "var(--r-md)", "var(--r-lg)", "var(--r-xl)", "50%", "0"}, value
     assert "0 0" not in " ".join(decls("border-radius")).replace("0 0)", "")  # no top-only rounding on fields
+
+
+def test_page_is_never_white_while_the_stylesheet_loads():
+    """theme-init.js paints <html> before the first paint, app.css gives <html> a background (the cross-fade needs one),
+    and the page tells the browser it is a dark page."""
+    init = Path("app/static/theme-init.js").read_text(encoding="utf-8")
+    assert "style.backgroundColor" in init and "#0f0f0f" in init
+    assert re.search(r"^html\s*\{[^}]*background:\s*var\(--page\)", CSS, re.M)
+    base = Path("app/templates/base.html").read_text(encoding="utf-8")
+    assert '<meta name="color-scheme" content="dark light">' in base

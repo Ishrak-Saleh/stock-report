@@ -45,7 +45,7 @@
 
 * { box-sizing: border-box; corner-shape: squircle; }  /* continuous corners where the browser supports it; plain rounded corners elsewhere */
 .step .mk, .tl .dot, .k.ring, .k.dot { corner-shape: round; }
-html { -webkit-tap-highlight-color: transparent; scrollbar-gutter: stable; }
+html { background: var(--page); -webkit-tap-highlight-color: transparent; scrollbar-gutter: stable; }  /* also keeps the page-to-page cross-fade from being transparent */
 body {
   margin: 0; background: var(--page); color: var(--ink); font: var(--t-body-md);
   padding-block: 16px 48px;

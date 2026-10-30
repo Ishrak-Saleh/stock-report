@@ -1,5 +1,7 @@
 /* Small behaviors the pages need. Server pages do the work; this only opens dialogs, menus and copies text. */
 (function () {
+  // theme-init.js painted <html> before the stylesheet arrived; now the stylesheet takes over (the theme switch changes it)
+  document.documentElement.style.backgroundColor = ""; document.documentElement.style.colorScheme = "";
   var host = document.getElementById("modal-host");
 
   function openDialog() {
