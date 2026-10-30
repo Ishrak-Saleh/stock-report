@@ -16,7 +16,7 @@
 <div class="panel">
   <div class="phead"><div><h3>{{ p.name }} <span class="code">{{ p.code }}</span></h3>
     <div class="sub">{{ level_badge(row.flag.level, row.flag.label) }} <span style="margin-left:4px">{% if row.forecast.days_of_stock is none %}No sales yet{% else %}{{ row.forecast.days_of_stock|days }} days left · reorder by {{ row.forecast.reorder_by|short_date }}{% endif %}</span></div></div>
-    <div class="stack" style="align-items:flex-end;gap:0"><span class="big">{{ p.stock|num }}</span><span class="meta">in the warehouse</span></div></div>
+    <div class="stack" style="align-items:flex-end;gap:0"><span class="big">{{ p.stock|num }}</span><span class="meta">in the warehouse</span><span class="meta">{{ p.unshipped|num }} sold, not shipped</span></div></div>
   <div id="runway">{% with closable=False %}{% include "partials/runway.html" %}{% endwith %}</div>
 </div>
 

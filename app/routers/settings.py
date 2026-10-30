@@ -72,9 +72,11 @@ def product_dialog(request: Request, product_id: int, user: dict = Depends(requi
 def create_product(request: Request, name: str = Form("", max_length=80), code: str = Form("", max_length=12),
                    identifiers: str = Form("", max_length=500), bundles: str = Form("", max_length=500),
                    lead: str = Form("", max_length=8), safety: str = Form("", max_length=8), target: str = Form("", max_length=8),
+                   unshipped: str = Form("", max_length=8),
                    user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     return _try(request, db, lambda: svc.add_product(
-        db, name=name, code=code, identifiers=identifiers, bundles=bundles, lead=lead, safety=safety, target=target),
+        db, name=name, code=code, identifiers=identifiers, bundles=bundles, lead=lead, safety=safety, target=target,
+        unshipped=unshipped),
         "Product added.")
 
 
@@ -82,12 +84,14 @@ def create_product(request: Request, name: str = Form("", max_length=80), code: 
 def update_product(request: Request, product_id: int, name: str = Form("", max_length=80), code: str = Form("", max_length=12),
                    identifiers: str = Form("", max_length=500), bundles: str = Form("", max_length=500),
                    lead: str = Form("", max_length=8), safety: str = Form("", max_length=8), target: str = Form("", max_length=8),
+                   unshipped: str = Form("", max_length=8),
                    user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     p = db.get(Product, product_id)
     if not p:
         raise HTTPException(404, "Product not found")
     return _try(request, db, lambda: svc.save_product(
-        db, p, name=name, code=code, identifiers=identifiers, bundles=bundles, lead=lead, safety=safety, target=target),
+        db, p, name=name, code=code, identifiers=identifiers, bundles=bundles, lead=lead, safety=safety, target=target,
+        unshipped=unshipped),
         "Product saved.")
 
 

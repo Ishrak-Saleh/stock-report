@@ -167,3 +167,22 @@ def test_two_days_old_is_not_yet_a_warning(client):
         db.scalars(select(Settings)).one().data_updated_at = now() - timedelta(days=2)
         db.commit()
     assert "days old" not in text(client.get("/"))
+
+
+def test_sold_not_shipped_shows_and_can_be_edited():
+    """SOP question 2: units sold but not shipped are shown on Stock and the product page and set in the product dialog."""
+    client = make_client()
+    from sqlalchemy import select
+
+    from app.db import SessionLocal
+    from app.models import Product
+    with SessionLocal() as db:
+        p = db.scalars(select(Product).where(Product.code == "KEY")).one()
+        pid, name, code = p.id, p.name, p.code
+    r = client.post(f"/settings/products/{pid}", data={"name": name, "code": code, "unshipped": "37"})
+    assert r.status_code in (200, 303)
+    with SessionLocal() as db:
+        assert db.get(Product, pid).unshipped == 37
+    assert "37 unshipped" in client.get("/").text
+    assert "37 sold, not shipped" in client.get(f"/products/{pid}").text
+    assert 'name="unshipped"' in client.get(f"/settings/products/{pid}").text

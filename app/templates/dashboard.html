@@ -26,7 +26,7 @@
     <span><i class="k ring"></i>Days including everything on order</span>
     <span><i class="k st1"></i>Placed <i class="k st2"></i>In production <i class="k st3"></i>On the way</span>
   </div>
-  <div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span class="ta-r">In stock</span><span class="ta-r">Suggested order</span></div>
+  <div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span class="ta-r">In stock</span><span class="ta-r">Suggested order</span><span></span></div>
   {% for r in rows %}{% set f = r.forecast %}{% set p = r.product %}
   <div class="orow srow">
     <div class="pname"><a class="plain" href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a><span class="code">{{ p.code }}</span>
@@ -41,8 +41,11 @@
     <div class="cell"><span class="lab">Ordered</span>
       {{ charts.stage_bar([(r.placed, 1), (r.in_production, 2), (r.on_the_way, 3)], (r.ordered ~ " units on order") if r.ordered else "Nothing on order", w=208, scale_max=300) }}
       <div class="small">{% if r.ordered %}{{ r.ordered|num }} on order{% else %}Nothing on order{% endif %}</div></div>
-    <div class="cell num"><span class="lab">In stock</span><span class="big">{{ p.stock|num }}</span></div>
-    <div class="cell act"><span class="lab">Suggested</span><b>{{ f.suggested_order|num if f.suggested_order else "None" }}</b>
+    <div class="cell num"><span class="lab">In stock</span><span class="big">{{ p.stock|num }}</span>
+      <div class="small" title="Sold, not shipped">{{ p.unshipped|num }} unshipped</div></div>
+    <div class="cell num"><span class="lab">Suggested order</span><span class="big">{{ f.suggested_order|num if f.suggested_order else "None" }}</span>
+      <div class="small">{{ "units to order" if f.suggested_order else "no order needed" }}</div></div>
+    <div class="cell act">
       <button class="btn small quiet" type="button" hx-get="/products/{{ p.id }}/runway?horizon=90" hx-target="#runway-{{ p.id }}" hx-swap="outerHTML" aria-label="Show the runway chart for {{ p.name }}">{{ icon("trending-down") }}Runway</button>
       {{ dialog_link("/orders/new?product=" ~ p.id, "Order", "btn small") }}</div>
   </div>

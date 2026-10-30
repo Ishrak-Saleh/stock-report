@@ -61,7 +61,7 @@ def bundles_text(p: Product) -> str:
 
 
 def _fill_product(db: Session, p: Product, name: str, code: str, identifiers: str, bundles: str,
-                  lead: str, safety: str, target: str) -> None:
+                  lead: str, safety: str, target: str, unshipped: str = "") -> None:
     name, code = name.strip(), code.strip().upper()
     if not name:
         raise SettingsError("Enter a product name.")
@@ -76,6 +76,9 @@ def _fill_product(db: Session, p: Product, name: str, code: str, identifiers: st
     p.lead_time = _int(lead, "Lead time", 0, blank_ok=True)
     p.safety_days = _int(safety, "Safety days", 0, blank_ok=True)
     p.target_days = _int(target, "Target days", 1, blank_ok=True)
+    sold_not_shipped = _int(unshipped, "Sold, not shipped", 0, blank_ok=True)
+    if sold_not_shipped is not None:  # blank keeps the current number
+        p.unshipped = sold_not_shipped
 
 
 def save_product(db: Session, p: Product, **form: str) -> None:

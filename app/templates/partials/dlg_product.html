@@ -9,6 +9,7 @@
       </div>
       <label class="field">Sales titles and SKUs that count as this product<input name="identifiers" maxlength="500" value="{{ ids if p }}"><span class="hint">Matched exactly against the sales feed, separated by commas</span></label>
       <label class="field">Bundle variants<textarea name="bundles" rows="2" maxlength="500" placeholder="Buy 2 Get 2 = 4">{{ bundles }}</textarea><span class="hint">One per line: the variant title, then how many units one sale means</span></label>
+      <label class="field">Sold, not shipped<input name="unshipped" type="number" min="0" max="1000000" inputmode="numeric" placeholder="0" value="{{ p.unshipped if p else '' }}"><span class="hint">Units customers have bought that have not left the warehouse yet. Shown on the Stock page; the forecast uses warehouse stock only.</span></label>
       <div>
         <div class="state-label mb8">Forecast overrides, blank uses the default</div>
         <div class="grid3">

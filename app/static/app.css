@@ -167,8 +167,13 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .panel:has(.lhead, .orow, .trow, .crow) > :is(.phead, .legend) { position: sticky; left: 0; }
 .lhead, .orow, .trow, .crow { min-width: min-content; }
 .orow:last-child, .trow:last-child, .crow:last-child { border-bottom: 0; }
-.orow.srow, .lhead.shead { grid-template-columns: minmax(200px, 1.2fr) minmax(250px, 1.3fr) minmax(190px, .9fr) minmax(220px, 1fr) 72px 236px; }
-.orow.srow .cell.act { flex-wrap: nowrap; }
+.orow.srow, .lhead.shead { grid-template-columns: minmax(200px, 1.2fr) minmax(250px, 1.3fr) minmax(190px, .9fr) minmax(220px, 1fr) 104px 128px 160px; }
+/* the data cells share one rhythm: a 48 px zone for the chart or number, then the small line, so the lines align across the row */
+.orow.srow { align-items: start; }
+.orow.srow .cell { display: grid; grid-template-rows: 48px auto; align-content: start; justify-items: start; }
+.orow.srow .cell > svg, .orow.srow .cell > .big { align-self: center; }
+.orow.srow .cell.num { justify-items: end; }
+.orow.srow .cell.act { display: flex; min-height: 48px; flex-wrap: nowrap; }
 .orow.link { cursor: pointer; }
 .orow.link:focus-visible { outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) { .orow.link:hover { background: color-mix(in srgb, transparent 95%, var(--ink)); } }
