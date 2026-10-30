@@ -55,11 +55,12 @@ def stage_bar(parts: list[tuple[int, int]], label: str, w: int = 140, scale_max:
     h = 12
     if not any(u for u, _ in parts):
         return _svg(w, h, label, f'<rect x="0" y="2" width="{w}" height="8" rx="4" class="fill-line"/>')
-    scale, x, out = (w - 6) / scale_max, 0.0, ""
-    for units, step in parts:
-        if not units:
-            continue
-        seg = max(units * scale, 4)
+    shown = [(u, s) for u, s in parts if u]
+    # Bigger orders get longer bars, but never past the chart: the scale grows when the total would not fit.
+    room = w - 6 - 2 * (len(shown) - 1) - 4 * len(shown)
+    scale, x, out = room / max(scale_max, sum(u for u, _ in shown)), 0.0, ""
+    for units, step in shown:
+        seg = units * scale + 4
         out += f'<rect x="{x:.1f}" y="2" width="{seg:.1f}" height="8" rx="2" class="fill-st{step}"/>'
         x += seg + 2
     return _svg(w, h, label, out)

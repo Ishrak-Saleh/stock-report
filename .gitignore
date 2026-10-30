@@ -7,3 +7,6 @@ __pycache__/
 .claude/
 stock.db
 SOP of Stock Report.pdf
+*.bak
+CLAUDE.md
+TESTING.md

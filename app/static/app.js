@@ -17,6 +17,15 @@
     var t = e.target;
     var dlg = t.closest("dialog.modal");
     if (t.tagName === "DIALOG" && t.classList.contains("modal")) { t.close(); return; }      // click on the backdrop
+    var eye = t.closest("[data-toggle-password]");
+    if (eye) {   // show or hide what is typed in the password field next to the button
+      var field = eye.parentElement.querySelector("input"), shown = field.type === "password";
+      field.type = shown ? "text" : "password";
+      eye.setAttribute("aria-pressed", shown ? "true" : "false");
+      eye.setAttribute("aria-label", shown ? "Hide password" : "Show password");
+      eye.title = shown ? "Hide password" : "Show password";
+      return;
+    }
     var close = t.closest("[data-close]");
     if (close && dlg) { dlg.close(); return; }
 
@@ -34,14 +43,18 @@
       var src = document.getElementById(copy.dataset.copy), state = document.getElementById("copy-state");
       var say = function (m) { if (state) state.textContent = m; };
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(src.textContent).then(function () { say("Copied. Paste it into your email."); }, function () { say("Select the text and press Ctrl+C."); });
+        navigator.clipboard.writeText(src.textContent).then(function () { say(copy.dataset.done || "Copied. Paste it into your email."); }, function () { say("Select the text and press Ctrl+C."); });
       } else { say("Select the text and press Ctrl+C."); }
       return;
     }
 
     if (t.closest("#theme-toggle")) {
       var light = document.documentElement.getAttribute("data-theme") === "light";
-      if (light) document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", "light");
+      var swap = function () {
+        if (light) document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme", "light");
+      };
+      // One short cross-fade where the browser can do it; an instant switch elsewhere or when motion is reduced.
+      if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(swap); else swap();
       try { localStorage.setItem("sr-theme", light ? "dark" : "light"); } catch (err) {}
       return;
     }
@@ -137,6 +150,13 @@
     root.querySelectorAll("[data-adjust]").forEach(adjustUpdate);
   }
   document.body.addEventListener("htmx:afterSwap", function (e) { if (e.target === host) initDialog(host); });
+
+  /* Sign up: the confirm box complains until it matches the password. */
+  document.addEventListener("input", function (e) {
+    var f = e.target.form, c = f && f.elements.confirm, p = f && f.elements.password;
+    if (!c || !p || (e.target !== c && e.target !== p)) return;
+    c.setCustomValidity(c.value && c.value !== p.value ? "The two passwords do not match." : "");
+  });
 
   /* Picking an order size fills the units box, then the box asks the server for the days of stock. */
   document.addEventListener("change", function (e) {

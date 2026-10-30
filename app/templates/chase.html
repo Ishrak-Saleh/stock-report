@@ -9,7 +9,7 @@
       {% if late %}<span>{{ late }} {{ "is" if late == 1 else "are" }} more than a week past the limit.</span>{% endif %}
     {% else %}No order needs a message. <span>Every open order is confirmed, tracked and on time.</span>{% endif %}
   </div>
-  <div class="stack" style="align-items:flex-end;gap:4px">
+  <div class="stack end">
     <form method="post" action="/chase/send-all" class="inline"><button class="btn primary" type="submit" {{ "disabled" if not all_due }}>{{ icon("send") }}Add {{ all_due }} message{{ "s" if all_due != 1 }} to the Outbox</button></form>
     <span class="meta">Test mode: messages are saved in the Outbox, nothing is delivered</span>
   </div>
@@ -24,7 +24,7 @@
     </span></div>
   {% if due %}
   <div class="legend hide-narrow"><span><i class="k bar" style="background:var(--s-warn)"></i>Up to a week past the limit</span><span><i class="k bar"></i>More than a week past</span><span><i class="k tick"></i>SOP limit for this alert</span></div>
-  <div class="lhead chead"><span>Order</span><span>Who and why</span><span>Days waited</span><span>Alert</span><span style="text-align:right">Message</span></div>
+  <div class="lhead chead"><span>Order</span><span>Who and why</span><span>Days waited</span><span>Alert</span><span class="ta-r">Message</span></div>
   {% for c in due %}{% set r = c.row %}{% set ch = r.chase %}
   <div class="orow cr">
     <div class="cell"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b></div>

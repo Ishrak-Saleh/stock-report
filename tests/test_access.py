@@ -57,7 +57,7 @@ def test_htmx_requests_are_sent_to_the_login_page(anon):
 
 def test_the_login_page_and_a_wrong_password(anon):
     t = text(anon.get("/login"))
-    assert "Sign in to see what to reorder this week." in t and 'name="password"' in t and "Stock Report" in t
+    assert "See what to reorder this week." in t and 'name="password"' in t and "Stock Report" in t
     assert 'aria-label="Primary"' not in t  # no navigation before signing in
     r = anon.post("/login", data={"email": STAFF, "password": "wrong"})
     assert r.status_code == 400 and "The email or password is not right" in text(r)
@@ -133,12 +133,12 @@ def test_staff_pages_are_closed_to_suppliers(acme, path):
 
 
 def test_a_supplier_cannot_touch_another_suppliers_order(acme):
+    """Another supplier's order is "not found", not "forbidden", so it does not even reveal that the order exists."""
     nova = oid("KEY-001")
-    assert acme.get(f"/orders/{nova}").status_code == 403
-    assert "This order is not yours." in text(acme.get(f"/orders/{nova}"))
-    assert acme.post(f"/orders/{nova}/confirm").status_code == 403
-    assert acme.post(f"/orders/{nova}/tracking", data={"number": "123", "units": 5}).status_code == 403
-    assert acme.get(f"/orders/{nova}/dialog/tracking").status_code == 403
+    assert acme.get(f"/orders/{nova}").status_code == 404
+    assert acme.post(f"/orders/{nova}/confirm").status_code == 404
+    assert acme.post(f"/orders/{nova}/tracking", data={"number": "123", "units": 5}).status_code == 404
+    assert acme.get(f"/orders/{nova}/dialog/tracking").status_code == 404
     with SessionLocal() as db:
         assert not db.get(Order, nova).trackings
 

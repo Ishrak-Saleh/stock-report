@@ -5,17 +5,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#181818">
+  <meta name="theme-color" content="#0f0f0f">
   <title>{% block title %}Stock Report{% endblock %}</title>
-  <script src="/static/theme-init.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="/static/app.css">
-  <script src="/static/vendor/htmx.min.js" defer></script>
-  <script src="/static/app.js" defer></script>
+  <script src="{{ static_url('theme-init.js') }}"></script>
+  <link rel="preload" href="/static/fonts/roboto-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ static_url('app.css') }}">
+  <script src="{{ static_url('vendor/htmx.min.js') }}" defer></script>
+  <script src="{{ static_url('app.js') }}" defer></script>
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
   <a class="skip" href="#main">Skip to content</a>
   <div class="page">
     <header class="topbar">
@@ -29,7 +27,7 @@
         <div class="rel">
           <button class="tab" type="button" data-pop aria-haspopup="menu" aria-expanded="false" {% if path.startswith(("/chase", "/settings", "/outbox")) %}aria-current="page"{% endif %}>More {{ icon("chevron-down") }}</button>
           <div class="pop left" role="menu" hidden>
-            {% set chase_due = chase_count() %}
+            {% set chase_due = chase_count(user) %}
             <a role="menuitem" href="/chase">{{ icon("mail") }}Chase list{% if chase_due %} <span class="badge crit count" style="padding:0 8px">{{ chase_due }}</span>{% endif %}</a>
             <a role="menuitem" href="/settings">{{ icon("settings") }}Settings</a>
             <a role="menuitem" href="/outbox">{{ icon("inbox") }}Outbox</a>
@@ -49,7 +47,7 @@
         <div class="rel">
           <button class="avatar" type="button" data-pop aria-haspopup="menu" aria-expanded="false" aria-label="Account menu for {{ user.name }}">{{ user.name[:2]|upper }}</button>
           <div class="pop" role="menu" hidden>
-            <span class="meta" style="padding:8px 12px">{{ user.name }} · {{ user.supplier + ", supplier" if user.role == "supplier" else "staff" }}</span>
+            <span class="meta" style="padding:8px 12px">{{ user.name }} · {{ user.supplier + ", supplier" if user.role == "supplier" else "staff" + (", " ~ user.company if user.company else "") }}</span>
             <hr>
             <form method="post" action="/logout"><button type="submit" role="menuitem">{{ icon("log-out") }}Sign out</button></form>
           </div>

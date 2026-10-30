@@ -23,7 +23,7 @@
     <div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Current orders</th>{% if rw.b %}<th>If you order {{ rw.extra.units|num }}</th>{% endif %}</tr></thead>
       <tbody>{% for when, a, b in rw.rows() %}<tr><td>{{ when }}</td><td>{{ a|num }}</td>{% if rw.b %}<td>{{ b|num }}</td>{% endif %}</tr>{% endfor %}</tbody></table></div>
   </details>
-  <p class="meta" style="margin-top:8px"><b>Insight.</b> {{ rw.insight }}</p>
+  <p class="meta mt8"><b>Insight.</b> {{ rw.insight }}</p>
   {% if closable %}<a class="plink" href="/products/{{ p.id }}">Open stock history {{ icon("chevron-right") }}</a>{% endif %}
   {% else %}
   <div class="empty">{{ icon("clock", 24) }}<strong>Days left cannot be worked out</strong><span class="meta">{{ p.name }} has no sales in the last 7 days, so there is no runway to draw.</span></div>

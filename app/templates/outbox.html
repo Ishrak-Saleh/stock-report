@@ -14,7 +14,7 @@
       {% for k, label in kinds.items() %}<a href="/outbox?kind={{ k }}" {% if kind == k %}aria-current="true"{% endif %}>{{ label }}{{ "s" if k != "alert" else "s" }} {{ counts[k] }}</a>{% endfor %}
     </span></div>
   {% if rows %}
-  <div class="lhead ohead"><span>When</span><span>To</span><span>Subject</span><span>Kind</span><span style="text-align:right">Open</span></div>
+  <div class="lhead ohead"><span>When</span><span>To</span><span>Subject</span><span>Kind</span><span class="ta-r">Open</span></div>
   {% for m in rows %}
   <div class="orow orw">
     <div class="cell num"><span class="lab">When</span>{{ m.at|clock }}</div>

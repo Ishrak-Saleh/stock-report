@@ -6,7 +6,7 @@
 
 <div class="panel headline">
   <div class="sentence">{{ headline }} {% if sub %}<span>{{ sub }}</span>{% endif %}</div>
-  <div class="stack" style="align-items:flex-end;gap:4px">
+  <div class="stack end">
     {{ dialog_link("/products/" ~ p.id ~ "/adjust", "Log adjustment", "btn", "pencil") }}
     <span class="meta">Every change below is permanent. Fix a mistake with a new entry.</span>
   </div>
@@ -37,7 +37,7 @@
       {% endfor %}
     </span></div>
   {% if moves %}
-  <div class="lhead mhead"><span>When</span><span>What</span><span style="text-align:right">Change</span><span style="text-align:right">Stock after</span><span>Why</span><span>Who</span></div>
+  <div class="lhead mhead"><span>When</span><span>What</span><span class="ta-r">Change</span><span class="ta-r">Stock after</span><span>Why</span><span>Who</span></div>
   {% for mv in moves %}{% set m = mv.m %}
   <div class="orow mrow2">
     <div class="cell num"><span class="lab">When</span>{{ m.at|clock }}</div>

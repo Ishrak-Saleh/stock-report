@@ -5,7 +5,7 @@
 {% block content %}
 <div class="panel headline">
   <div class="sentence">Reorder line is {{ reorder_line }} days. <span>An order lands {{ s.lead_time }} days after you place it, and stock should not drop under {{ s.safety_days }} days after that.</span></div>
-  <div class="stack" style="align-items:flex-end;gap:4px">
+  <div class="stack end">
     <button class="btn primary" type="submit" form="defaults-form">Save settings</button>
     <span class="meta">Changes apply to the Stock page straight away</span>
   </div>
@@ -34,7 +34,7 @@
 <div class="panel" id="products">
   <div class="phead"><div><h3>Products</h3><div class="sub">Blank forecast numbers use the defaults above</div></div>
     {{ dialog_link("/settings/products/new", "Add product", "btn small", "plus") }}</div>
-  <div class="lhead phd"><span>Product</span><span>Code</span><span>Sales are matched by</span><span>Forecast</span><span>Bundles</span><span style="text-align:right">Edit</span></div>
+  <div class="lhead phd"><span>Product</span><span>Code</span><span>Sales are matched by</span><span>Forecast</span><span>Bundles</span><span class="ta-r">Edit</span></div>
   {% for p in products %}
   <div class="orow prw">
     <div class="cell"><a class="plain" href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a></div>
@@ -53,7 +53,7 @@
 <div class="panel" id="suppliers">
   <div class="phead"><div><h3>Suppliers</h3><div class="sub">Messages go to the address on file</div></div>
     {{ dialog_link("/settings/suppliers/new", "Add supplier", "btn small", "plus") }}</div>
-  <div class="lhead shd"><span>Supplier</span><span>Email</span><span>Open orders</span><span style="text-align:right">Edit</span></div>
+  <div class="lhead shd"><span>Supplier</span><span>Email</span><span>Open orders</span><span class="ta-r">Edit</span></div>
   {% for sp in suppliers %}
   <div class="orow srw">
     <div class="cell"><strong>{{ sp.name }}</strong></div>

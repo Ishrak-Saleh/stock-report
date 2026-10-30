@@ -223,6 +223,32 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
 .errpage .code { font-size: 12px; line-height: 16px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
 .errpage .tit { font-size: 20px; line-height: 28px; font-weight: 600; }
 .popstage { min-height: 280px; }
+
+/* sign-up, password field, SOP quotes and the tracking flow */
+.pw { position: relative; display: flex; }
+.pw input { padding-right: 48px; }
+.pwtoggle { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; display: grid; place-items: center; border: 0; background: transparent; color: var(--ink2); cursor: pointer; border-radius: var(--r-control); }
+.pwtoggle .eye-off { display: none; }
+.pwtoggle[aria-pressed="true"] .eye-off { display: inline-flex; }
+.pwtoggle[aria-pressed="true"] .eye-on { display: none; }
+@media (hover: hover) and (pointer: fine) { .pwtoggle:hover { background: var(--hover); color: var(--ink); } }
+.choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; border: 0; padding: 0; margin: 0; min-width: 0; }
+.choices legend { padding: 0; margin-bottom: 4px; font-size: 12px; line-height: 16px; color: var(--ink2); }
+.choice { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; border-radius: var(--r-control); border: 1px solid var(--line); background: var(--page); cursor: pointer; }
+.choice input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.choice:has(input:checked) { border-color: var(--accent); background: var(--raised); }
+.choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.quote { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.quote:last-child { border-bottom: 0; padding-bottom: 0; }
+.quote q { quotes: "\201C" "\201D"; font-size: 14px; line-height: 20px; color: var(--ink); }
+.fcols { --cols: 168px minmax(0, 1fr) minmax(0, 1fr); }
+.fcols .cell { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.link3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.link3 .n { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; line-height: 16px; }
+.trow { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.tl li { display: grid; grid-template-columns: 8px 1fr auto; gap: 12px; align-items: start; }
+.tl .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 6px; }
 </style>
 
 <main id="top">
@@ -230,9 +256,9 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
     <div class="head">
       <div class="crumb"><span>Stock Report design, screens still to build</span><span>·</span><span>Group 5 of 6</span></div>
       <h1>Login and Supplier View</h1>
-      <p class="muted">Covers the access musts and shoulds: staff see and manage everything, and a supplier sees only their own orders and can only confirm them and add tracking. Also the two top-bar menus (More and the account menu) and the error pages that every screen can fall back to.</p>
+      <p class="muted">Covers the access musts and shoulds: staff see and manage everything, and a supplier sees only their own orders and can only confirm them and add tracking. Anyone can create an account, as a buying company with its own data or as a supplier. Also who adds tracking and how that flows, the two top-bar menus and the error pages that every screen can fall back to.</p>
     </div>
-    <div class="jump meta"><a href="#login">Login</a><a href="#supplier">Supplier orders</a><a href="#tracking">Add tracking</a><a href="#menus">Menus</a><a href="#errors">Error pages</a><a href="#phone">Phone</a><a href="#why">Decisions</a></div>
+    <div class="jump meta"><a href="#login">Login</a><a href="#signup">Sign up</a><a href="#supplier">Supplier orders</a><a href="#who">Who adds tracking</a><a href="#flow">Tracking flow</a><a href="#tracking">Add tracking</a><a href="#menus">Menus</a><a href="#errors">Error pages</a><a href="#phone">Phone</a><a href="#why">Decisions</a></div>
   </div>
 
   <section class="sec" id="login">
@@ -248,9 +274,9 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
           <form class="panel" onsubmit="return false" style="display:flex;flex-direction:column;gap:12px">
             <h3>Sign in</h3>
             <label class="field" for="l-e">Email<input id="l-e" type="email" autocomplete="username" value="sam@example.com"></label>
-            <label class="field" for="l-p">Password<input id="l-p" type="password" autocomplete="current-password" value="password-here"></label>
+            <label class="field" for="l-p">Password<span class="pw"><input id="l-p" type="password" autocomplete="current-password" value="password-here"><button class="pwtoggle" type="button" data-toggle-password aria-pressed="false" aria-label="Show password" title="Show password"><span class="eye-on" data-ic="eye"></span><span class="eye-off" data-ic="eye-off"></span></button></span></label>
             <button class="btn primary" type="submit" style="justify-content:center" id="signin"></button>
-            <span class="meta">Demo accounts use fake @example.com addresses. Their passwords are set when the seed runs and printed once in the terminal.</span>
+            <span class="meta">New here? <a href="#signup">Create an account</a>. Demo accounts use fake @example.com addresses. Their password is printed once in the terminal the first time the server starts.</span>
           </form>
         </div>
       </div>
@@ -265,6 +291,49 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
         <div class="state-label">Too many tries</div>
         <div class="callout crit"><span data-ic="lock"></span><span>Too many sign-in attempts. Try again in 5 minutes.</span></div>
       </div>
+    </div>
+  </section>
+
+  <section class="sec" id="signup">
+    <div class="head"><h2>Sign up</h2><p class="muted">Decision: which side of an order are you? One choice at the top picks buying or supplying, and nothing else sets the role, so nobody can sign up as staff of someone else's company. There is no email check in this demo, and the page says so. The password box has a show button, and the minimum is 6 characters. A buying company starts empty and gets its own products, suppliers and orders, separate from every other company.</p></div>
+    <div class="cols">
+      <div class="stage">
+        <div class="login">
+          <div class="lead">
+            <span class="brand"><span class="logo" data-ic="package"></span>Stock Report</span>
+            <div class="sentence">Create an account to run your own stock report.</div>
+            <p class="meta">A buying company gets its own empty workspace. A supplier sees the orders that buyers address to its email, and can confirm them and add tracking.</p>
+            <p class="meta">This is a demo: there is no email check, so use any address you like.</p>
+          </div>
+          <form class="panel" onsubmit="return false" style="display:flex;flex-direction:column;gap:12px">
+            <h3>Create an account</h3>
+            <fieldset class="choices"><legend>I want to</legend>
+              <label class="choice"><input type="radio" name="kind" value="buyer" checked><b>Buy stock</b><span class="meta">Track products, place orders</span></label>
+              <label class="choice"><input type="radio" name="kind" value="supplier"><b>Supply stock</b><span class="meta">Confirm orders, add tracking</span></label>
+            </fieldset>
+            <label class="field" for="s-n">Company name<input id="s-n" type="text" value="Harbor Office Supply"></label>
+            <label class="field" for="s-e">Email<input id="s-e" type="email" autocomplete="username" value="priya@harbor.example.com"></label>
+            <label class="field" for="s-p">Password<span class="pw"><input id="s-p" type="password" autocomplete="new-password" value="P@ss123"><button class="pwtoggle" type="button" data-toggle-password aria-pressed="false" aria-label="Show password" title="Show password"><span class="eye-on" data-ic="eye"></span><span class="eye-off" data-ic="eye-off"></span></button></span><span class="meta">At least 6 characters.</span></label>
+            <button class="btn primary" type="submit" style="justify-content:center"><span data-ic="user-plus"></span>Create account</button>
+          </form>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="state-label">Email already used</div>
+        <div class="banner" role="alert"><span data-ic="circle-alert"></span><span>That email already has an account. Sign in instead.</span></div>
+        <div class="state-label">Password too short</div>
+        <div class="banner" role="alert"><span data-ic="circle-alert"></span><span>The password needs at least 6 characters.</span></div>
+        <div class="state-label">Too many accounts from one address</div>
+        <div class="callout crit"><span data-ic="lock"></span><span>Too many accounts were created from this address. Try again in an hour.</span></div>
+        <div class="state-label">After sign up, a buying company opens an empty Stock page</div>
+        <div class="panel"><div class="empty"><span data-ic="package" data-s="24"></span><strong>No products yet</strong><span class="meta">Add a product and a supplier in Settings, or fill this company with sample data to look around.</span><div class="row"><button class="btn small" type="button"><span data-ic="settings"></span>Open Settings</button><button class="btn small" type="button"><span data-ic="package"></span>Load sample data</button></div></div></div>
+      </div>
+    </div>
+    <div class="state-label">How a supplier finds its buyers</div>
+    <div class="link3">
+      <div class="panel stack"><span class="n">Step 1</span><h3>The buyer adds the supplier</h3><p class="muted">In Settings, Suppliers, with a name and an email such as acme@acme.example.com. The form says which email the supplier must use.</p></div>
+      <div class="panel stack"><span class="n">Step 2</span><h3>The supplier signs up with that email</h3><p class="muted">On this page, choosing Supply stock. The email is the only link between the two accounts.</p></div>
+      <div class="panel stack"><span class="n">Step 3</span><h3>The orders appear</h3><p class="muted">The supplier sees orders from every company that lists its email, and never another supplier's or another company's data.</p></div>
     </div>
   </section>
 
@@ -289,6 +358,67 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
         </div>
       </div>
     </div>
+    <div class="stage">
+      <div class="state-label">A new supplier with no orders yet</div>
+      <div class="topbar" data-topbar="Orders" data-role="supplier"></div>
+      <div class="panel headline"><div class="sentence">0 orders from Parts Ltd are open. <span>Nothing is waiting on you.</span></div></div>
+      <div class="panel">
+        <div class="phead"><div><h3>Your orders</h3><div class="sub">Waiting on you first</div></div><span class="seg" role="group" aria-label="Filter"><button type="button" aria-pressed="true">Open 0</button><button type="button" aria-pressed="false">Finished 0</button></span></div>
+        <div class="empty"><span data-ic="package" data-s="24"></span><strong>No open orders</strong>
+          <span class="meta">New orders from a buyer appear here. A buyer finds you by this email, so give it to them to add under Settings, Suppliers:</span>
+          <div class="row"><code>priya@parts.example.com</code><button class="btn small" type="button"><span data-ic="copy"></span>Copy email</button></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="who">
+    <div class="head"><h2>Who adds tracking</h2><p class="muted">Decision: the supplier is the main source, and staff can always enter a number for them. Both come straight from the SOP, so no permission changes. What changes is how it reads and flows.</p></div>
+    <div class="cols">
+      <div class="panel">
+        <div class="phead"><div><h3>What the SOP says</h3><div class="sub">Quoted from sections 2 to 4</div></div></div>
+        <div class="quote"><q>The supplier must be able to see their orders, confirm them, and add tracking.</q><span class="meta">Section 2</span></div>
+        <div class="quote"><q>Add one or more tracking numbers per order, each with its unit count. The units on tracking can't add up to more than the order. The user may finish entering tracking later.</q><span class="meta">Section 3, a must. It says "the user", so staff are included.</span></div>
+        <div class="quote"><q>Staff see and manage everything.</q><span class="meta">Section 3, Access, a must</span></div>
+        <div class="quote"><q>Ask for tracking: Confirmed 10 or more days ago, with units still without tracking.</q><span class="meta">Section 4, chase rules. The message goes to the supplier, so the supplier is the expected source.</span></div>
+      </div>
+      <div class="panel">
+        <div class="phead"><div><h3>What we do with it</h3><div class="sub">Behavior and wording</div></div></div>
+        <ul style="margin:0;padding-left:16px;display:flex;flex-direction:column;gap:8px;color:var(--ink2)">
+          <li>The supplier path is the short one: Confirm, then Add tracking, with the units already filled in.</li>
+          <li>Staff add a number when it arrives by email or phone. The dialog says who they are entering it for, and the history reads "Sam for Acme".</li>
+          <li>Only staff can remove a tracking number.</li>
+          <li>A tracking number also counts as a confirmation, as the SOP's stage rule says, so staff do not need a separate step.</li>
+          <li>A part-tracked order is normal. After saving, the page says how many units are left and offers Add another shipment.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="flow">
+    <div class="head"><h2>The tracking flow, state by state</h2><p class="muted">One main action per state, for each side.</p></div>
+    <div class="stage">
+      <div class="ghead fcols"><span>Order state</span><span>Supplier sees</span><span>Staff see</span></div>
+      <div class="grow fcols">
+        <div class="cell"><span class="strong">Placed</span><span class="meta">Not confirmed</span></div>
+        <div class="cell"><span class="lab">Supplier sees</span><button class="btn primary small" type="button"><span data-ic="check"></span>Confirm</button><span class="meta">One tap</span></div>
+        <div class="cell"><span class="lab">Staff see</span><span class="badge warn"><span data-ic="clock"></span>Waiting on Acme to confirm</span><span class="meta">After 2 days: Copy follow-up message</span></div>
+      </div>
+      <div class="grow fcols">
+        <div class="cell"><span class="strong">In production</span><span class="meta">Confirmed, no tracking</span></div>
+        <div class="cell"><span class="lab">Supplier sees</span><button class="btn primary small" type="button"><span data-ic="truck"></span>Add tracking</button><span class="meta">Units pre-filled</span></div>
+        <div class="cell"><span class="lab">Staff see</span><span class="badge warn"><span data-ic="package"></span>Waiting on Acme for tracking</span><span class="meta">After 10 days: Copy follow-up message. Also: Add tracking for Acme</span></div>
+      </div>
+      <div class="grow fcols">
+        <div class="cell"><span class="strong">Part tracked</span><span class="meta">Some units have a number</span></div>
+        <div class="cell"><span class="lab">Supplier sees</span><span class="badge info"><span data-ic="truck"></span>Tracking for 120 units</span><button class="btn small" type="button"><span data-ic="plus"></span>Add another shipment</button></div>
+        <div class="cell"><span class="lab">Staff see</span><span class="badge info"><span data-ic="truck"></span>180 of 300 tracked</span><span class="meta">Same banner and button</span></div>
+      </div>
+      <div class="grow fcols">
+        <div class="cell"><span class="strong">On the way</span><span class="meta">All units tracked</span></div>
+        <div class="cell"><span class="lab">Supplier sees</span><span class="badge good"><span data-ic="circle-check"></span>Nothing, all tracked</span></div>
+        <div class="cell"><span class="lab">Staff see</span><span class="badge info"><span data-ic="truck"></span>On the way</span><span class="meta">After 10 days: Ask where it is</span></div>
+      </div>
+    </div>
   </section>
 
   <section class="sec" id="tracking">
@@ -307,6 +437,40 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
         </div>
       </div>
     </div>
+    <div class="cols">
+      <div class="stage">
+        <div class="state-label">The same dialog when staff enter it</div>
+        <div class="scrim">
+          <div class="modal" role="dialog" aria-labelledby="tt2" style="max-width:520px">
+            <header><div><h3 id="tt2">Add tracking</h3><div class="meta">PHN-001 · 200 of 300 units have no tracking</div></div><button class="btn quiet small" type="button" aria-label="Close"><span data-ic="x"></span></button></header>
+            <div class="fgrid" style="grid-template-columns:1fr 1fr">
+              <label class="field" for="t2-n">Tracking number<input id="t2-n" type="text" placeholder="1Z999AA10123456784"></label>
+              <label class="field" for="t2-u">Units<input id="t2-u" type="number" min="1" value="200" inputmode="numeric"></label>
+            </div>
+            <label class="field" for="t2-c">Carrier<select id="t2-c"><option>Detect from the number</option><option>UPS</option><option>FedEx</option><option>USPS</option><option>DHL</option></select></label>
+            <div class="callout info"><span data-ic="circle-alert"></span><span>200 units are left to track. You can add more tracking numbers later.</span></div>
+            <div class="callout info"><span data-ic="user"></span><span>You are entering this for Acme. The history will show "Sam for Acme".</span></div>
+            <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button">Cancel</button><button class="btn primary" type="button">Add tracking</button></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="state-label">After saving, on the order page</div>
+        <div class="panel">
+          <div class="phead"><div><h3>Tracking</h3><div class="sub">100 of 300 units</div></div><button class="btn small" type="button"><span data-ic="plus"></span>Add tracking</button></div>
+          <div class="callout info" role="status" style="margin-bottom:12px"><span data-ic="circle-check"></span><span>Tracking saved. 200 of 300 units still have none. You can finish later.</span><span style="margin-left:auto"><button class="btn small" type="button"><span data-ic="plus"></span>Add another shipment</button></span></div>
+          <div class="trow"><span class="row"><span data-ic="truck"></span><a href="#flow">1Z999AA10123456784</a></span><span>UPS</span><span class="num">100 units</span><span class="meta">shipped Oct 30</span></div>
+        </div>
+        <div class="panel">
+          <div class="phead"><div><h3>History</h3><div class="sub">Who did what, and when</div></div></div>
+          <ul class="tl">
+            <li><span class="dot"></span><div><b>Tracking added</b> <span class="muted">· 1Z999AA10123456784 × 100 (UPS)</span><div class="meta">Sam for Acme</div></div><span class="meta">Oct 30, 00:50</span></li>
+            <li><span class="dot"></span><div><b>Confirmed</b><div class="meta">Acme</div></div><span class="meta">Oct 19, 09:12</span></li>
+          </ul>
+        </div>
+        <div class="callout good"><span data-ic="circle-check"></span><span>When every unit has a number the banner reads "Tracking saved. All 300 units are tracked." and the button goes away.</span></div>
+      </div>
+    </div>
   </section>
 
   <section class="sec" id="menus">
@@ -321,9 +485,9 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
     <div class="head"><h2>Error pages</h2><p class="muted">Every error says what happened and gives one way forward. They use the same top bar, so the person never feels thrown out of the app.</p></div>
     <div class="cols">
       <div class="panel"><div class="errpage"><span class="code">404</span><span class="tit">That page does not exist</span><span class="muted">The address may be old, or the order was deleted.</span><div class="row" style="margin-top:8px"><button class="btn primary" type="button">Go to Stock</button><button class="btn" type="button">Orders</button></div></div></div>
-      <div class="panel"><div class="errpage"><span class="code">403</span><span class="tit">This order is not yours</span><span class="muted">You can only open orders addressed to Acme Manufacturing. If this looks wrong, ask the buyer to check the supplier on the order.</span><div class="row" style="margin-top:8px"><button class="btn primary" type="button">Back to your orders</button></div></div></div>
+      <div class="panel"><div class="errpage"><span class="code">404</span><span class="tit">That page does not exist</span><span class="muted">This is also what a supplier sees for another supplier's or another company's order. It says "not found" so it does not reveal that the order exists. If an order of yours is missing, ask the buyer to check the email on the supplier.</span><div class="row" style="margin-top:8px"><button class="btn primary" type="button">Back to your orders</button></div></div></div>
       <div class="panel"><div class="errpage"><span class="code">500</span><span class="tit">Something went wrong on our side</span><span class="muted">Nothing was changed. Try again in a moment. If it keeps happening, tell the person who runs Stock Report and mention reference 7F3A.</span><div class="row" style="margin-top:8px"><button class="btn primary" type="button">Try again</button><button class="btn" type="button">Go to Stock</button></div></div></div>
-      <div class="panel"><div class="errpage"><span class="code">Session ended</span><span class="tit">You were signed out</span><span class="muted">Sessions end after 8 hours without activity. Sign in again and pick up where you left off.</span><div class="row" style="margin-top:8px"><button class="btn primary" type="button">Sign in</button></div></div></div>
+      <div class="panel"><div class="errpage"><span class="code">Session ended</span><span class="tit">You were signed out</span><span class="muted">A session lasts 8 hours in total, counted from sign-in. Sign in again and pick up where you left off.</span><div class="row" style="margin-top:8px"><button class="btn primary" type="button">Sign in</button></div></div></div>
     </div>
   </section>
 
@@ -345,18 +509,19 @@ details summary { cursor: pointer; color: var(--accent); font-size: 12px; line-h
         <li>Suppliers get a smaller app, not a locked copy of the big one. Fewer tabs means fewer wrong taps.</li>
         <li>The headline puts the thing they owe us first: confirm, then tracking.</li>
         <li>The "can and cannot" panel is on the page once so a supplier never wonders why Edit is missing.</li>
-        <li>Errors keep the top bar. A 403 explains the cause in plain words instead of a code alone.</li>
+        <li>Errors keep the top bar. A page that is not yours says "not found", which does not reveal that it exists. Staff-only pages tell a supplier plainly that they are not allowed.</li>
       </ul></div>
       <div class="panel"><h3>How it connects to the code</h3><ul>
-        <li><code>User</code> already has role and supplier_id. A session cookie holds the user id, signed with a key read from the environment, never the repo.</li>
-        <li>Two FastAPI dependencies, <code>require_user</code> and <code>require_staff</code>, guard routers. Supplier requests are filtered by supplier_id in <code>services/orders.py</code>, so hiding a button is never the only protection.</li>
-        <li>Every form carries a CSRF token. Responses add security headers. Passwords are hashed.</li>
+        <li><code>User</code> has a role and, for staff, a company. A supplier has no company: it is matched to Supplier rows by email. The signed session cookie holds a small user record, and the key is read from the environment, never the repo.</li>
+        <li>Two FastAPI dependencies, <code>require_user</code> and <code>require_staff</code>, guard routers. One rule in <code>app/tenancy.py</code> then filters every database query by the signed-in company or supplier email, so a page cannot forget to filter and hiding a button is never the only protection.</li>
+        <li>There are no CSRF tokens. The cookie is SameSite Lax and every POST must come from the same site (an Origin check). Responses add security headers and no-store caching, and passwords are hashed with scrypt.</li>
         <li><code>OrderEvent.by</code> becomes the signed-in person's name, which fixes the placeholder name in history.</li>
       </ul></div>
       <div class="panel"><h3>Rules and honest limits</h3><ul>
-        <li>The supplier's Confirm and Add tracking write the same events as staff do, labeled with the supplier's name.</li>
+        <li>The supplier's Confirm and Add tracking write the same events as staff do, labeled with the supplier's name. Staff acting for a supplier are labeled "Sam for Acme".</li>
         <li>Tracking units cannot exceed the order total, checked in <code>domain/orders.py</code>.</li>
-        <li>Login throttling and session length are simple and in-memory. Good for a demo, and the design note says so.</li>
+        <li>Login throttling is simple and in-memory, and a sign-up limit of 10 accounts an hour per address works the same way. Good for a demo, and the design note says so.</li>
+        <li>There is no email check at sign up. Anyone who knows a supplier's address could sign up as that supplier and see its orders. A real product would send a confirmation link first.</li>
         <li>The supplier cannot see forecasts. That is a deliberate choice, since forecasts hold the buyer's own planning.</li>
       </ul></div>
     </div>
@@ -395,6 +560,9 @@ var IC = {
   "split": '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>',
   "ban": '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
   "inbox": '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  "eye": '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+  "eye-off": '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
+  "user-plus": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
   "shield-alert": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>'
 };
 function icon(n, s) {
@@ -422,7 +590,7 @@ function topbar(el, o) {
     '<nav class="tabs" aria-label="Primary">' + tabs + more + '</nav>' +
     '<div class="right"><span class="meta hide-narrow">Today, Oct 29</span><button class="avatar" type="button" aria-haspopup="menu" aria-expanded="false" data-pop="me" aria-label="Account">' + who + '</button></div>' +
     (supplier ? "" : '<div class="pop" role="menu" data-for="more" hidden style="top:100%;left:160px;margin-top:4px"><a role="menuitem" href="#top">' + icon("mail", 16) + 'Chase list <span class="badge crit count" style="padding:0 8px">5</span></a><a role="menuitem" href="#top">' + icon("settings", 16) + 'Settings</a><a role="menuitem" href="#top">' + icon("inbox", 16) + 'Outbox</a></div>') +
-    '<div class="pop" role="menu" data-for="me" hidden style="top:100%;right:0;margin-top:4px"><span class="meta" style="padding:8px 12px">' + (supplier ? "Acme Manufacturing · supplier" : "Sam Moreno · staff") + '</span><hr><a role="menuitem" href="#top">' + icon("log-out", 16) + 'Sign out</a></div>';
+    '<div class="pop" role="menu" data-for="me" hidden style="top:100%;right:0;margin-top:4px"><span class="meta" style="padding:8px 12px">' + (supplier ? "Acme Manufacturing · supplier" : "Sam · staff, Company 1") + '</span><hr><a role="menuitem" href="#top">' + icon("log-out", 16) + 'Sign out</a></div>';
 }
 function closePops() { document.querySelectorAll(".pop").forEach(function (p) { p.hidden = true; }); document.querySelectorAll("[data-pop]").forEach(function (b) { b.setAttribute("aria-expanded", "false"); }); }
 document.addEventListener("click", function (e) {
@@ -433,6 +601,14 @@ document.addEventListener("click", function (e) {
   if (!was) { pop.hidden = false; b.setAttribute("aria-expanded", "true"); }
 });
 document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePops(); });
+document.addEventListener("click", function (e) {   // show or hide what is typed in a password box
+  var eye = e.target.closest("[data-toggle-password]"); if (!eye) return;
+  var f = eye.parentElement.querySelector("input"), shown = f.type === "password";
+  f.type = shown ? "text" : "password";
+  eye.setAttribute("aria-pressed", String(shown));
+  eye.setAttribute("aria-label", shown ? "Hide password" : "Show password");
+  eye.title = shown ? "Hide password" : "Show password";
+});
 document.querySelectorAll("[data-topbar]").forEach(function (el) { topbar(el, { current: el.dataset.topbar, role: el.dataset.role }); });
 document.addEventListener("click", function (e) {
   var s = e.target.closest(".seg button"); if (!s || s.dataset.noSeg) return;

@@ -6,7 +6,7 @@
   <span class="code">{{ code }}</span>
   <h1>{{ title }}</h1>
   <p class="muted">{{ message }}</p>
-  <div class="row" style="margin-top:8px">
+  <div class="row mt8">
     {% if not user %}<a class="btn primary" href="/login">Sign in</a>
     {% elif user.role == "staff" %}<a class="btn primary" href="/">Go to Stock</a><a class="btn" href="/orders">Orders</a>
     {% else %}<a class="btn primary" href="/orders">Back to your orders</a>{% endif %}

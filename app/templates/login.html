@@ -1,23 +1,24 @@
 {% extends "base.html" %}
+{% from "_macros.html" import password_field %}
 {% block title %}Sign in · Stock Report{% endblock %}
+{% block body_class %}auth{% endblock %}
 {% block content %}
-<div class="login">
-  <div class="lead">
-    <div class="sentence">Sign in to see what to reorder this week.</div>
-    <p class="meta">Suppliers sign in here too and see only their own orders.</p>
-  </div>
-  <form class="panel stack" method="post" action="/login" style="gap:12px">
-    <h3>Sign in</h3>
+<div class="auth-wrap">
+  <form class="auth-card" method="post" action="/login">
+    <span class="auth-tile">{{ icon("log-in", 24) }}</span>
+    <div class="auth-head"><h1>Sign in</h1><p>See what to reorder this week.</p></div>
     {% if locked %}
-    <div class="callout crit" role="alert">{{ icon("lock") }}<span>Too many sign-in attempts. Try again in 5 minutes.</span></div>
+    <div class="callout" role="alert">{{ icon("lock") }}<span>Too many sign-in attempts. Try again in 5 minutes.</span></div>
     {% elif error %}
     <div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>
     {% endif %}
-    <input type="hidden" name="next" value="{{ next }}">
-    <label class="field {{ 'err' if error }}">Email<input id="email" name="email" type="email" required maxlength="200" autocomplete="username" autofocus value="{{ email }}"></label>
-    <label class="field {{ 'err' if error }}">Password<input id="password" name="password" type="password" required maxlength="200" autocomplete="current-password"></label>
-    <button class="btn primary" type="submit" style="justify-content:center">{{ icon("log-in") }}Sign in</button>
-    <span class="meta">Demo accounts use fake @example.com addresses. Their password is printed once in the terminal the first time the server starts.</span>
+    <div class="auth-form">
+      <input type="hidden" name="next" value="{{ next }}">
+      <span class="ifield {{ 'err' if error }}"><span class="lead">{{ icon("mail") }}</span><input id="email" name="email" type="email" required maxlength="200" autocomplete="username" autofocus placeholder="Email" aria-label="Email" value="{{ email }}"></span>
+      {{ password_field("password", "password", "Password", "current-password", error) }}
+      <button class="btn primary" type="submit">Sign in</button>
+    </div>
+    <p class="auth-foot meta">New here? <a href="/signup">Create an account</a></p>
   </form>
 </div>
 {% endblock %}

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.config import now
 from app.config import today as store_today
@@ -77,15 +77,13 @@ def tracked_units(o: Order) -> int:
 
 
 def list_orders(db: Session, product_id: int | None = None, status: str | None = None, only_chase: bool = False,
-                today: date | None = None, supplier_id: int | None = None) -> list[OrderRow]:
-    """Orders that need attention first (most overdue on top), finished orders last.
-    A supplier login passes its own supplier_id, so it can never receive another supplier's orders."""
+                today: date | None = None) -> list[OrderRow]:
+    """Orders that need attention first (most overdue on top), finished orders last. A supplier session only
+    ever sees its own orders, because the database session filters them (app/tenancy.py)."""
     today = today or store_today()
-    q = select(Order)
+    q = select(Order).options(selectinload(Order.trackings), selectinload(Order.allocations), joinedload(Order.product), joinedload(Order.supplier))
     if product_id:
         q = q.where(Order.product_id == product_id)
-    if supplier_id:
-        q = q.where(Order.supplier_id == supplier_id)
     rows = [build_row(o, today) for o in db.scalars(q)]
     rows = [r for r in rows if (not status or r.stages.status == status) and (not only_chase or r.chase)]
     return sorted(rows, key=lambda r: (-r.attention, -r.age))

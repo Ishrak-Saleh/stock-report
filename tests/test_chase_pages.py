@@ -51,7 +51,7 @@ def test_adding_one_follow_up_saves_it_and_starts_the_2_day_wait(client):
     assert r.status_code == 303 and r.headers["location"] == "/outbox"
     with SessionLocal() as db:
         m = db.scalars(select(Outbox)).one()
-        assert m.to == "sales@nova.example.com" and m.subject == "Tracking for order KEY-001" and m.kind == "follow-up"
+        assert m.to == "nova@nova.example.com" and m.subject == "Tracking for order KEY-001" and m.kind == "follow-up"
         assert "Hi Nova," in m.body and "200 of 200" in m.body
         o = db.scalars(select(Order).where(Order.name == "KEY-001")).one()
         assert o.events[-1].action == "follow-up saved" and o.events[-1].by == "Sam"
@@ -108,7 +108,7 @@ def test_the_outbox_lists_and_opens_messages(client):
     client.post("/chase/send-all")
     t = text(client.get("/outbox"))
     assert "5 messages saved today." in t and "None were delivered, because test mode is on." in t
-    assert "Where is order HDP-001?" in t and "sales@nova.example.com" in t
+    assert "Where is order HDP-001?" in t and "nova@nova.example.com" in t
     only = text(client.get("/outbox?kind=test"))
     assert "No messages of this kind" in only
     with SessionLocal() as db:

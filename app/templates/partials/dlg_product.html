@@ -10,7 +10,7 @@
       <label class="field">Sales titles and SKUs that count as this product<input name="identifiers" maxlength="500" value="{{ ids if p }}"><span class="hint">Matched exactly against the sales feed, separated by commas</span></label>
       <label class="field">Bundle variants<textarea name="bundles" rows="2" maxlength="500" placeholder="Buy 2 Get 2 = 4">{{ bundles }}</textarea><span class="hint">One per line: the variant title, then how many units one sale means</span></label>
       <div>
-        <div class="state-label" style="margin-bottom:8px">Forecast overrides, blank uses the default</div>
+        <div class="state-label mb8">Forecast overrides, blank uses the default</div>
         <div class="grid3">
           <label class="field">Lead time<input name="lead" type="number" min="0" inputmode="numeric" placeholder="{{ s.lead_time }} (default)" value="{{ p.lead_time if p and p.lead_time is not none }}"></label>
           <label class="field">Safety days<input name="safety" type="number" min="0" inputmode="numeric" placeholder="{{ s.safety_days }} (default)" value="{{ p.safety_days if p and p.safety_days is not none }}"></label>

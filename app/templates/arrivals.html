@@ -9,7 +9,7 @@
       <span>Decide what they were so the stock numbers stay clean.</span>
     {% else %}Every arrival has an order. <span>{{ counts.all }} arrival{{ "s" if counts.all != 1 }} recorded.</span>{% endif %}
   </div>
-  {{ dialog_link("/arrivals/new", "Record arrival", "btn primary", "plus") }}
+  {% if has_products %}{{ dialog_link("/arrivals/new", "Record arrival", "btn primary", "plus") }}{% endif %}
 </div>
 {% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
 
@@ -17,7 +17,7 @@
   <div class="phead"><div><h3>Needs a decision</h3><div class="sub">Oldest first. Units stay in warehouse stock either way.</div></div>
     {% if waiting %}<span class="badge warn">{{ icon("triangle-alert") }}{{ waiting|length }} to decide</span>{% endif %}</div>
   {% if waiting %}
-  <div class="lhead uhead"><span>Arrived</span><span>Product</span><span style="text-align:right">Units</span><span>Why it matched nothing</span><span style="text-align:right">Decide</span></div>
+  <div class="lhead uhead"><span>Arrived</span><span>Product</span><span class="ta-r">Units</span><span>Why it matched nothing</span><span class="ta-r">Decide</span></div>
   {% for r, why, can in waiting %}{% set a = r.arrival %}
   <div class="orow urow">
     <div class="cell num"><span class="lab">Arrived</span>{{ a.day|short_date }}</div>
@@ -45,7 +45,7 @@
     </span></div>
   <div class="legend hide-narrow"><span><i class="k st2"></i>First order</span><span><i class="k st3"></i>Next order (spill-over)</span><span><i class="k free"></i>Marked "not from an order"</span><span><i class="k none"></i>Unmatched</span></div>
   {% if rows %}
-  <div class="lhead ahead"><span>Arrived</span><span>Product</span><span style="text-align:right">Units</span><span>Matched to</span><span>Logged by</span><span style="text-align:right">Match</span></div>
+  <div class="lhead ahead"><span>Arrived</span><span>Product</span><span class="ta-r">Units</span><span>Matched to</span><span>Logged by</span><span class="ta-r">Match</span></div>
   {% for r in rows %}{% set a = r.arrival %}
   <div class="orow arow">
     <div class="cell num"><span class="lab">Arrived</span>{{ a.day|short_date }}</div>
@@ -60,7 +60,7 @@
   {% else %}
   <div class="empty">{{ icon("package", 24) }}<strong>{{ "No arrivals match this filter" if status else "Nothing has arrived yet" }}</strong>
     <span class="meta">{{ "Choose All to see every arrival." if status else "Record the first delivery when a truck is unloaded." }}</span>
-    {% if status %}<a class="btn small" href="/arrivals">Show all arrivals</a>{% else %}{{ dialog_link("/arrivals/new", "Record arrival", "btn small") }}{% endif %}</div>
+    {% if status %}<a class="btn small" href="/arrivals">Show all arrivals</a>{% elif has_products %}{{ dialog_link("/arrivals/new", "Record arrival", "btn small") }}{% else %}<a class="btn small" href="/settings">Add a product in Settings</a>{% endif %}</div>
   {% endif %}
 </div>
 {% endblock %}

@@ -47,3 +47,5 @@ class Throttle:
 
 
 throttle = Throttle()
+# One address may create 10 accounts an hour. It reuses Throttle: every account made counts as a "fail".
+signups = Throttle(tries=10, lock=3600)

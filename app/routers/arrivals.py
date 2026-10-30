@@ -34,7 +34,8 @@ def _page(request: Request, db: Session, status: str = "", error: str = "", code
     return templates.TemplateResponse(request, "arrivals.html", {
         "rows": svc.arrival_rows(db, status), "waiting": waiting, "status": status, "error": error,
         "counts": {"all": len(everything), "unmatched": len(un), "matched": len(everything) - len(un)},
-        "units": units, "stale": stale_days(get_settings(db), today())}, status_code=code)
+        "units": units, "stale": stale_days(get_settings(db), today()),
+        "has_products": db.scalars(select(Product).limit(1)).first() is not None}, status_code=code)
 
 
 @router.get("/arrivals", response_class=HTMLResponse)
@@ -54,6 +55,11 @@ def _preview_ctx(db: Session, product: Product, units: int) -> dict:
 def new_arrival(request: Request, product_id: int | None = None, units: int = 0, user: dict = Depends(require_staff),
                 db: Session = Depends(get_session)):
     products = db.scalars(select(Product).order_by(Product.name)).all()
+    if not products:
+        message = "Add a product in Settings before recording an arrival."
+        if request.headers.get("HX-Request"):  # HTMX ignores error replies, so the dialog itself explains
+            return templates.TemplateResponse(request, "partials/dlg_setup.html", {"title": "Not ready to record an arrival", "message": message})
+        raise HTTPException(409, message)
     chosen = db.get(Product, product_id) if product_id else None
     if chosen is None:  # start on a product that has something on order
         chosen = next((p for p in products if svc.open_orders(db, p.id)), products[0])

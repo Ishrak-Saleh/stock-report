@@ -6,37 +6,38 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import SECRET_KEY, SESSION_HOURS
 from app.db import SessionLocal, engine
 from app.deps import LoginRequired
-from app.migrate import ensure_columns
+from app.migrate import ensure_columns, ensure_current_schema
 from app.models import Base
 from app.routers import arrivals, auth, chase, dashboard, orders, products, settings
-from app.seed import seed
 from app.services.users import ensure_demo_users
 from app.templating import templates
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    ensure_current_schema(engine)
     Base.metadata.create_all(engine)
     ensure_columns(engine)
     with SessionLocal() as db:
-        seed(db)
         password = ensure_demo_users(db)
     if password:  # shown once, never stored in the repo
-        print(f"\nDemo accounts created: sam@example.com (staff), acme@acme.example.com and nova@nova.example.com "
-              f"(suppliers)\nPassword for all three: {password}\n", flush=True)
+        print(f"\nCompany 1 and its demo accounts were created: sam@example.com (staff), acme@acme.example.com and "
+              f"nova@nova.example.com (suppliers)\nPassword for all three: {password}\n", flush=True)
     yield
 
 
-app = FastAPI(title="Stock Report", lifespan=lifespan)
+# No /docs, /redoc or /openapi.json: they would list every route to someone who is not signed in.
+app = FastAPI(title="Stock Report", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-       "font-src https://fonts.gstatic.com; img-src 'self' data:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'")
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; "
+       "frame-ancestors 'none'; form-action 'self'; base-uri 'self'")
 
 
 @app.middleware("http")
@@ -51,9 +52,17 @@ async def guard(request: Request, call_next):
     response.headers.update({
         "Content-Security-Policy": CSP, "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY",
         "Referrer-Policy": "same-origin", "Permissions-Policy": "camera=(), microphone=(), geolocation=()"})
+    path = request.url.path
+    if not path.startswith("/static"):
+        response.headers["Cache-Control"] = "no-store"  # the Back button after signing out must not show a cached page
+    elif "v" in request.query_params or path.startswith("/static/fonts/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"  # the address changes when the file does
+    else:
+        response.headers["Cache-Control"] = "no-cache"  # revalidate (a quick 304 when unchanged)
     return response
 
 
+app.add_middleware(GZipMiddleware, minimum_size=500)  # compresses every page, stylesheet and script
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=SESSION_HOURS * 3600, same_site="lax",
                    session_cookie="sr_session")
 

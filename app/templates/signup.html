@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import password_field %}
+{% block title %}Create an account · Stock Report{% endblock %}
+{% block body_class %}auth{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <form class="auth-card" method="post" action="/signup">
+    <span class="auth-tile">{{ icon("user-plus", 24) }}</span>
+    <div class="auth-head"><h1>Create an account</h1><p>A free demo account. There is no email check.</p></div>
+    {% if error %}
+    <div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>
+    {% endif %}
+    <div class="auth-form">
+      <fieldset class="auth-seg">
+        <legend>I want to</legend>
+        <label><input type="radio" name="kind" value="buyer" {{ "checked" if kind != "supplier" }}>Buy stock</label>
+        <label><input type="radio" name="kind" value="supplier" {{ "checked" if kind == "supplier" }}>Supply stock</label>
+      </fieldset>
+      <span class="ifield"><span class="lead">{{ icon("building-2") }}</span><input id="name" name="name" type="text" required maxlength="60" autocomplete="organization" placeholder="Company name" aria-label="Company name" value="{{ name }}"></span>
+      <span class="ifield"><span class="lead">{{ icon("mail") }}</span><input id="email" name="email" type="email" required maxlength="120" autocomplete="username" placeholder="Email" aria-label="Email" value="{{ email }}"></span>
+      {{ password_field("password", "password", "Password, " ~ min_password ~ " or more characters", "new-password", error) }}
+      {{ password_field("confirm", "confirm", "Confirm password", "new-password", error) }}
+      <button class="btn primary" type="submit">Create account</button>
+    </div>
+    <p class="auth-foot meta">Already have an account? <a href="/login">Sign in</a></p>
+  </form>
+</div>
+{% endblock %}

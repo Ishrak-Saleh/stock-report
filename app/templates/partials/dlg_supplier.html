@@ -7,6 +7,7 @@
         <label class="field">Name<input name="name" required maxlength="80" value="{{ sp.name if sp }}"></label>
         <label class="field">Email<input name="email" type="email" required maxlength="120" value="{{ sp.email if sp }}" placeholder="orders@example.com"></label>
       </div>
+      <p class="meta">A supplier who signs up at /signup with this exact email sees this company's orders, can confirm them and add tracking.</p>
       <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Save supplier</button></div></div>
     </form>
   </div>

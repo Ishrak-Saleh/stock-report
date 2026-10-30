@@ -33,7 +33,10 @@ you may need to allow Python through the firewall.
 `stock.db` instead: `.venv\Scripts\python -u -m uvicorn app.main:app --port 8000`. The first start creates the
 accounts and prints a random password once (set `DEMO_PASSWORD` first to choose one). Do not use `--reload` on Windows: it leaves stray server processes behind.
 
-`TESTING.md` is a click-through script for every (must) and (should) in the SOP.
+Create your own account at `/signup`. **Buy stock** makes a new company with its own products, orders and suppliers, separate from the demo's
+Company 1 (the empty Stock page has a "Load sample data" button). **Supply stock** makes a supplier login: it sees the orders buyers address to its
+email, so add the supplier in Settings with the same email. There is no email check (demo only) and passwords need 6 or more characters.
+To start over on `stock.db`: stop the server, then run `.venv\Scripts\python -m app.reset` (it keeps a copy as `stock.db.bak`).
 
 ## Settings you can change with environment variables
 

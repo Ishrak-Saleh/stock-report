@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import JSON, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -8,18 +8,32 @@ class Base(DeclarativeBase):
     pass
 
 
-class Supplier(Base):
+class Company(Base):
+    """A buying company. It owns its products, suppliers, orders, arrivals, settings and Outbox, and nobody else sees them."""
+    __tablename__ = "company"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    created_at: Mapped[datetime]
+
+
+class Tenant:
+    """Marks a table whose rows belong to one company. app/tenancy.py filters every query on company_id."""
+    company_id: Mapped[int] = mapped_column(ForeignKey("company.id"), index=True)
+
+
+class Supplier(Tenant, Base):
     __tablename__ = "supplier"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
     email: Mapped[str]
 
 
-class Product(Base):
+class Product(Tenant, Base):
     __tablename__ = "product"
+    __table_args__ = (UniqueConstraint("company_id", "code"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
-    code: Mapped[str] = mapped_column(String(8), unique=True)
+    code: Mapped[str] = mapped_column(String(8))
     identifiers: Mapped[list] = mapped_column(JSON, default=list)  # SKUs/titles that match sales to this product
     bundle_map: Mapped[dict] = mapped_column(JSON, default=dict)  # variant -> units per sale, e.g. {"Buy 2 Get 2": 4}
     stock: Mapped[int] = mapped_column(default=0)
@@ -40,10 +54,11 @@ class DailySale(Base):
     product: Mapped[Product] = relationship(back_populates="sales")
 
 
-class Order(Base):
+class Order(Tenant, Base):
     __tablename__ = "order"
+    __table_args__ = (UniqueConstraint("company_id", "name"),)
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(unique=True)  # product code + number, e.g. MOU-002
+    name: Mapped[str]  # product code + number, e.g. MOU-002
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
     supplier_id: Mapped[int] = mapped_column(ForeignKey("supplier.id"))
     units: Mapped[int]
@@ -71,7 +86,7 @@ class Tracking(Base):
     order: Mapped[Order] = relationship(back_populates="trackings")
 
 
-class Arrival(Base):
+class Arrival(Tenant, Base):
     __tablename__ = "arrival"
     id: Mapped[int] = mapped_column(primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
@@ -95,7 +110,7 @@ class Allocation(Base):
     order: Mapped[Order | None] = relationship(back_populates="allocations")
 
 
-class StockMovement(Base):
+class StockMovement(Tenant, Base):
     __tablename__ = "stock_movement"
     id: Mapped[int] = mapped_column(primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id"))
@@ -117,7 +132,7 @@ class OrderEvent(Base):
     order: Mapped[Order] = relationship(back_populates="events")
 
 
-class AlertLog(Base):
+class AlertLog(Tenant, Base):
     __tablename__ = "alert_log"
     id: Mapped[int] = mapped_column(primary_key=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("order.id"))
@@ -125,7 +140,7 @@ class AlertLog(Base):
     last_sent_at: Mapped[datetime]
 
 
-class Outbox(Base):
+class Outbox(Tenant, Base):
     __tablename__ = "outbox"
     id: Mapped[int] = mapped_column(primary_key=True)
     to: Mapped[str]
@@ -135,7 +150,7 @@ class Outbox(Base):
     kind: Mapped[str] = mapped_column(default="")  # follow-up | alert | test
 
 
-class Settings(Base):
+class Settings(Tenant, Base):
     __tablename__ = "settings"
     id: Mapped[int] = mapped_column(primary_key=True)
     lead_time: Mapped[int] = mapped_column(default=45)
@@ -152,5 +167,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True)
     password_hash: Mapped[str]
     role: Mapped[str]  # staff | supplier
-    supplier_id: Mapped[int | None] = mapped_column(ForeignKey("supplier.id"))
-    supplier: Mapped["Supplier | None"] = relationship()
+    name: Mapped[str | None]  # a supplier's company name; staff are shown by the first part of their email
+    # A staff user belongs to one company. A supplier has none: it sees the orders of every company whose
+    # Supplier row carries the same email address.
+    company_id: Mapped[int | None] = mapped_column(ForeignKey("company.id"))
+    created_at: Mapped[datetime | None]
+    company: Mapped["Company | None"] = relationship()

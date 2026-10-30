@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.domain.forecast import LEVEL_RANK, Flag, Forecast, Option, Params, compute, main_flag, order_options
-from app.models import DailySale, Product, Settings
+from app.models import Order, Product, Settings
 from app.services.orders import order_stages
 
 SPARK_DAYS = 40
@@ -39,8 +39,13 @@ class ProductRow:
         return order_options(self.product.stock, self.ordered, self.forecast, self.params)
 
 
-def get_settings(db: Session) -> Settings:
-    return db.scalars(select(Settings)).one()
+def get_settings(db: Session, company_id: int | None = None) -> Settings:
+    """The company's settings. A staff session has exactly one row in view; a supplier, who can see several companies'
+    rows, says which company it means."""
+    q = select(Settings)
+    if company_id is not None:
+        q = q.where(Settings.company_id == company_id)
+    return db.scalars(q).one()
 
 
 def params_for(p: Product, s: Settings) -> Params:
@@ -52,7 +57,7 @@ def params_for(p: Product, s: Settings) -> Params:
 
 
 def product_row(db: Session, p: Product, s: Settings, today: date) -> ProductRow:
-    daily = {d.day: d.units for d in db.scalars(select(DailySale).where(DailySale.product_id == p.id))}
+    daily = {d.day: d.units for d in p.sales}
     st = [order_stages(o) for o in p.orders]
     placed, prod, way = (sum(getattr(x, k) for x in st) for k in ("placed", "in_production", "on_the_way"))
     params = params_for(p, s)
@@ -64,7 +69,10 @@ def product_row(db: Session, p: Product, s: Settings, today: date) -> ProductRow
 def report(db: Session, today: date) -> list[ProductRow]:
     """Every product, most urgent first."""
     s = get_settings(db)
-    rows = [product_row(db, p, s, today) for p in db.scalars(select(Product))]
+    # One query each for the sales, orders, tracking and arrivals of every product, instead of four per product.
+    load = (selectinload(Product.sales), selectinload(Product.orders).selectinload(Order.trackings),
+            selectinload(Product.orders).selectinload(Order.allocations))
+    rows = [product_row(db, p, s, today) for p in db.scalars(select(Product).options(*load))]
     return sorted(rows, key=lambda r: (r.rank, r.product.name))
 
 
@@ -80,6 +88,8 @@ def _join(names: list[str]) -> str:
 
 
 def stock_headline(rows: list[ProductRow]) -> Headline:
+    if not rows:
+        return Headline("No products yet.", "Add your first product to see what to reorder.", None)
     need = [r for r in rows if r.forecast.reorder_now]
     out = [r.product.name for r in rows if r.forecast.out_of_stock]
     if need:

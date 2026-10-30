@@ -7,7 +7,7 @@
 <div class="panel">
   <h2 style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">{{ o.name }} {{ status_badge(st.status) }}</h2>
   <div class="meta">{{ o.product.name }} · {{ o.supplier.name }} · created {{ r.age }} days ago</div>
-  <div class="sentence" style="margin-top:12px;font-size:16px;line-height:24px;font-weight:600">{{ takeaway }}</div>
+  <div class="sentence mt12 takeaway">{{ takeaway }}</div>
 </div>
 
 {% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
@@ -27,10 +27,10 @@
         </li>
         {% endfor %}
       </ol>
-      <div style="margin-top:16px">{{ order_bar(o, st, 320) }}
-        <div class="meta" style="margin-top:4px">{{ st.placed|num }} placed · {{ st.in_production|num }} in production · {{ st.on_the_way|num }} on the way · {{ st.arrived|num }} arrived</div></div>
+      <div class="mt16">{{ order_bar(o, st, 320) }}
+        <div class="meta mt4">{{ st.placed|num }} placed · {{ st.in_production|num }} in production · {{ st.on_the_way|num }} on the way · {{ st.arrived|num }} arrived</div></div>
       {% if staff and open and st.arrived < o.units %}
-      <p class="meta" style="margin-top:12px">Expected {{ expected|short_date }}: order date plus the {{ lead_time }}-day lead time. This is an assumption, because the SOP has no expected-date field.</p>
+      <p class="meta mt12">Expected {{ expected|short_date }}: order date plus the {{ lead_time }}-day lead time. This is an assumption, because the SOP has no expected-date field.</p>
       {% endif %}
     </div>
 
@@ -39,6 +39,11 @@
         <div><h3>Tracking</h3><div class="sub">{{ tracked|num }} of {{ o.units|num }} units</div></div>
         {% if open and untracked > 0 %}{{ dialog_link("/orders/" ~ o.id ~ "/dialog/tracking", "Add tracking", "btn small", "plus") }}{% endif %}
       </div>
+      {% if saved %}
+      <div class="callout {{ 'info' if untracked > 0 else 'good' }}" role="status" style="margin-bottom:12px">{{ icon("circle-check") }}
+        <span>{% if untracked > 0 %}Tracking saved. {{ untracked|num }} of {{ o.units|num }} units still have none. You can finish later.{% else %}Tracking saved. All {{ o.units|num }} units are tracked.{% endif %}</span>
+        {% if untracked > 0 and open %}<span class="ml-auto">{{ dialog_link("/orders/" ~ o.id ~ "/dialog/tracking", "Add another shipment", "btn small", "plus") }}</span>{% endif %}</div>
+      {% endif %}
       {% for t in o.trackings %}
       <div class="trow">
         <div>{{ icon("truck") }} {% set url = t|tracking_url %}{% if url %}<a href="{{ url }}" target="_blank" rel="noopener">{{ t.number }}</a>{% else %}{{ t.number }}{% endif %}</div>
@@ -73,7 +78,7 @@
           </div>
         </div>{% endif %}
       </div>
-      <div class="stack" style="gap:8px;align-items:stretch">
+      <div class="stack actions">
         {% if not staff %}
           {% set needs_tracking = open and untracked > 0 and st.arrived < o.units %}
           {% if open and not st.confirmed %}<form method="post" action="/orders/{{ o.id }}/confirm"><button class="btn primary">{{ icon("circle-check") }}Confirm this order</button></form>{% endif %}

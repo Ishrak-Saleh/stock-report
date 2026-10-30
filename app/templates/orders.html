@@ -4,7 +4,8 @@
 {% block content %}
 <div class="panel headline">
   <div class="sentence">{{ headline }} <span>Longest waits first.</span></div>
-  {{ dialog_link("/orders/new", "New order", "btn primary", "plus") }}
+  {% if can_order %}{{ dialog_link("/orders/new", "New order", "btn primary", "plus") }}
+  {% else %}<a class="btn" href="/settings">Add a product and a supplier first</a>{% endif %}
 </div>
 <div class="panel">
   <div class="phead"><div><h3>Orders</h3><div class="sub">Needs attention first</div></div></div>

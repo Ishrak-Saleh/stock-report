@@ -5,7 +5,7 @@
 {% set user = me(request) %}
 <div class="panel headline">
   <div class="sentence">{{ head }} <span>{{ sub }}</span></div>
-  <div class="stack" style="align-items:flex-end;gap:4px">
+  <div class="stack end">
     {% if first %}<form method="post" action="/orders/{{ first.order.id }}/confirm" class="inline"><button class="btn primary" type="submit">{{ icon("check") }}Confirm {{ first.order.name }}</button></form>
     <span class="meta">Confirming tells the buyer you accept the units</span>{% endif %}
   </div>
@@ -18,7 +18,7 @@
       <a href="/orders?show=arrived" {% if show == "arrived" %}aria-current="true"{% endif %}>Finished {{ done_n }}</a>
     </span></div>
   {% if rows %}
-  <div class="lhead sohead"><span>Order</span><span>Product</span><span style="text-align:right">Units</span><span>Where it is</span><span>Waiting on</span><span style="text-align:right">Your action</span></div>
+  <div class="lhead sohead"><span>Order</span><span>Product</span><span class="ta-r">Units</span><span>Where it is</span><span>Waiting on</span><span class="ta-r">Your action</span></div>
   {% for r in rows %}{% set o = r.order %}{% set st = r.stages %}{% set w = waiting[o.id] %}
   <div class="orow sorow link" role="link" tabindex="0" data-href="/orders/{{ o.id }}">
     <div class="cell"><a class="plain" href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a></div>
@@ -36,7 +36,11 @@
   </div>
   {% endfor %}
   {% else %}
-  <div class="empty">{{ icon("package", 24) }}<strong>{{ "No finished orders yet" if show == "arrived" else "No open orders" }}</strong><span class="meta">New orders from the buyer will appear here.</span></div>
+  <div class="empty">{{ icon("package", 24) }}<strong>{{ "No finished orders yet" if show == "arrived" else "No open orders" }}</strong>
+    <span class="meta">New orders from a buyer appear here. A buyer finds you by this email, so give it to them to add under Settings, Suppliers:</span>
+    <div class="row"><code id="my-email">{{ user.email }}</code>
+      <button class="btn small" type="button" data-copy="my-email" data-done="Email copied.">{{ icon("copy") }}Copy email</button></div>
+    <span class="meta" id="copy-state" role="status"></span></div>
   {% endif %}
 </div>
 

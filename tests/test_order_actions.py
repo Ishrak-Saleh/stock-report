@@ -3,7 +3,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.models import Allocation, Arrival, Base, Product, Supplier
+from app.config import now
+from app.models import Allocation, Arrival, Base, Company, Product, Supplier
 from app.services import orders as svc
 from datetime import date
 
@@ -13,6 +14,9 @@ def db():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     with sessionmaker(engine, expire_on_commit=False)() as session:
+        session.add(Company(id=1, name="Test company", created_at=now()))
+        session.commit()
+        session.info["scope"] = ("staff", 1)  # new rows are stamped with company 1
         session.add_all([Product(code="MOU", name="Mouse"), Supplier(name="Acme", email="a@example.com")])
         session.commit()
         yield session

@@ -4,7 +4,7 @@
     {{ dialog_head("Edit match, " ~ a.product.name, (a.units|num) ~ " units arrived " ~ (a.day|short_date) ~ (" · logged by " ~ a.by if a.by else "")) }}
     <form method="post" action="/arrivals/{{ a.id }}/match" data-split data-total="{{ a.units }}">
       {% macro stepper(name, label) %}
-      <div class="step"><button type="button" data-step="-1" aria-label="Fewer units for {{ label }}">{{ icon("minus") }}</button><input name="{{ name }}" type="number" min="0" value="{{ caller() }}" inputmode="numeric" aria-label="Units for {{ label }}"><button type="button" data-step="1" aria-label="More units for {{ label }}">{{ icon("plus") }}</button></div>
+      <div class="qty"><button type="button" data-step="-1" aria-label="Fewer units for {{ label }}">{{ icon("minus") }}</button><input name="{{ name }}" type="number" min="0" value="{{ caller() }}" inputmode="numeric" aria-label="Units for {{ label }}"><button type="button" data-step="1" aria-label="More units for {{ label }}">{{ icon("plus") }}</button></div>
       {% endmacro %}
       {% for o, room, got in editor %}
       <div class="alloc"><div><div class="strong">{{ o.name }}</div><div class="meta">Ordered {{ o.created_at|short_date }} · room for {{ room|num }}</div></div>

@@ -17,15 +17,13 @@ def sign_in(client, email: str = STAFF, password: str = PASSWORD):
 
 
 def reset_db():
-    """A fresh seeded database with the demo accounts. Modules that change data call this first, so test order never matters."""
+    """A fresh database with Company 1 (seeded) and the demo accounts. Modules that change data call this first, so test order never matters."""
     from app.db import SessionLocal, engine
     from app.models import Base
-    from app.seed import seed
     from app.services.users import ensure_demo_users
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     with SessionLocal() as db:
-        seed(db)
         ensure_demo_users(db)
 
 

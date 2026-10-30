@@ -1,8 +1,8 @@
 <div class="state-label">Match preview, oldest open order first</div>
 {% if not units %}
-<p class="meta" style="margin-top:8px">Type how many units arrived to see which orders they fill.</p>
+<p class="meta mt8">Type how many units arrived to see which orders they fill.</p>
 {% else %}
-<div class="pre" style="margin-top:8px">
+<div class="pre mt8">
   {% for r in rows %}
   <span class="lead">{{ r.name }}</span>
   <span class="bar"><i class="fill{{ loop.index if loop.index < 4 else 3 }}" style="width:{{ (r.take * 100 / r.room)|round|int if r.room else 0 }}%"></i></span>
@@ -13,9 +13,9 @@
   <span class="num">{{ unmatched|num }} unit{{ "s" if unmatched != 1 }}</span>
 </div>
 {% if unmatched %}
-<div class="callout" style="margin-top:8px">{{ icon("triangle-alert") }}<span>{{ unmatched|num }} units match no open order{% if not rows %} because nothing is on order for {{ product.name }}{% endif %}. They still count in warehouse stock and will wait under "Needs a decision".</span></div>
+<div class="callout mt8">{{ icon("triangle-alert") }}<span>{{ unmatched|num }} units match no open order{% if not rows %} because nothing is on order for {{ product.name }}{% endif %}. They still count in warehouse stock and will wait under "Needs a decision".</span></div>
 {% else %}
-<div class="callout good" style="margin-top:8px">{{ icon("circle-check") }}<span>Every unit matches an open order.</span></div>
+<div class="callout good mt8">{{ icon("circle-check") }}<span>Every unit matches an open order.</span></div>
 {% endif %}
-<p class="meta" style="margin-top:8px">Warehouse stock goes from {{ stock|num }} to {{ after|num }}.</p>
+<p class="meta mt8">Warehouse stock goes from {{ stock|num }} to {{ after|num }}.</p>
 {% endif %}

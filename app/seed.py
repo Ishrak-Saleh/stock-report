@@ -1,4 +1,4 @@
-"""Deterministic fake data. One product per flag state so every dashboard badge is visible."""
+"""Deterministic fake data for one company. One product per flag state so every dashboard badge is visible."""
 import random
 from datetime import timedelta
 
@@ -8,6 +8,10 @@ from sqlalchemy.orm import Session
 from app.config import now, today
 from app.models import (Allocation, Arrival, DailySale, Order, OrderEvent, Product, Settings, StockMovement,
                         Supplier, Tracking)
+
+# The two demo suppliers (name, login email). Company 1 uses these; other companies get their own addresses so a
+# supplier login only ever sees orders that were really addressed to it.
+DEMO_SUPPLIERS = [("Acme Manufacturing", "acme@acme.example.com"), ("Nova Imports", "nova@nova.example.com")]
 
 # code, name, base/day, last-3-days multiplier, stock, bundle map
 PRODUCTS = [
@@ -20,14 +24,29 @@ PRODUCTS = [
 ]
 
 
-def seed(db: Session) -> None:
+def sample_suppliers(company_id: int) -> list[tuple[str, str]]:
+    """Sample suppliers for a company that is not Company 1: addresses nobody has a login for yet."""
+    return [(name, email.replace("@", f"-{company_id}@")) for name, email in DEMO_SUPPLIERS]
+
+
+def seed(db: Session, company_id: int, suppliers: list[tuple[str, str]]) -> None:
+    """Fills one company with the demo products, orders and arrivals. Does nothing if it already has products."""
+    before = db.info.get("scope")
+    db.info["scope"] = ("staff", company_id)  # every row below is stamped with this company and only sees its rows
+    try:
+        _seed(db, suppliers)
+    finally:
+        db.info["scope"] = before
+
+
+def _seed(db: Session, suppliers: list[tuple[str, str]]) -> None:
     if db.scalars(select(Product)).first():
         return
     rng = random.Random(42)
     t, n = today(), now()
-    db.add(Settings(data_updated_at=n))
-    acme = Supplier(name="Acme Manufacturing", email="orders@acme.example.com")
-    nova = Supplier(name="Nova Imports", email="sales@nova.example.com")
+    if not db.scalars(select(Settings)).first():
+        db.add(Settings(data_updated_at=n))
+    acme, nova = (Supplier(name=name, email=email) for name, email in suppliers)
     db.add_all([acme, nova])
 
     prods = {}

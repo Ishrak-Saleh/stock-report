@@ -5,7 +5,7 @@
 {% block content %}
 <div class="panel headline">
   <div class="sentence">{{ head.text }} {% if head.sub %}<span>{{ head.sub }}</span>{% endif %}</div>
-  <div class="stack" style="align-items:flex-end;gap:4px">
+  <div class="stack end">
     {% if head.top %}{{ dialog_link("/orders/new?product=" ~ head.top.product.id, "Order " ~ head.top.product.name, "btn primary") }}{% endif %}
     <span class="meta">Sales through {{ last_full_day|short_date }}, the last full day · lead time {{ settings.lead_time }} days</span>
   </div>
@@ -26,7 +26,7 @@
     <span><i class="k ring"></i>Days including everything on order</span>
     <span><i class="k st1"></i>Placed <i class="k st2"></i>In production <i class="k st3"></i>On the way</span>
   </div>
-  <div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span style="text-align:right">In stock</span><span style="text-align:right">Suggested order</span></div>
+  <div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span class="ta-r">In stock</span><span class="ta-r">Suggested order</span></div>
   {% for r in rows %}{% set f = r.forecast %}{% set p = r.product %}
   <div class="orow srow">
     <div class="pname"><a class="plain" href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a><span class="code">{{ p.code }}</span>
@@ -48,7 +48,16 @@
   </div>
   <div id="runway-{{ p.id }}"></div>
   {% else %}
+  {% if counts.all == 0 %}
+  <div class="empty">{{ icon("package", 24) }}<strong>No products yet</strong>
+    <span class="meta">Add a product and a supplier in Settings, or fill this company with sample data to look around.</span>
+    <div class="row">
+      <a class="btn small" href="/settings">{{ icon("settings") }}Open Settings</a>
+      <form method="post" action="/sample-data"><button class="btn small" type="submit">{{ icon("package") }}Load sample data</button></form>
+    </div></div>
+  {% else %}
   <div class="empty">{{ icon("package", 24) }}<strong>No products match this filter</strong><a class="btn small" href="/">Show all products</a></div>
+  {% endif %}
   {% endfor %}
 </div>
 
@@ -59,7 +68,7 @@
   </div>
   {% for r in chase %}{% set c = r.chase %}
   <div class="crow">
-    <b><a href="/orders/{{ r.order.id }}" style="color:inherit;text-decoration:none">{{ r.order.name }}</a></b>
+    <b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b>
     <div><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[1] }}. {{ r.step[2] }}</div></div>
     {{ charts.dot_plot(c.days, c.threshold, c.over, "Waited " ~ c.days ~ " days, the limit is " ~ c.threshold, w=320) }}
     {{ dialog_link("/orders/" ~ r.order.id ~ "/dialog/message?kind=" ~ c.kind, "Copy message", "btn small", "copy") }}
@@ -67,6 +76,6 @@
   {% else %}
   <div class="empty">{{ icon("circle-check", 24) }}<strong>Nothing to chase</strong><span class="meta">Orders waiting too long for a reply, tracking or arrival would appear here.</span></div>
   {% endfor %}
-  {% if chase %}<p class="meta" style="margin-top:8px">Each dot is how long the order has waited. The tick is the SOP limit: confirm at 2 days, send tracking at 10, and where is it once an order has been on the way more than 10.</p>{% endif %}
+  {% if chase %}<p class="meta mt8">Each dot is how long the order has waited. The tick is the SOP limit: confirm at 2 days, send tracking at 10, and where is it once an order has been on the way more than 10.</p>{% endif %}
 </div>
 {% endblock %}

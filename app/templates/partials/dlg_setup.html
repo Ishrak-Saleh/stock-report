@@ -1,0 +1,8 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="{{ title }}">
+  <div class="mbody">
+    {{ dialog_head(title) }}
+    <p class="muted">{{ message }}</p>
+    <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Close</button><a class="btn primary" href="/settings">{{ icon("settings") }}Open Settings</a></div></div>
+  </div>
+</dialog>

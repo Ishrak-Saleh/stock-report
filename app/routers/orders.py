@@ -19,28 +19,33 @@ NOTES_MAX, UNITS_MAX = 500, 1_000_000
 
 
 def _get(db: Session, order_id: int, user: dict) -> Order:
-    """The order, or 404. A supplier asking for another supplier's order gets 403."""
+    """The order, or 404. The session only sees its own orders (app/tenancy.py), so another company's or another
+    supplier's order is "not found", which also does not reveal that it exists."""
     order = db.get(Order, order_id)
     if not order:
         raise HTTPException(404, "Order not found")
-    if not is_staff(user) and order.supplier_id != user["supplier_id"]:
-        raise HTTPException(403, "This order is not yours.")
     return order
+
+
+def _by(user: dict, o: Order) -> str:
+    """Who the history names. Staff acting for a supplier are named as that: "Sam for Acme"."""
+    return f"{user['label']} for {messages.short_name(o.supplier.name)}" if is_staff(user) else user["label"]
 
 
 def _suppliers(db: Session) -> list[Supplier]:
     return db.scalars(select(Supplier).order_by(Supplier.name)).all()
 
 
-def _detail(request: Request, db: Session, o: Order, user: dict, error: str = "", status_code: int = 200):
+def _detail(request: Request, db: Session, o: Order, user: dict, error: str = "", status_code: int = 200,
+            saved: bool = False):
     t = today()
     r = svc.build_row(o, t)
     st = r.stages
     tracked = svc.tracked_units(o)
-    lead = params_for(o.product, get_settings(db)).lead_time
+    lead = params_for(o.product, get_settings(db, o.company_id)).lead_time
     staff = is_staff(user)
     ctx = {
-        "o": o, "r": r, "st": st, "open": svc.is_open(o), "error": error, "staff": staff,
+        "o": o, "r": r, "st": st, "open": svc.is_open(o), "error": error, "staff": staff, "saved": saved,
         "steps": svc.order_steps(o, st), "tracked": tracked, "untracked": o.units - tracked,
         "expected": expected_arrival(o.created_at.date(), lead), "lead_time": lead,
         "events": list(reversed(o.events)),
@@ -66,7 +71,7 @@ def _run(request: Request, db: Session, o: Order, user: dict, action, to: str | 
 # ---- lists and the new order form ----
 
 def _supplier_list(request: Request, db: Session, user: dict, show: str):
-    rows = svc.list_orders(db, supplier_id=user["supplier_id"])
+    rows = svc.list_orders(db)
     head, sub = svc.supplier_headline(rows, user["supplier"])
     shown = [r for r in rows if (r.stages.status in svc.DONE) == (show == "arrived")]
     open_n = sum(1 for r in rows if r.stages.status not in svc.DONE)
@@ -84,11 +89,13 @@ def orders(request: Request, product: str = "", status: str = "", chase: str = "
     product_id = int(product) if product.isdigit() else None
     status = status if status in svc.STATUSES else ""
     rows = svc.list_orders(db, product_id, status or None, only_chase=bool(chase))
+    products = db.scalars(select(Product).order_by(Product.name)).all()
+    can_order = bool(products and _suppliers(db))  # a company with no product or supplier cannot place an order yet
     if request.headers.get("HX-Request") and request.headers.get("HX-Target") == "order-list":
-        return templates.TemplateResponse(request, "partials/order_list.html", {"rows": rows})
+        return templates.TemplateResponse(request, "partials/order_list.html", {"rows": rows, "can_order": can_order})
     return templates.TemplateResponse(request, "orders.html", {
         "rows": rows, "headline": svc.orders_headline(svc.list_orders(db)),
-        "products": db.scalars(select(Product).order_by(Product.name)).all(), "statuses": svc.STATUSES,
+        "products": products, "statuses": svc.STATUSES, "can_order": can_order,
         "product": product_id, "status": status, "chase_only": bool(chase)})
 
 
@@ -97,6 +104,13 @@ def new_order_form(request: Request, product: int | None = None, product_id: int
                    units: int | None = None, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     """The New order dialog (HTMX) or, without JavaScript, the same form as a page."""
     t, settings = today(), get_settings(db)
+    missing = [name for name, found in (("a product", db.scalars(select(Product).limit(1)).first()),
+                                        ("a supplier", _suppliers(db))) if not found]
+    if missing:
+        message = f"Add {' and '.join(missing)} in Settings before placing an order."
+        if request.headers.get("HX-Request"):  # HTMX ignores error replies, so the dialog itself explains
+            return templates.TemplateResponse(request, "partials/dlg_setup.html", {"title": "Not ready to order", "message": message})
+        raise HTTPException(409, message)
     chosen = db.get(Product, product or product_id) if (product or product_id) else None
     if chosen is None:
         rows = report(db, t)
@@ -124,8 +138,9 @@ def create(product_id: int = Form(), supplier_id: int = Form(), units: int = For
 # ---- one order ----
 
 @router.get("/orders/{order_id}", response_class=HTMLResponse)
-def order_detail(request: Request, order_id: int, user: dict = Depends(require_user), db: Session = Depends(get_session)):
-    return _detail(request, db, _get(db, order_id, user), user)
+def order_detail(request: Request, order_id: int, saved: str = "", user: dict = Depends(require_user),
+                 db: Session = Depends(get_session)):
+    return _detail(request, db, _get(db, order_id, user), user, saved=saved == "tracking")
 
 
 @router.get("/orders/{order_id}/dialog/{what}", response_class=HTMLResponse)
@@ -151,7 +166,8 @@ def dialog(request: Request, order_id: int, what: str, kind: str = "order", user
     elif what == "tracking":
         if not svc.is_open(o) or o.units - tracked <= 0:
             raise HTTPException(409, "This order has nothing left to track")
-        ctx |= {"left": o.units - tracked, "carriers": CARRIERS}
+        ctx |= {"left": o.units - tracked, "carriers": CARRIERS, "staff": is_staff(user), "by": _by(user, o),
+                "supplier": messages.short_name(o.supplier.name)}
     elif what == "edit":
         ctx |= {"suppliers": _suppliers(db), "floor": max(tracked, r.stages.arrived, 1)}
     elif what != "delete":
@@ -164,7 +180,7 @@ def dialog(request: Request, order_id: int, what: str, kind: str = "order", user
 @router.post("/orders/{order_id}/confirm")
 def confirm(request: Request, order_id: int, user: dict = Depends(require_user), db: Session = Depends(get_session)):
     o = _get(db, order_id, user)
-    return _run(request, db, o, user, lambda: svc.confirm_order(db, o, user["label"]))
+    return _run(request, db, o, user, lambda: svc.confirm_order(db, o, _by(user, o)))
 
 
 @router.post("/orders/{order_id}/tracking")
@@ -172,7 +188,8 @@ def add_tracking(request: Request, order_id: int, number: str = Form(max_length=
                  carrier: str = Form("", pattern="^(|UPS|FedEx|USPS|DHL)$"), user: dict = Depends(require_user),
                  db: Session = Depends(get_session)):
     o = _get(db, order_id, user)
-    return _run(request, db, o, user, lambda: svc.add_tracking(db, o, number, carrier, units, user["label"]))
+    return _run(request, db, o, user, lambda: svc.add_tracking(db, o, number, carrier, units, _by(user, o)),
+                to=f"/orders/{o.id}?saved=tracking")
 
 
 @router.post("/orders/{order_id}/tracking/{tracking_id}/remove")

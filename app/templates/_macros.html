@@ -23,6 +23,13 @@
    o.name ~ ": " ~ st.placed ~ " placed, " ~ st.in_production ~ " in production, " ~ st.on_the_way ~ " on the way, " ~ st.arrived ~ " arrived", width) }}
 {%- endmacro %}
 
+{# a filled password input with a lock icon and a show/hide eye; app.js flips the input between password and text #}
+{% macro password_field(id, name, placeholder, autocomplete, error=false) -%}
+<span class="ifield {{ 'err' if error }}"><span class="lead">{{ icon("lock") }}</span>
+  <input id="{{ id }}" name="{{ name }}" type="password" required maxlength="200" autocomplete="{{ autocomplete }}" placeholder="{{ placeholder }}" aria-label="{{ placeholder }}">
+  <button class="pwtoggle" type="button" data-toggle-password aria-pressed="false" aria-label="Show password" title="Show password"><span class="eye-on">{{ icon("eye") }}</span><span class="eye-off">{{ icon("eye-off") }}</span></button></span>
+{%- endmacro %}
+
 {% macro stage_legend() -%}
 <div class="legend hide-narrow"><span>Stage bar:</span><span><i class="k st1"></i>Placed</span><span><i class="k st2"></i>In production</span><span><i class="k st3"></i>On the way</span><span><i class="k st4"></i>Arrived</span></div>
 {%- endmacro %}

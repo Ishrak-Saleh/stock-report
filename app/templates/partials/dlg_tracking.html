@@ -11,6 +11,7 @@
         <select name="carrier"><option value="">Detect from the number</option>{% for c in carriers %}<option>{{ c }}</option>{% endfor %}</select>
       </label>
       <div class="callout info">{{ icon("circle-alert") }}<span>{{ left|num }} units are left to track. You can add more tracking numbers later.</span></div>
+      {% if staff %}<div class="callout info">{{ icon("user") }}<span>You are entering this for {{ supplier }}. The history will show "{{ by }}".</span></div>{% endif %}
       <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Cancel</button><button class="btn primary" type="submit">Add tracking</button></div></div>
     </form>
   </div>
