@@ -17,7 +17,7 @@
 {% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
 
 <div class="panel">
-  <div class="phead"><div><h3>Due now</h3><div class="sub">Most overdue first</div></div>
+  <div class="phead"><div><h3>Due now</h3><div class="sub">Empty shelf first, then most overdue</div></div>
     <span class="seg" role="group" aria-label="Alert type">
       <a href="/chase" {% if not kind %}aria-current="true"{% endif %}>All {{ all_due }}</a>
       {% for k, label in labels.items() %}<a href="/chase?kind={{ k }}" {% if kind == k %}aria-current="true"{% endif %}>{{ label.replace("Ask ", "").capitalize() }} {{ counts[k] }}</a>{% endfor %}
@@ -28,7 +28,8 @@
   {% for c in due %}{% set r = c.row %}{% set ch = r.chase %}
   <div class="orow cr">
     <div class="cell"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b></div>
-    <div class="cell"><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div></div>
+    <div class="cell"><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div>
+      {% if r.empty_before %}{{ badge("serious", "triangle-alert", "Shelf empty " ~ r.empty_before ~ (" day" if r.empty_before == 1 else " days")) }}{% endif %}</div>
     <div class="cell"><span class="lab">Days waited</span>{{ charts.dot_plot(ch.days, ch.threshold, ch.over, "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold) }}
       <div class="small">{{ ch.days }} days · limit {{ ch.threshold }} · {{ ch.over }} over</div></div>
     <div class="cell"><span class="lab">Alert</span>{{ badge("serious" if ch.over >= 8 else "warn", kind_icon[ch.kind], labels[ch.kind]) }}</div>

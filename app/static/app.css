@@ -138,6 +138,19 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .error { background: color-mix(in srgb, var(--s-crit) 16%, var(--panel)); border-radius: var(--r-sm); padding: 8px 12px; display: flex; gap: 8px; }
 .error .ic { color: var(--s-crit); margin-top: 2px; }
 
+/* Warning symbols with a card of details (Stock rows): opens on hover or focus on a computer, by tap on a phone (app.js) */
+.tipwrap { display: inline-flex; }
+.tipbtn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0;
+  border-radius: var(--r-sm); background: none; color: var(--c, var(--muted)); cursor: pointer; }
+.tipbtn.crit { --c: var(--s-crit); } .tipbtn.serious { --c: var(--s-serious); } .tipbtn.warn { --c: var(--s-warn); } .tipbtn.good { --c: var(--s-good); }
+.tipbtn[aria-expanded="true"] { background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); }
+@media (hover: hover) and (pointer: fine) { .tipbtn:hover { background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); } }
+.tipcard { position: fixed; z-index: 20; display: flex; flex-direction: column; gap: 4px; width: max-content; max-width: 280px; padding: 8px 12px;
+  background: var(--raised); box-shadow: var(--ring); border-radius: var(--r-sm); font: var(--t-body-sm); color: var(--ink); pointer-events: none; }
+.tipcard[hidden] { display: none; }
+.tipcard b { font-weight: var(--w-medium); }
+.tipcard span { color: var(--ink2); }
+
 /* Badges */
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-sm); font: var(--t-label-md); white-space: nowrap; color: var(--ink);
   background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); }
@@ -181,7 +194,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .crow { display: grid; grid-template-columns: 96px minmax(200px, 1.2fr) minmax(280px, 1fr) 152px; gap: 12px; align-items: center; }
 .pname strong { font-weight: var(--w-medium); }
 .pname .code { color: var(--muted); font: var(--t-body-sm); margin-left: 4px; }
-.pname .flags { margin-top: 4px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.pname .flags { margin-top: 4px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; align-items: center; }
 .cell .lab { display: none; font: var(--t-body-sm); color: var(--muted); }
 .cell .big { font-weight: var(--w-medium); font-variant-numeric: tabular-nums; }
 .cell div.small { font: var(--t-body-sm); color: var(--ink2); font-variant-numeric: tabular-nums; }
@@ -412,6 +425,7 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
   dialog.modal { padding: 16px; }
 }
 @media (pointer: coarse) {
+  .tipbtn::after { content: ""; position: absolute; inset: -10px; }  /* a 44 px tap target around the 24 px symbol */
   .btn, .tab, .iconbtn, .field input, .field select { min-height: 44px; }
   .avatar { width: 44px; height: 44px; }
   .qty button { width: 44px; }

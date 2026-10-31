@@ -8,7 +8,7 @@
   {% else %}<a class="btn" href="/settings">Add a product and a supplier first</a>{% endif %}
 </div>
 <div class="panel">
-  <div class="phead"><div><h3>Orders</h3><div class="sub">Needs attention first</div></div></div>
+  <div class="phead"><div><h3>Orders</h3><div class="sub">Empty shelf first, then needs attention</div></div></div>
   <form class="filters" hx-get="/orders" hx-target="#order-list" hx-trigger="change" hx-push-url="true">
     <span class="seg" role="group" aria-label="Show">
       <label><input type="radio" name="chase" value="" {{ "checked" if not chase_only }}>All</label>

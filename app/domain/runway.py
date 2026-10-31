@@ -24,6 +24,43 @@ class Runway:
         return sum(b - a for a, b in self.empty)
 
 
+@dataclass(frozen=True)
+class Gap:
+    """Will the shelf be empty before the orders arrive? Estimated: landing dates are an assumption."""
+    empty_days: int                 # whole days with no stock inside the horizon (a part-day counts as 1)
+    starts_in: float                # days from today until stock first hits 0 (0 = already empty)
+    first_landing: Landing | None   # the first order landing at or after that point, inside the horizon
+    horizon: int
+
+
+def whole_days(days: float) -> int:
+    """Round empty time to whole days, but never show a real gap as 0."""
+    return 0 if days < 1e-6 else max(1, round(days))
+
+
+def gap_of(a: Runway, landings: list[Landing], horizon: int) -> Gap | None:
+    """None when stock never runs out inside the horizon. `a` is the projection of the current orders only."""
+    if not a.empty:
+        return None
+    start = a.empty[0][0]
+    coming = [lnd for lnd in landings if start <= lnd.day <= horizon]
+    return Gap(whole_days(a.empty_days), start, min(coming, key=lambda lnd: lnd.day, default=None), horizon)
+
+
+def empty_before(a: Runway, day: float) -> int:
+    """Empty days that happen before `day`: for one order, the gap that opens before it lands."""
+    return whole_days(sum(max(0.0, min(end, day) - start) for start, end in a.empty))
+
+
+def window_insight(g: Gap | None, lead_time: int) -> str:
+    """The gap nobody can prevent today: an order placed now lands on day `lead_time`, so empty days before that stay empty."""
+    if not g:
+        return ""
+    one = g.empty_days == 1
+    return (f"{g.empty_days} {'day' if one else 'days'} with no stock {'comes' if one else 'come'} before day {lead_time} "
+            "and cannot be prevented by ordering today.")
+
+
 def landing_day(expected: date, today: date) -> int:
     """Days from today until an order is expected. An order already overdue is assumed to land tomorrow."""
     return max(1, (expected - today).days)
@@ -63,7 +100,7 @@ def insight(a: Runway, lands_on: int | None, horizon: int) -> str:
     """The one sentence under the chart: does stock run out even if every order lands on time?"""
     if not a.empty:
         return f"Stock lasts the next {horizon} days if every order lands on time."
-    days = round(a.empty_days)
+    days = whole_days(a.empty_days)
     text = (f"Stock is empty for about {days} {'day' if days == 1 else 'days'} in the next {horizon}, "
             f"starting on day {int(a.empty[0][0])}, even if every order lands on time.")
     if lands_on and a.empty[0][0] < lands_on:

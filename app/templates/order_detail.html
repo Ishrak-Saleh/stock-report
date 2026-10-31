@@ -14,6 +14,9 @@
 {% if not open %}
 <div class="callout info">{{ icon("circle-alert") }}<span>This order is {{ st.status }}. It no longer counts as ordered on the Stock page.{% if st.status == "closed" %} Reopen it if more units are coming.{% endif %}</span></div>
 {% endif %}
+{% if staff and empty_before %}
+<div class="callout">{{ icon("triangle-alert") }}<span><strong>{{ o.product.name }} is empty for about {{ empty_before }} {{ "day" if empty_before == 1 else "days" }}</strong> before this order lands on {{ expected|short_date }} (an estimate: order date plus the {{ lead_time }}-day lead time).</span></div>
+{% endif %}
 {% if o.notes %}<p><strong>Notes:</strong> {{ o.notes }}</p>{% endif %}
 
 <div class="twocol">

@@ -66,7 +66,7 @@
   });
 
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape") closePops();
+    if (e.key === "Escape") { closePops(); tipHide(); }
     if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.href) { e.preventDefault(); window.location = e.target.dataset.href; }
   });
 
@@ -99,6 +99,39 @@
     var wrap = e.target.closest("[data-chart]");
     wrap.querySelector(".xhair").setAttribute("visibility", "hidden"); wrap.querySelector(".tip").hidden = true;
   }, true);
+
+  /* ---- warning symbols: a small card opens on hover or focus, and by tap on a phone ---- */
+  var tipOpen = null;   // { btn, card, by }: the card that is showing, and what opened it (hover, focus or click)
+  function tipHide() {
+    if (!tipOpen) return;
+    tipOpen.card.hidden = true; tipOpen.btn.setAttribute("aria-expanded", "false"); tipOpen = null;
+  }
+  function tipShow(btn, by) {
+    if (tipOpen && tipOpen.btn === btn) { tipOpen.by = by; return; }
+    tipHide();
+    var card = btn.nextElementSibling;
+    card.hidden = false; btn.setAttribute("aria-expanded", "true");
+    var r = btn.getBoundingClientRect(), w = card.offsetWidth, h = card.offsetHeight, vw = document.documentElement.clientWidth;
+    var top = r.bottom + 4;
+    if (top + h > window.innerHeight - 8 && r.top - h - 4 > 8) top = r.top - h - 4;   // no room below: open above
+    card.style.left = Math.max(16, Math.min(r.left, vw - w - 16)) + "px"; card.style.top = top + "px";
+    tipOpen = { btn: btn, card: card, by: by };
+  }
+  function tipBtn(e) { return e.target.closest ? e.target.closest("[data-tip]") : null; }
+  document.addEventListener("pointerover", function (e) { var b = tipBtn(e); if (b && e.pointerType === "mouse") tipShow(b, "hover"); });
+  document.addEventListener("pointerout", function (e) {
+    var b = tipBtn(e);
+    if (b && e.pointerType === "mouse" && !b.contains(e.relatedTarget)) tipHide();
+  });
+  document.addEventListener("focusin", function (e) { var b = tipBtn(e); if (b) tipShow(b, "focus"); });
+  document.addEventListener("focusout", function (e) { if (tipBtn(e)) tipHide(); });
+  document.addEventListener("click", function (e) {
+    var b = tipBtn(e);
+    if (!b) { tipHide(); return; }
+    if (tipOpen && tipOpen.btn === b && tipOpen.by === "click") tipHide(); else tipShow(b, "click");   // a second tap closes it
+  });
+  window.addEventListener("scroll", tipHide, true);
+  window.addEventListener("resize", tipHide);
 
   /* ---- match editor: every unit must be assigned before Save turns on ---- */
   function splitUpdate(form) {

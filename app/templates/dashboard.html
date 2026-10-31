@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% from "_macros.html" import level_badge, dialog_link, stale_banner %}
+{% from "_macros.html" import tip_icon, dialog_link, stale_banner %}
 {% block title %}Stock · Stock Report{% endblock %}
 {% block stale %}{{ stale_banner(stale) }}{% endblock %}
 {% block content %}
+{% set lvl_icon = {"crit": "circle-alert", "serious": "triangle-alert", "warn": "clock", "good": "circle-check"} %}
 <div class="panel headline">
   <div class="sentence">{{ head.text }} {% if head.sub %}<span>{{ head.sub }}</span>{% endif %}</div>
   <div class="stack end">
@@ -26,11 +27,16 @@
     <span><i class="k ring"></i>Days including everything on order</span>
     <span><i class="k st1"></i>Placed <i class="k st2"></i>In production <i class="k st3"></i>On the way</span>
   </div>
+
   <div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span class="ta-r">In stock</span><span class="ta-r">Suggested order</span><span></span></div>
   {% for r in rows %}{% set f = r.forecast %}{% set p = r.product %}
   <div class="orow srow">
     <div class="pname"><a class="plain" href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a><span class="code">{{ p.code }}</span>
-      <div class="flags">{{ level_badge(r.flag.level, r.flag.label) }}{% if r.flag.note %}<span class="meta">{{ r.flag.note }}</span>{% endif %}</div></div>
+      <div class="flags">{{ tip_icon(r.flag.level, lvl_icon[r.flag.level], r.flag.label, [r.flag.note] if r.flag.note else []) }}
+        {%- if r.gap %}{{ tip_icon("serious", "calendar-x", "Empty " ~ r.gap.empty_days ~ (" day" if r.gap.empty_days == 1 else " days"), [
+          "Days with no stock before a new order placed today could arrive, if every order lands on its expected date.",
+          ("First order: " ~ r.gap.first_landing.name ~ ", " ~ (r.gap_lands_on|short_date) ~ " (est.)") if r.gap_lands_on else
+          ("No order covers it, and a new one takes " ~ r.gap.horizon ~ " days.")]) }}{% endif %}</div></div>
     <div class="cell"><span class="lab">Runway</span>
       {{ charts.bullet(f.days_of_stock, f.days_with_ordered, r.flag.level, r.reorder_line,
           (f.days_of_stock|days ~ " days left, " ~ f.days_with_ordered|days ~ " including orders, reorder line at " ~ r.reorder_line ~ " days") if f.days_of_stock is not none else "No sales, so days left cannot be worked out", w=232) }}
@@ -62,6 +68,7 @@
   <div class="empty">{{ icon("package", 24) }}<strong>No products match this filter</strong><a class="btn small" href="/">Show all products</a></div>
   {% endif %}
   {% endfor %}
+  <p class="meta mt12">Hover over an icon, or tap it on a phone, for details. Empty: days with no stock before a new order placed today could arrive (your lead time), if sales keep their pace and every order lands on its expected date (order date plus lead time). Ordering today cannot prevent them. Arrival dates are an estimate.</p>
 </div>
 
 <div class="panel">

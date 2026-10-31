@@ -7,7 +7,7 @@ from app.db import get_session
 from app.deps import require_staff
 from app.models import Order, Outbox
 from app.services import chase as svc
-from app.services.products import get_settings
+from app.services.products import gap_risk, get_settings, report
 from app.templating import templates
 
 router = APIRouter()
@@ -15,7 +15,7 @@ KIND_LABELS = {"confirm": "Ask to confirm", "tracking": "Ask for tracking", "whe
 
 
 def _page(request: Request, db: Session, kind: str = "", error: str = "", code: int = 200):
-    due, quiet = svc.chase_list(db, today())
+    due, quiet = svc.chase_list(db, today(), gap_risk(report(db, today())))
     shown = [c for c in due if not kind or c.row.chase.kind == kind]
     late = sum(1 for c in due if c.row.chase.over >= 8)
     return templates.TemplateResponse(request, "chase.html", {

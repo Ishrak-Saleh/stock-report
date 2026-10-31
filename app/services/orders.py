@@ -9,7 +9,8 @@ from app.config import today as store_today
 from app.domain.carriers import clean, detect_carrier
 from app.domain.chase import Chase, chase_of
 from app.domain.messages import chase_step, quiet_step
-from app.domain.orders import Stages, stages, tracking_fits
+from app.domain.orders import Stages, expected_arrival, stages, tracking_fits
+from app.domain.runway import Runway, empty_before, landing_day
 from app.models import AlertLog, Order, OrderEvent, Outbox, Product, Tracking
 
 STATUSES = ["placed", "in production", "on the way", "partial", "received", "closed", "cancelled"]
@@ -28,6 +29,7 @@ class OrderRow:
     stages: Stages
     chase: Chase | None
     age: int  # days since it was placed
+    empty_before: int = 0  # empty-shelf days that open up before this order lands (0 unless list_orders was given `risk`)
 
     @property
     def attention(self) -> int:
@@ -76,17 +78,30 @@ def tracked_units(o: Order) -> int:
     return sum(t.units for t in o.trackings)
 
 
+def shelf_gap(o: Order, risk: dict[int, tuple[Runway, int]], today: date) -> int:
+    """Empty days that open up before this order lands, from its product's stock projection. 0 for an order that is
+    finished or whose product has no sales."""
+    if o.product_id not in risk or not is_open(o) or order_stages(o).to_come <= 0:
+        return 0
+    runway, lead_time = risk[o.product_id]
+    return empty_before(runway, landing_day(expected_arrival(o.created_at.date(), lead_time), today))
+
+
 def list_orders(db: Session, product_id: int | None = None, status: str | None = None, only_chase: bool = False,
-                today: date | None = None) -> list[OrderRow]:
+                today: date | None = None, risk: dict[int, tuple[Runway, int]] | None = None) -> list[OrderRow]:
     """Orders that need attention first (most overdue on top), finished orders last. A supplier session only
-    ever sees its own orders, because the database session filters them (app/tenancy.py)."""
+    ever sees its own orders, because the database session filters them (app/tenancy.py). With `risk` (staff only,
+    from products.gap_risk), orders whose product runs dry before they land come first, most empty days on top."""
     today = today or store_today()
     q = select(Order).options(selectinload(Order.trackings), selectinload(Order.allocations), joinedload(Order.product), joinedload(Order.supplier))
     if product_id:
         q = q.where(Order.product_id == product_id)
     rows = [build_row(o, today) for o in db.scalars(q)]
     rows = [r for r in rows if (not status or r.stages.status == status) and (not only_chase or r.chase)]
-    return sorted(rows, key=lambda r: (-r.attention, -r.age))
+    if risk:
+        for r in rows:
+            r.empty_before = shelf_gap(r.order, risk, today)
+    return sorted(rows, key=lambda r: (-r.empty_before, -r.attention, -r.age))
 
 
 def orders_headline(rows: list[OrderRow]) -> str:

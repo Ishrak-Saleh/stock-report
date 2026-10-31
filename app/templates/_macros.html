@@ -6,6 +6,12 @@
 {{ badge(level, {"crit": "circle-alert", "serious": "triangle-alert", "warn": "clock", "good": "circle-check"}[level], text) }}
 {%- endmacro %}
 
+{# A warning symbol with a small card of details. app.js opens the card on hover or keyboard focus, and by tap on a phone.
+   The same text is in the button's aria-label, so a screen reader never needs the card. #}
+{% macro tip_icon(level, icon_name, title, lines=[]) -%}
+<span class="tipwrap"><button type="button" class="tipbtn {{ level }}" data-tip aria-expanded="false" aria-label="{{ title }}{% if lines %}. {{ lines|join(' ') }}{% endif %}">{{ icon(icon_name) }}</button><span class="tipcard" role="tooltip" hidden><b>{{ title }}</b>{% for l in lines %}<span>{{ l }}</span>{% endfor %}</span></span>
+{%- endmacro %}
+
 {% macro status_badge(status) -%}
 {% set m = {"placed": ["", "clock"], "in production": ["info", "package"], "on the way": ["info", "truck"], "partial": ["info", "truck"],
             "received": ["good", "circle-check"], "closed": ["", "x"], "cancelled": ["", "x"]}[status] %}

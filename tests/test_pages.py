@@ -58,7 +58,9 @@ def test_orders_page_ranks_by_attention(client):
     t = text(client.get("/orders"))
     assert "5 orders need a message. MON-001 is complete." in t
     assert t.count('class="orow link"') == 6
-    assert t.index("HDP-001") < t.index("KEY-001") < t.index("MOU-001") and t.rindex("MON-001") > t.rindex("MOU-002")
+    # Orders whose product runs dry before they land come first (PHN-001, MOU-002, MOU-001), then most overdue.
+    assert t.index("PHN-001") < t.index("MOU-002") < t.index("MOU-001") < t.index("HDP-001") < t.index("KEY-001")
+    assert t.rindex("MON-001") > t.rindex("KEY-001")
     assert "Ask Nova where it is" in t and "Ask Nova for tracking" in t and "Ask Acme to confirm" in t
 
 

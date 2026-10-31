@@ -11,7 +11,7 @@ from app.domain.carriers import CARRIERS
 from app.domain.orders import expected_arrival
 from app.models import Order, Product, Supplier
 from app.services import orders as svc
-from app.services.products import get_settings, params_for, product_row, report
+from app.services.products import gap_risk, get_settings, params_for, product_row, report
 from app.templating import templates
 
 router = APIRouter()
@@ -44,10 +44,12 @@ def _detail(request: Request, db: Session, o: Order, user: dict, error: str = ""
     tracked = svc.tracked_units(o)
     lead = params_for(o.product, get_settings(db, o.company_id)).lead_time
     staff = is_staff(user)
+    # How many empty-shelf days open up before this order lands. Staff only: a supplier cannot see the other orders.
+    empty = svc.shelf_gap(o, gap_risk([product_row(db, o.product, get_settings(db, o.company_id), t)]), t) if staff else 0
     ctx = {
         "o": o, "r": r, "st": st, "open": svc.is_open(o), "error": error, "staff": staff, "saved": saved,
         "steps": svc.order_steps(o, st), "tracked": tracked, "untracked": o.units - tracked,
-        "expected": expected_arrival(o.created_at.date(), lead), "lead_time": lead,
+        "expected": expected_arrival(o.created_at.date(), lead), "lead_time": lead, "empty_before": empty,
         "events": list(reversed(o.events)),
         "takeaway": messages.takeaway(
             status=st.status, units=o.units, arrived=st.arrived, remaining=o.units - st.arrived,
@@ -88,7 +90,7 @@ def orders(request: Request, product: str = "", status: str = "", chase: str = "
         return _supplier_list(request, db, user, show if show == "arrived" else "open")
     product_id = int(product) if product.isdigit() else None
     status = status if status in svc.STATUSES else ""
-    rows = svc.list_orders(db, product_id, status or None, only_chase=bool(chase))
+    rows = svc.list_orders(db, product_id, status or None, only_chase=bool(chase), risk=gap_risk(report(db, today())))
     products = db.scalars(select(Product).order_by(Product.name)).all()
     can_order = bool(products and _suppliers(db))  # a company with no product or supplier cannot place an order yet
     if request.headers.get("HX-Request") and request.headers.get("HX-Target") == "order-list":

@@ -8,11 +8,9 @@ from sqlalchemy.orm import Session
 from app.config import now
 from app.config import today as store_today
 from app.domain.bundles import units_sold
-from app.domain.orders import expected_arrival
-from app.domain.runway import Landing, Runway, insight, landing_day, level_at, project
+from app.domain.runway import Landing, Runway, insight, level_at, project, window_insight
 from app.models import Product, StockMovement
-from app.services.orders import is_open, order_stages
-from app.services.products import ProductRow, get_settings, product_row
+from app.services.products import ProductRow, get_settings, open_landings, product_row
 
 KINDS = {"sale": ("Manual sale", -1), "damage": ("Damaged or lost", -1), "found": ("Found or recount", 1)}
 FILTERS = {"arrivals": ("arrival",), "moves": ("reallocation",), "manual": ("sale", "adjustment")}
@@ -128,6 +126,7 @@ class RunwayView:
     extra: Landing | None
     insight: str
     today: date
+    window: str = ""  # the empty days no new order can prevent (same number as the Stock row badge)
 
     @property
     def tick(self) -> int:
@@ -165,14 +164,10 @@ def runway_view(db: Session, product: Product, today: date, horizon: int = 90) -
     burn = row.forecast.adjusted_burn
     if burn <= 0:
         return None
-    landings = []
-    for o in product.orders:
-        st = order_stages(o)
-        if is_open(o) and st.to_come > 0:
-            day = landing_day(expected_arrival(o.created_at.date(), row.params.lead_time), today)
-            landings.append(Landing(day, st.to_come, o.name))
+    landings = open_landings(product, row.params.lead_time, today)
     extra = Landing(max(1, row.params.lead_time), row.forecast.suggested_order, "New order") \
         if row.forecast.suggested_order > 0 else None
     a = project(product.stock, burn, landings, horizon)
     b = project(product.stock, burn, landings, horizon, extra) if extra else None
-    return RunwayView(row, horizon, a, b, landings, extra, insight(a, extra.day if extra else None, horizon), today)
+    return RunwayView(row, horizon, a, b, landings, extra, insight(a, extra.day if extra else None, horizon), today,
+                      window_insight(row.gap, max(1, row.params.lead_time)))

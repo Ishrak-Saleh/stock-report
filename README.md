@@ -73,6 +73,12 @@ messages, arrivals with oldest-first matching and hand fixes, stock history and 
 overrides, the chase list with the 2-day repeat rule, a test-mode Outbox, an old-data warning, and staff and supplier
 logins. It works at 390px as well as on a laptop.
 
+Beyond the SOP, the **stock gap** says whether a product will have empty shelves that ordering today can no longer prevent: the days with no stock before a
+new order placed today could arrive (the product's lead time). Such a product gets a small orange calendar symbol under its name on the Stock page; hovering it (or tapping it on a phone) shows "Empty N days" and the
+first order that ends the gap. A product the SOP calls Healthy, or one with time left to reorder, never gets it. The Chase list, the Orders list and the order page show "Shelf empty N
+days" for orders whose product runs dry before they land, and those orders come first. It reuses the runway rules, changes no SOP number, and is staff only.
+Arrival dates are an estimate (order date plus lead time).
+
 ## Honest limits
 
 - Email is test mode only: messages are saved in the Outbox and nothing is delivered. "Send by email" on a message only opens

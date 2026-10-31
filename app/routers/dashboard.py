@@ -12,7 +12,7 @@ from app.domain.orders import expected_arrival
 from app.models import Product
 from app.seed import sample_suppliers, seed
 from app.services import orders as order_svc
-from app.services.products import FILTERS, counts, get_settings, product_row, report, stock_headline
+from app.services.products import FILTERS, counts, gap_risk, get_settings, product_row, report, stock_headline
 from app.services.settings import stale_days
 from app.templating import templates
 
@@ -32,7 +32,7 @@ def dashboard(request: Request, show: str = "", user: dict = Depends(require_use
         "head": stock_headline(all_rows),
         "counts": counts(all_rows),
         "show": show if flt else "",
-        "chase": order_svc.list_orders(db, only_chase=True, today=t)[:5],
+        "chase": order_svc.list_orders(db, only_chase=True, today=t, risk=gap_risk(all_rows))[:5],
         "settings": settings,
         "last_full_day": t - timedelta(days=1),
         "stale": stale_days(settings, t),

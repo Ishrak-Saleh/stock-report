@@ -30,12 +30,14 @@ def add(client, name: str, kind: str):
     return client.post(f"/chase/{oid(name)}/outbox", data={"kind": kind})
 
 
-def test_the_list_is_ranked_by_days_past_the_limit(client):
+def test_the_list_is_ranked_by_empty_shelf_days_then_days_past_the_limit(client):
     t = text(client.get("/chase"))
     assert "5 orders need chasing, and 5 are due a message today." in t
     assert "2 are more than a week past the limit." in t
     due = t.split("Due now")[1]
-    assert due.index("HDP-001") < due.index("KEY-001") < due.index("MOU-001") < due.index("PHN-001") < due.index("MOU-002")
+    # The stock gap feature puts orders whose product runs dry before they land first (PHN-001 33 empty days, MOU-002 22,
+    # MOU-001 6); the rest keep the old order, most days past the SOP limit first.
+    assert due.index("PHN-001") < due.index("MOU-002") < due.index("MOU-001") < due.index("HDP-001") < due.index("KEY-001")
     assert "Ask where it is" in t and "Ask for tracking" in t and "Ask to confirm" in t
     assert t.count("btn primary") == 1 and "Add 5 messages to the Outbox" in t
 

@@ -35,11 +35,12 @@ class ChaseRow:
         return self.next_on is None
 
 
-def chase_list(db: Session, today: date) -> tuple[list[ChaseRow], list[ChaseRow]]:
-    """(due now, chased recently). The most overdue order is first in each."""
+def chase_list(db: Session, today: date, risk: dict | None = None) -> tuple[list[ChaseRow], list[ChaseRow]]:
+    """(due now, chased recently). The most overdue order is first in each. With `risk` (see products.gap_risk), orders
+    whose product runs dry before they land come first."""
     sent = {(a.order_id, a.kind): a.last_sent_at for a in db.scalars(select(AlertLog))}
     due, quiet = [], []
-    for r in order_svc.list_orders(db, only_chase=True, today=today):
+    for r in order_svc.list_orders(db, only_chase=True, today=today, risk=risk):
         last = sent.get((r.order.id, r.chase.kind))
         ago = None if last is None else (today - last.date()).days
         if due_again(ago):
