@@ -1,8 +1,9 @@
 from datetime import date, timedelta
 
-from app.domain.chase import Chase, chase_of, due_again
+from app.domain.chase import Chase, chase_of, days_until_again, due_again
 from app.domain.forecast import LEVEL_RANK, Params, compute, main_flag, order_options
-from app.domain.messages import chase_step, follow_up, order_message, quiet_step, takeaway
+from app.domain.messages import (chase_step, follow_up, follow_up_subject, gmail_link, mailto_link, order_message, order_subject,
+                                 parse_follow_up_subject, quiet_step, takeaway)
 from app.domain.orders import expected_arrival
 
 TODAY = date(2026, 10, 29)
@@ -49,6 +50,7 @@ def test_most_overdue_reason_wins():
 
 def test_alert_repeats_at_most_every_two_days():
     assert due_again(None) and due_again(2) and not due_again(1)
+    assert [days_until_again(n) for n in (0, 1, 2, 3)] == [2, 1, 0, 0]
 
 
 # ---- the one main flag ----
@@ -114,6 +116,28 @@ def test_takeaway_sentences():
         "120 units shipped 14 days ago and haven't arrived. Ask Acme where it is."
     assert takeaway(chase=None, **kw) == "120 units are still to come. Nothing to chase yet."
     assert takeaway(chase=None, **(kw | dict(status="received", remaining=0))) == "All 120 units arrived. Nothing left to do."
+
+
+def test_the_email_link_encodes_the_message_so_a_mail_app_shows_it_as_typed():
+    link = mailto_link("acme@acme.example.com", "New order MOU-003", "Hi Acme,\n\nUnits: 1,200 & more? Café")
+    assert link == ("mailto:acme@acme.example.com?subject=New%20order%20MOU-003"
+                    "&body=Hi%20Acme%2C%0A%0AUnits%3A%201%2C200%20%26%20more%3F%20Caf%C3%A9")
+    assert "+" not in link and mailto_link("", "S", "B") == "mailto:?subject=S&body=B"
+    assert order_subject("MOU-003") == "New order MOU-003"
+
+
+def test_a_follow_up_subject_can_be_read_back_into_its_kind_and_order():
+    for kind in ("confirm", "tracking", "where"):
+        assert parse_follow_up_subject(follow_up_subject(Chase(kind, 5, 2, 3), "MOU-003")) == (kind, "MOU-003")
+    assert parse_follow_up_subject("Test: Reorder alert: 2 products need a reorder") is None
+    assert parse_follow_up_subject("Where is order ?") is None and parse_follow_up_subject("New order MOU-003") is None
+
+
+def test_the_gmail_link_fills_in_to_subject_and_body():
+    link = gmail_link("acme@acme.example.com", "New order MOU-003", "Hi Acme,\n\nUnits: 1,200 & more? a+b Café")
+    assert link == ("https://mail.google.com/mail/?view=cm&fs=1&to=acme%40acme.example.com&su=New%20order%20MOU-003"
+                    "&body=Hi%20Acme%2C%0A%0AUnits%3A%201%2C200%20%26%20more%3F%20a%2Bb%20Caf%C3%A9")
+    assert gmail_link("", "S", "B").endswith("&to=&su=S&body=B")
 
 
 def test_messages_name_the_order_and_sender():

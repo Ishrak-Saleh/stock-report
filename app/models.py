@@ -148,6 +148,8 @@ class Outbox(Tenant, Base):
     body: Mapped[str]
     at: Mapped[datetime]
     kind: Mapped[str] = mapped_column(default="")  # follow-up | alert | test
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("order.id"), default=None)  # the order a follow-up is about
+    follow_up_kind: Mapped[str] = mapped_column(default="")  # confirm | tracking | where, for follow-ups
 
 
 class Settings(Tenant, Base):

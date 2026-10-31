@@ -7,9 +7,16 @@
       <div class="msgbox" id="msg-text">{{ m.body }}</div>
     </div>
     <div class="callout info">{{ icon("circle-alert") }}<span>Test mode: this message was saved and not delivered.</span></div>
+    {% if wait %}
+    <div class="callout info">{{ icon("clock") }}<span><strong>{{ wait[0] }} day{{ "s" if wait[0] != 1 }} left</strong> before this order can be chased about this again ({{ wait[1]|short_date }}).</span></div>
+    {% elif m.kind == "follow-up" and m.order_id %}
+    <div class="callout info">{{ icon("clock") }}<span>No wait left. This order can be chased again now.</span></div>
+    {% endif %}
     <div class="mfoot">
       <span class="meta" id="copy-state" aria-live="polite"></span>
-      <div class="row"><button class="btn quiet" type="button" data-close>Close</button><button class="btn" type="button" data-copy="msg-text">{{ icon("copy") }}Copy message</button></div>
+      <div class="row"><button class="btn quiet" type="button" data-close>Close</button>
+        <a class="btn danger" href="/outbox/{{ m.id }}/delete" hx-get="/outbox/{{ m.id }}/delete" hx-target="#modal-host" hx-swap="innerHTML">Delete</a>
+        <button class="btn" type="button" data-copy="msg-text">{{ icon("copy") }}Copy message</button></div>
     </div>
   </div>
 </dialog>

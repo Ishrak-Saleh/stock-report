@@ -265,7 +265,7 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .lhead.mhead, .orow.mrow2 { grid-template-columns: 120px 168px 72px 88px minmax(160px, 1fr) 96px; }
 .lhead.chead, .orow.cr { grid-template-columns: 88px minmax(160px, 1.3fr) 176px 168px minmax(180px, auto); }
 .lhead.qhead, .orow.qr { grid-template-columns: 88px 168px 140px 1fr; }
-.lhead.ohead, .orow.orw { grid-template-columns: 112px minmax(180px, 1.2fr) minmax(200px, 1.6fr) 140px 88px; }
+.lhead.ohead, .orow.orw { grid-template-columns: 112px minmax(180px, 1.2fr) minmax(200px, 1.6fr) 140px 140px 88px; }
 .lhead.phd, .orow.prw { grid-template-columns: minmax(140px, 1.1fr) 56px minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(140px, 1.2fr) 72px; }
 .lhead.shd, .orow.srw { grid-template-columns: minmax(160px, 1.2fr) minmax(200px, 1.4fr) 120px 72px; }
 .lhead.sohead, .orow.sorow { grid-template-columns: 88px minmax(120px, 1fr) 64px 196px minmax(180px, 1fr) minmax(120px, auto); }

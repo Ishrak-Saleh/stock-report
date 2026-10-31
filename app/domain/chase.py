@@ -37,3 +37,8 @@ def chase_of(*, is_open: bool, remaining: int, confirmed: bool, created_days: in
 def due_again(last_sent_days_ago: int | None) -> bool:
     """True when a follow-up for this reason may be sent (or shown as due) again."""
     return last_sent_days_ago is None or last_sent_days_ago >= REPEAT_EVERY
+
+
+def days_until_again(last_sent_days_ago: int) -> int:
+    """Days left on the wait: 2 the day it was sent, 1 the next day, 0 once it may be sent again."""
+    return max(0, REPEAT_EVERY - last_sent_days_ago)

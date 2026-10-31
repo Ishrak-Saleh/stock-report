@@ -10,7 +10,7 @@ from app.domain.carriers import clean, detect_carrier
 from app.domain.chase import Chase, chase_of
 from app.domain.messages import chase_step, quiet_step
 from app.domain.orders import Stages, stages, tracking_fits
-from app.models import AlertLog, Order, OrderEvent, Product, Tracking
+from app.models import AlertLog, Order, OrderEvent, Outbox, Product, Tracking
 
 STATUSES = ["placed", "in production", "on the way", "partial", "received", "closed", "cancelled"]
 
@@ -249,5 +249,7 @@ def delete_order(db: Session, o: Order) -> None:
         raise OrderError("This order has arrivals matched to it, so it can't be deleted. Cancel or close it instead.")
     for log in db.scalars(select(AlertLog).where(AlertLog.order_id == o.id)):
         db.delete(log)
+    for m in db.scalars(select(Outbox).where(Outbox.order_id == o.id)):
+        m.order_id = None  # the saved message stays in the Outbox as a record, it just no longer points at an order
     db.delete(o)
     db.commit()

@@ -55,7 +55,8 @@
     <div class="cell"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b></div>
     <div class="cell">{{ badge("", kind_icon[r.chase.kind], labels[r.chase.kind]) }}</div>
     <div class="cell num"><span class="lab">Last sent</span>{{ c.last_sent|clock }}</div>
-    <div class="cell"><span class="lab">Next message</span>Can be sent again on <strong>{{ c.next_on|short_date }}</strong>. {{ r.step[2] }}.</div>
+    <div class="cell"><span class="lab">Next message</span><strong>{{ icon("clock") }} {{ c.days_left }} day{{ "s" if c.days_left != 1 }} left</strong>
+      <div class="small">Can be sent again on {{ c.next_on|short_date }}. {{ r.step[2] }}.</div></div>
   </div>
   {% endfor %}
 </div>

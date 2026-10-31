@@ -58,8 +58,9 @@ def outbox(request: Request, kind: str = "", user: dict = Depends(require_staff)
     kind = kind if kind in svc.KINDS else ""
     everything = svc.outbox(db)
     t = now().date()
+    rows = svc.outbox(db, kind)
     return templates.TemplateResponse(request, "outbox.html", {
-        "rows": svc.outbox(db, kind), "kind": kind, "kinds": svc.KINDS, "total": len(everything),
+        "rows": rows, "waits": svc.waits_for(db, rows, today()), "kind": kind, "kinds": svc.KINDS, "total": len(everything),
         "today_n": sum(1 for m in everything if m.at.date() == t), "mode": EMAIL_MODE,
         "counts": {k: sum(1 for m in everything if m.kind == k) for k in svc.KINDS}})
 
@@ -69,4 +70,24 @@ def outbox_message(request: Request, message_id: int, user: dict = Depends(requi
     m = db.get(Outbox, message_id)
     if not m:
         raise HTTPException(404, "Message not found")
-    return templates.TemplateResponse(request, "partials/dlg_outbox.html", {"m": m, "kinds": svc.KINDS})
+    return templates.TemplateResponse(request, "partials/dlg_outbox.html", {
+        "m": m, "kinds": svc.KINDS, "wait": svc.wait_for(db, m, today())})
+
+
+@router.get("/outbox/{message_id}/delete", response_class=HTMLResponse)
+def outbox_delete_dialog(request: Request, message_id: int, user: dict = Depends(require_staff),
+                         db: Session = Depends(get_session)):
+    m = db.get(Outbox, message_id)
+    if not m:
+        raise HTTPException(404, "Message not found")
+    return templates.TemplateResponse(request, "partials/dlg_outbox_delete.html", {
+        "m": m, "resets": m.kind == "follow-up" and m.order_id is not None})
+
+
+@router.post("/outbox/{message_id}/delete")
+def outbox_delete(message_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    m = db.get(Outbox, message_id)
+    if not m:
+        raise HTTPException(404, "Message not found")
+    svc.delete_message(db, m, user["label"])
+    return RedirectResponse("/outbox", status_code=303)

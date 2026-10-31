@@ -1,0 +1,14 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Delete saved message">
+  <div class="mbody">
+    {{ dialog_head("Delete this message?", m.subject) }}
+    {% if resets %}
+    <p class="muted">The 2-day wait for this order is cleared, so it goes back on the Chase list. The order's history will say the follow-up was removed.</p>
+    {% else %}
+    <p class="muted">This only removes the saved copy. Nothing was delivered, so nothing changes outside the app.</p>
+    {% endif %}
+    <form method="post" action="/outbox/{{ m.id }}/delete">
+      <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Keep it</button><button class="btn danger" type="submit">Yes, delete</button></div></div>
+    </form>
+  </div>
+</dialog>

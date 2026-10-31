@@ -101,6 +101,25 @@ def test_order_detail_leads_with_the_next_step(client):
     assert "All 100 units arrived" in t4 and "Cancel order" not in t4
 
 
+def test_the_message_dialog_opens_gmail_with_the_message_ready(client):
+    from html import unescape
+    from urllib.parse import parse_qs, unquote, urlsplit
+    gid = order_id("MOU-001")
+
+    def link(page, start):
+        return unescape(next(h for h in page.split('href="') if h.startswith(start)).split('"')[0])
+
+    for kind, subject, words in [("order", "New order MOU-001", "Please confirm this order"),
+                                 ("where", "Where is order MOU-001?", "1Z999AA10123456784")]:
+        page = text(client.get(f"/orders/{gid}/dialog/message?kind={kind}"))
+        assert "Send by email" in page and 'target="_blank" rel="noopener"' in page
+        q = parse_qs(urlsplit(link(page, "https://mail.google.com/mail/")).query)
+        assert q["to"] == ["acme@acme.example.com"] and q["su"] == [subject]
+        assert words in q["body"][0] and q["body"][0].startswith("Hi Acme,\n")
+        parts = urlsplit(link(page, "mailto:"))  # the fallback for people who do not use Gmail
+        assert unquote(parts.path) == "acme@acme.example.com" and parse_qs(parts.query)["subject"] == [subject]
+
+
 def test_dialogs(client):
     gid = order_id("MOU-001")
     m = text(client.get(f"/orders/{gid}/dialog/message?kind=where"))

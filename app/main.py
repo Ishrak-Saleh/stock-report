@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import SECRET_KEY, SESSION_HOURS
 from app.db import SessionLocal, engine
 from app.deps import LoginRequired
-from app.migrate import ensure_columns, ensure_current_schema
+from app.migrate import ensure_columns, ensure_current_schema, link_old_follow_ups
 from app.models import Base
 from app.routers import arrivals, auth, chase, dashboard, orders, products, settings
 from app.services.users import ensure_demo_users
@@ -24,6 +24,7 @@ async def lifespan(_: FastAPI):
     ensure_current_schema(engine)
     Base.metadata.create_all(engine)
     ensure_columns(engine)
+    link_old_follow_ups(engine)
     with SessionLocal() as db:
         password = ensure_demo_users(db)
     if password:  # shown once, never stored in the repo

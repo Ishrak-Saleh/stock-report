@@ -1,4 +1,6 @@
 """Plain-text messages and the short sentences the pages show. Pure functions."""
+from urllib.parse import quote
+
 from app.domain.chase import Chase
 
 
@@ -75,9 +77,36 @@ def order_message(*, supplier: str, order: str, product: str, code: str, units: 
     return "\n".join(lines)
 
 
+def order_subject(order: str) -> str:
+    return f"New order {order}"
+
+
+def mailto_link(to: str, subject: str, body: str) -> str:
+    """A link that opens the user's own mail app with the message filled in. Nothing is sent from here.
+    Spaces and new lines are percent-encoded (not '+'), because mail apps show a '+' as a plus sign."""
+    return f"mailto:{quote(to, safe='@')}?subject={quote(subject, safe='')}&body={quote(body, safe='')}"
+
+
+def gmail_link(to: str, subject: str, body: str) -> str:
+    """Opens a Gmail compose window in the browser with the message filled in. The user presses Send there; the app
+    sends nothing and talks to no one. Every value is percent-encoded so '&', '?', '+' and new lines survive."""
+    return ("https://mail.google.com/mail/?view=cm&fs=1"
+            f"&to={quote(to, safe='')}&su={quote(subject, safe='')}&body={quote(body, safe='')}")
+
+
 def follow_up_subject(chase: Chase, order: str) -> str:
     return {"confirm": f"Please confirm order {order}", "tracking": f"Tracking for order {order}"}.get(
         chase.kind, f"Where is order {order}?")
+
+
+def parse_follow_up_subject(subject: str) -> tuple[str, str] | None:
+    """(kind, order name) read back from a subject that follow_up_subject wrote, or None. It lets follow-ups saved
+    before the Outbox remembered an order be linked to theirs."""
+    for kind, (start, end) in {"confirm": ("Please confirm order ", ""), "tracking": ("Tracking for order ", ""),
+                               "where": ("Where is order ", "?")}.items():
+        if subject.startswith(start) and subject.endswith(end) and len(subject) > len(start) + len(end):
+            return kind, subject[len(start):len(subject) - len(end)]
+    return None
 
 
 def reorder_alert(items: list[tuple[str, float | None, int]], sender: str) -> tuple[str, str]:

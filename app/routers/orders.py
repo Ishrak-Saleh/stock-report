@@ -159,10 +159,14 @@ def dialog(request: Request, order_id: int, what: str, kind: str = "order", user
                 untracked=o.units - tracked, tracking_number=o.trackings[0].number if o.trackings else "",
                 created_days=r.age, sender=SENDER_NAME)
             ctx["chase_kind"] = kind
+            subject = messages.follow_up_subject(r.chase, o.name)
         else:
             ctx["message"] = messages.order_message(
                 supplier=o.supplier.name, order=o.name, product=o.product.name, code=o.product.code, units=o.units,
                 notes=o.notes, sender=SENDER_NAME)
+            subject = messages.order_subject(o.name)
+        ctx["gmail"] = messages.gmail_link(o.supplier.email, subject, ctx["message"])
+        ctx["mailto"] = messages.mailto_link(o.supplier.email, subject, ctx["message"])
     elif what == "tracking":
         if not svc.is_open(o) or o.units - tracked <= 0:
             raise HTTPException(409, "This order has nothing left to track")

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import SENDER_NAME, now
 from app.domain import messages
-from app.domain.chase import REPEAT_EVERY, due_again
+from app.domain.chase import REPEAT_EVERY, days_until_again, due_again
 from app.models import AlertLog, Order, Outbox
 from app.services import orders as order_svc
 from app.services.orders import OrderRow
@@ -28,6 +28,7 @@ class ChaseRow:
     row: OrderRow
     last_sent: datetime | None
     next_on: date | None  # when it can be sent again, if it was sent recently
+    days_left: int = 0    # days of the wait still to go
 
     @property
     def due(self) -> bool:
@@ -44,7 +45,7 @@ def chase_list(db: Session, today: date) -> tuple[list[ChaseRow], list[ChaseRow]
         if due_again(ago):
             due.append(ChaseRow(r, last, None))
         else:
-            quiet.append(ChaseRow(r, last, last.date() + timedelta(days=REPEAT_EVERY)))
+            quiet.append(ChaseRow(r, last, last.date() + timedelta(days=REPEAT_EVERY), days_until_again(ago)))
     return due, quiet
 
 
@@ -70,7 +71,8 @@ def add_follow_up(db: Session, o: Order, kind: str, today: date, by: str) -> Out
         raise ChaseError(f"{o.name} was chased on {log.last_sent_at:%b} {log.last_sent_at.day}. "
                          f"It can be sent again on {(log.last_sent_at.date() + timedelta(days=REPEAT_EVERY)):%b %d}.")
     subject, body = follow_up_text(o, r)
-    msg = Outbox(to=o.supplier.email, subject=subject, body=body, at=now(), kind="follow-up")
+    msg = Outbox(to=o.supplier.email, subject=subject, body=body, at=now(), kind="follow-up", order_id=o.id,
+                 follow_up_kind=kind)
     db.add(msg)
     if log:
         log.last_sent_at = now()
@@ -79,6 +81,44 @@ def add_follow_up(db: Session, o: Order, kind: str, today: date, by: str) -> Out
     order_svc.add_event(o, "follow-up saved", subject, by)
     db.commit()
     return msg
+
+
+def waits_for(db: Session, messages: list[Outbox], today: date) -> dict[int, tuple[int, date]]:
+    """For each follow-up whose 2-day wait is still running: message id -> (days left, the day it may be sent again).
+    One query for the whole list."""
+    sent = {(a.order_id, a.kind): a.last_sent_at.date() for a in db.scalars(select(AlertLog))}
+    out = {}
+    for m in messages:
+        if m.kind != "follow-up" or m.order_id is None or (m.order_id, m.follow_up_kind) not in sent:
+            continue
+        day = sent[(m.order_id, m.follow_up_kind)]
+        left = days_until_again((today - day).days)
+        if left:
+            out[m.id] = (left, day + timedelta(days=REPEAT_EVERY))
+    return out
+
+
+def wait_for(db: Session, m: Outbox, today: date) -> tuple[int, date] | None:
+    """(days left, the day it may be sent again) for one follow-up whose 2-day wait is still running, else None."""
+    return waits_for(db, [m], today).get(m.id)
+
+
+def delete_message(db: Session, m: Outbox, by: str) -> None:
+    """Remove a saved message. For a follow-up, the 2-day wait goes back to what the newest message left in the
+    Outbox says, or is cleared when none is left, so deleting an older duplicate changes nothing."""
+    order, kind = (db.get(Order, m.order_id) if m.order_id else None), m.follow_up_kind
+    db.delete(m)
+    db.flush()
+    if order and kind:
+        newest = db.scalars(select(Outbox).where(Outbox.order_id == order.id, Outbox.follow_up_kind == kind)
+                            .order_by(Outbox.at.desc(), Outbox.id.desc())).first()
+        log = db.scalars(select(AlertLog).where(AlertLog.order_id == order.id, AlertLog.kind == kind)).first()
+        if log and newest:
+            log.last_sent_at = newest.at
+        elif log:
+            db.delete(log)
+        order_svc.add_event(order, "follow-up removed", m.subject, by)
+    db.commit()
 
 
 def add_all_due(db: Session, today: date, by: str) -> int:

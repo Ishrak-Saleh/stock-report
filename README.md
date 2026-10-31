@@ -75,7 +75,10 @@ logins. It works at 390px as well as on a laptop.
 
 ## Honest limits
 
-- Email is test mode only: messages are saved in the Outbox and nothing is delivered.
+- Email is test mode only: messages are saved in the Outbox and nothing is delivered. "Send by email" on a message only opens
+  a Gmail compose tab with the supplier's address, subject and text filled in (a link next to it opens any other email app); you press Send there.
+  A saved follow-up can be deleted from the Outbox; that clears its 2-day wait so the order goes back on the Chase list. The Chase list and the Outbox
+  list show a clock with the days left on each wait.
 - Expected arrival is order date plus lead time. The SOP has no expected-date field, so this is an assumption.
 - The SOP's suggested order size ignores units already on order, so it can overshoot. The order dialog says so.
 - The warehouse count is the last count plus what is recorded in the app. Imported daily sales set the burn and do not
