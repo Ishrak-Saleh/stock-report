@@ -13,7 +13,7 @@
 {% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
 {% if notice %}<div class="callout good" role="status">{{ icon("circle-check") }}<span>{{ notice }}</span></div>{% endif %}
 <div class="row"><span class="seg" role="group" aria-label="Jump to a section">
-  <a href="#forecast">Forecast</a><a href="#products">Products {{ products|length }}</a><a href="#suppliers">Suppliers {{ suppliers|length }}</a><a href="#alerts">Alerts</a>
+  <a href="#forecast">Forecast</a><a href="#products">Products {{ products|length }}</a><a href="#suppliers">Suppliers {{ suppliers|length }}</a><a href="#sales">Sales</a><a href="#alerts">Alerts</a>
 </span></div>
 
 <div class="panel" id="forecast">
@@ -62,6 +62,16 @@
     <div class="cell act">{{ dialog_link("/settings/suppliers/" ~ sp.id, "Edit", "btn small quiet", "pencil") }}</div>
   </div>
   {% endfor %}
+</div>
+
+<div class="panel" id="sales">
+  <div class="phead"><div><h3>Sales import</h3><div class="sub">Daily sales from your shop or spreadsheet set the sales speed. Warehouse stock is not changed.</div></div>
+    <a class="btn small" href="/settings/sales/example.csv">Example file</a></div>
+  <form hx-post="/settings/sales/check" hx-target="#modal-host" hx-swap="innerHTML" hx-encoding="multipart/form-data" class="stack" style="gap:12px">
+    <label class="field" style="max-width:480px">CSV file<input name="file" type="file" accept=".csv,text/csv" required>
+      <span class="hint">Three columns: date, item, units. The item must be one of a product's sales identifiers (Settings, Products) or a bundle title. A day in the file replaces the saved number for that product and day.</span></label>
+    <div class="row"><button class="btn" type="submit">{{ icon("check") }}Check file</button><span class="meta">Nothing is saved until you press Import.</span></div>
+  </form>
 </div>
 
 <div class="panel" id="alerts">

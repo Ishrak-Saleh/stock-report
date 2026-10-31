@@ -1,0 +1,35 @@
+{% from "_macros.html" import dialog_head %}
+<dialog class="modal" aria-label="Sales import">
+  <div class="mbody">
+    {% if error %}
+    {{ dialog_head("This file cannot be imported") }}
+    <div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>
+    <div class="mfoot"><span class="meta">Nothing was saved.</span>
+      <div class="row"><button class="btn primary" type="button" data-close>Close</button></div></div>
+    {% else %}
+    {{ dialog_head("Check the sales file", (pv.rows|num) ~ " rows read · " ~ (pv.matched.matched|num) ~ " matched a product") }}
+    {% for c in pv.changes %}
+    <div class="alloc"><div><div class="strong">{{ c.product.name }} <span class="code">{{ c.product.code }}</span></div>
+        <div class="meta">{{ c.days|num }} day{{ "s" if c.days != 1 }} set{% if c.changed %} · {{ c.changed|num }} replace a different saved number{% endif %}</div></div>
+      <div class="strong">{{ c.units|num }} units</div></div>
+    {% else %}
+    <div class="callout warn">{{ icon("triangle-alert") }}<span>No row matched a product, so there is nothing to import.</span></div>
+    {% endfor %}
+    {% if pv.unknown %}
+    <div class="callout warn">{{ icon("triangle-alert") }}<span><strong>{{ pv.unknown|length }} item{{ "s" if pv.unknown|length != 1 }} not recognised and skipped:</strong>
+      {% for item, n in pv.unknown[:8] %}{{ item }} ({{ n }}){{ ", " if not loop.last }}{% endfor %}{% if pv.unknown|length > 8 %} and more{% endif %}.
+      Add them as sales identifiers in Settings, Products, then check the file again.</span></div>
+    {% endif %}
+    {% if pv.ambiguous %}
+    <div class="callout warn">{{ icon("triangle-alert") }}<span><strong>Skipped, two products claim these items:</strong>
+      {% for item, n in pv.ambiguous[:8] %}{{ item }} ({{ n }}){{ ", " if not loop.last }}{% endfor %}. Give each product its own identifiers.</span></div>
+    {% endif %}
+    <form hx-post="/settings/sales/import" hx-target="#modal-host" hx-swap="innerHTML">
+      <textarea name="data" hidden>{{ text }}</textarea>
+      <div class="mfoot"><span class="meta">A day in the file replaces the saved number for that product and day. Stock is not changed.</span>
+        <div class="row"><button class="btn quiet" type="button" data-close>Cancel</button>
+          <button class="btn primary" type="submit" {{ "disabled" if not pv.changes }}>Import {{ pv.matched.matched|num }} matched row{{ "s" if pv.matched.matched != 1 }}</button></div></div>
+    </form>
+    {% endif %}
+  </div>
+</dialog>

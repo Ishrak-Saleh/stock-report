@@ -36,6 +36,9 @@ accounts and prints a random password once (set `DEMO_PASSWORD` first to choose 
 Create your own account at `/signup`. **Buy stock** makes a new company with its own products, orders and suppliers, separate from the demo's
 Company 1 (the empty Stock page has a "Load sample data" button). **Supply stock** makes a supplier login: it sees the orders buyers address to its
 email, so add the supplier in Settings with the same email. There is no email check (demo only) and passwords need 6 or more characters.
+To give a company its own sales, open Settings, then Sales import. Upload a CSV with three columns (`date,item,units`); each item must be one of a product's
+sales identifiers (Settings, Products) or a bundle title. **Check file** shows what would change and saves nothing, **Import** saves it. A day in the file replaces
+the saved number for that product and day, so importing the same file twice changes nothing, and warehouse stock is never touched. The page has an example file.
 To start over on `stock.db`: stop the server, then run `.venv\Scripts\python -m app.reset` (it keeps a copy as `stock.db.bak`).
 
 ## Settings you can change with environment variables

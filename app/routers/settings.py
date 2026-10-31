@@ -1,13 +1,18 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from datetime import timedelta
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import today
 from app.db import get_session
 from app.deps import require_staff
+from app.domain.sales_import import SalesFileError
 from app.models import Product, Supplier
 from app.services import chase as chase_svc
+from app.services import sales as sales_svc
 from app.services import settings as svc
 from app.services.products import get_settings, params_for
 from app.templating import templates
@@ -17,7 +22,10 @@ router = APIRouter()
 NOTICES = frozenset({
     "Forecast defaults saved.", "Product added.", "Product saved.", "Supplier added.", "Supplier saved.",
     "Alert settings saved.", "Test saved to the Outbox. Nothing was delivered.",
-    "Reorder alert saved to the Outbox. Nothing was delivered.", "Data marked as updated today."})
+    "Reorder alert saved to the Outbox. Nothing was delivered.", "Data marked as updated today.",
+    "Sales imported. The Stock page has the new numbers."})
+SALES_NOTICE = "Sales imported. The Stock page has the new numbers."
+MAX_SALES_BYTES = 500_000  # about 15,000 rows; the web server limits one form field to 1 MB
 
 
 def _page(request: Request, db: Session, error: str = "", notice: str = "", code: int = 200):
@@ -150,3 +158,48 @@ def alerts_send(request: Request, user: dict = Depends(require_staff), db: Sessi
 @router.post("/settings/data-updated")
 def data_updated(request: Request, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     return _try(request, db, lambda: svc.mark_data_updated(db, get_settings(db)), "Data marked as updated today.")
+
+
+# ---- sales import ----
+
+def _sales_dialog(request: Request, text: str = "", pv=None, error: str = ""):
+    """Always answers 200: HTMX ignores error replies, so the dialog itself says what is wrong."""
+    return templates.TemplateResponse(request, "partials/dlg_sales_preview.html", {"text": text, "pv": pv, "error": error})
+
+
+@router.get("/settings/sales/example.csv")
+def sales_example(user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    """A small file in the right shape, using this company's own identifiers when it has any."""
+    last = today() - timedelta(days=1)
+    items = [(p.identifiers[0], 4 + i) for i, p in enumerate(db.scalars(select(Product).order_by(Product.name).limit(3)).all())
+             if p.identifiers] or [("Wireless Mouse", 4)]
+    lines = ["date,item,units"] + [f"{last - timedelta(days=d)},{item},{units + d}" for item, units in items for d in (1, 0)]
+    return Response("\n".join(lines) + "\n", media_type="text/csv",
+                    headers={"Content-Disposition": 'attachment; filename="sales-example.csv"'})
+
+
+@router.post("/settings/sales/check", response_class=HTMLResponse)
+def sales_check(request: Request, file: UploadFile = File(...), user: dict = Depends(require_staff),
+                db: Session = Depends(get_session)):
+    raw = file.file.read(MAX_SALES_BYTES + 1)
+    if len(raw) > MAX_SALES_BYTES:
+        return _sales_dialog(request, error="The file is larger than 500 KB. Split it into smaller files.")
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return _sales_dialog(request, error="The file is not UTF-8 text. In your spreadsheet, save it as CSV UTF-8.")
+    try:
+        return _sales_dialog(request, text, pv=sales_svc.preview(db, text, today()))
+    except SalesFileError as e:
+        return _sales_dialog(request, error=str(e))
+
+
+@router.post("/settings/sales/import")
+def sales_import(request: Request, data: str = Form("", max_length=MAX_SALES_BYTES), user: dict = Depends(require_staff),
+                 db: Session = Depends(get_session)):
+    try:
+        sales_svc.commit(db, data, today())
+    except SalesFileError as e:
+        db.rollback()
+        return _sales_dialog(request, error=str(e))
+    return Response(status_code=200, headers={"HX-Redirect": "/settings?notice=" + quote(SALES_NOTICE)})
