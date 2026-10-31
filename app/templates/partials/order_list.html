@@ -1,10 +1,10 @@
-{% from "_macros.html" import badge, status_badge, next_step, order_bar, stage_legend, dialog_link %}
+{% from "_macros.html" import order_status_tip, shelf_tip, next_step, order_bar, stage_legend, dialog_link %}
 {{ stage_legend() }}
 <div class="lhead"><span>Order</span><span>Next step</span><span>Stages</span><span class="ta-r">Arrived</span><span class="ta-r">Age</span><span>Supplier</span></div>
 {% for r in rows %}{% set o = r.order %}{% set st = r.stages %}
 <div class="orow link" role="link" tabindex="0" data-href="/orders/{{ o.id }}">
   <div class="pname"><a class="plain" href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a><span class="code">{{ o.product.name }}</span>
-    <div class="flags">{{ status_badge(st.status) }}{% if r.empty_before %}{{ badge("serious", "triangle-alert", "Shelf empty " ~ r.empty_before ~ (" day" if r.empty_before == 1 else " days")) }}{% endif %}</div></div>
+    <div class="flags">{{ order_status_tip(o, st) }}{{ shelf_tip(o.product.name, r.empty_before) }}</div></div>
   <div class="cell"><span class="lab">Next step</span>{{ next_step(r) }}</div>
   <div class="cell"><span class="lab">Stages</span>{{ order_bar(o, st) }}<div class="small">{{ o.units|num }} units</div></div>
   <div class="cell num"><span class="lab">Arrived</span>{{ st.arrived|num }} of {{ o.units|num }}</div>

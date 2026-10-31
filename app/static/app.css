@@ -142,7 +142,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tipwrap { display: inline-flex; }
 .tipbtn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 0;
   border-radius: var(--r-sm); background: none; color: var(--c, var(--muted)); cursor: pointer; }
-.tipbtn.crit { --c: var(--s-crit); } .tipbtn.serious { --c: var(--s-serious); } .tipbtn.warn { --c: var(--s-warn); } .tipbtn.good { --c: var(--s-good); }
+.tipbtn.info { --c: var(--accent); } .tipbtn.crit { --c: var(--s-crit); } .tipbtn.serious { --c: var(--s-serious); } .tipbtn.warn { --c: var(--s-warn); } .tipbtn.good { --c: var(--s-good); }
 .tipbtn[aria-expanded="true"] { background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); }
 @media (hover: hover) and (pointer: fine) { .tipbtn:hover { background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); } }
 .tipcard { position: fixed; z-index: 20; display: flex; flex-direction: column; gap: 4px; width: max-content; max-width: 280px; padding: 8px 12px;
@@ -150,6 +150,11 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tipcard[hidden] { display: none; }
 .tipcard b { font-weight: var(--w-medium); }
 .tipcard span { color: var(--ink2); }
+
+/* What a supplier is waiting on: icon and words, no pill */
+.wait { display: inline-flex; align-items: center; gap: 4px; font: var(--t-body-md); }
+.wait .ic { color: var(--c, var(--muted)); }
+.wait.warn { --c: var(--s-warn); } .wait.good { --c: var(--s-good); }
 
 /* Badges */
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: var(--r-sm); font: var(--t-label-md); white-space: nowrap; color: var(--ink);
@@ -194,7 +199,9 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .crow { display: grid; grid-template-columns: 96px minmax(200px, 1.2fr) minmax(280px, 1fr) 152px; gap: 12px; align-items: center; }
 .pname strong { font-weight: var(--w-medium); }
 .pname .code { color: var(--muted); font: var(--t-body-sm); margin-left: 4px; }
-.pname .flags { margin-top: 4px; display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; align-items: center; }
+.pname { display: flex; flex-wrap: wrap; align-items: center; }
+.flags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-left: 4px; }  /* the symbols sit on the name line, after the code */
+.orow.srow .pname { min-height: 48px; align-content: center; }  /* one line, centered in the same 48 px zone as the bar and the numbers */
 .cell .lab { display: none; font: var(--t-body-sm); color: var(--muted); }
 .cell .big { font-weight: var(--w-medium); font-variant-numeric: tabular-nums; }
 .cell div.small { font: var(--t-body-sm); color: var(--ink2); font-variant-numeric: tabular-nums; }
@@ -276,12 +283,12 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .lhead.ahead, .orow.arow { grid-template-columns: 80px minmax(140px, 1.2fr) 64px minmax(200px, 1.6fr) 96px 120px; }
 .lhead.uhead, .orow.urow { grid-template-columns: 80px minmax(140px, 1fr) 64px minmax(160px, 1.4fr) auto; }
 .lhead.mhead, .orow.mrow2 { grid-template-columns: 120px 168px 72px 88px minmax(160px, 1fr) 96px; }
-.lhead.chead, .orow.cr { grid-template-columns: 88px minmax(160px, 1.3fr) 176px 168px minmax(180px, auto); }
-.lhead.qhead, .orow.qr { grid-template-columns: 88px 168px 140px 1fr; }
+.lhead.chead, .orow.cr { grid-template-columns: 148px minmax(160px, 1.3fr) 176px minmax(180px, auto); }
+.lhead.qhead, .orow.qr { grid-template-columns: 148px 140px 1fr; }
 .lhead.ohead, .orow.orw { grid-template-columns: 112px minmax(180px, 1.2fr) minmax(200px, 1.6fr) 140px 140px 88px; }
 .lhead.phd, .orow.prw { grid-template-columns: minmax(140px, 1.1fr) 56px minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(140px, 1.2fr) 72px; }
 .lhead.shd, .orow.srw { grid-template-columns: minmax(160px, 1.2fr) minmax(200px, 1.4fr) 120px 72px; }
-.lhead.sohead, .orow.sorow { grid-template-columns: 88px minmax(120px, 1fr) 64px 196px minmax(180px, 1fr) minmax(120px, auto); }
+.lhead.sohead, .orow.sorow { grid-template-columns: 124px minmax(120px, 1fr) 64px 196px minmax(180px, 1fr) minmax(120px, auto); }
 
 /* nav menus, account */
 .pop a, .pop form button { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: var(--r-xs); color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left; text-decoration: none; width: 100%; font: var(--t-body-md); }

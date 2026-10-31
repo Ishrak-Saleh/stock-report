@@ -67,7 +67,7 @@ def test_the_chase_list_and_the_orders_list_say_how_many_empty_days_come_before_
     for url in ("/chase", "/orders"):
         t = text(client.get(url))
         assert "Shelf empty 33 days" in t and "Shelf empty 22 days" in t and "Shelf empty 6 days" in t
-        assert t.count("Shelf empty") == 3  # HDP-001 and KEY-001 are late too, but their products have plenty of stock
+        assert t.count("<b>Shelf empty") == 3  # one card each; HDP-001 and KEY-001 are late too, but their products have plenty of stock
         assert "Empty shelf first" in t
 
 
@@ -169,3 +169,60 @@ def test_the_symbol_cards_are_wired_up_for_hover_focus_and_tap():
         assert needle in js
     css = open("app/static/app.css", encoding="utf-8").read()
     assert ".tipcard { position: fixed" in css   # fixed, so the table that scrolls sideways never clips the card
+
+
+
+# ---- the same symbols beside the name on every list and order page, for staff and for suppliers ----
+
+def order_row(page: str, name: str, marker: str = '<div class="orow link"') -> str:
+    return next(chunk for chunk in page.split(marker)[1:] if f"<strong>{name}</strong>" in chunk).split("</div>\n</div>")[0]
+
+
+def test_stock_symbols_sit_on_the_name_line_right_after_the_code(client):
+    page = text(client.get("/"))
+    for code in ("PHN", "MOU", "MON", "KEY", "HDP", "CBL"):
+        assert re.search(rf'<span class="code">{code}</span>\s*<div class="flags">', page), code
+
+
+def test_the_orders_list_shows_symbols_beside_the_order_name(client):
+    page = text(client.get("/orders"))
+    phn, hdp = order_row(page, "PHN-001"), order_row(page, "HDP-001")
+    assert phn.count('class="tipbtn') == 2 and 'aria-label="In production. 0 of 300 units have arrived."' in phn
+    assert "<b>Shelf empty 33 days</b>" in phn and 'class="badge' not in phn
+    assert hdp.count('class="tipbtn') == 1 and "Shelf empty" not in hdp      # plenty of stock, so only the status symbol
+    assert re.search(r'<strong>PHN-001</strong></a><span class="code">Phone</span>\s*<div class="flags">', phn)
+
+
+def test_the_chase_list_has_the_alert_symbol_beside_the_order_name_and_no_alert_column(client):
+    t = text(client.get("/chase"))
+    due = t.split("Due now")[1].split("The three rules")[0]
+    assert "<span>Alert</span>" not in due and 'class="badge' not in due
+    assert due.count('class="pname"') == 5
+    assert re.search(r'aria-label="Ask for tracking\. Confirmed \d+ days ago, no tracking\. Waited \d+ days, the limit is 10 \(\d+ over\)\."', due)
+    assert 'class="tipbtn serious"' in due and 'class="tipbtn warn"' in due and due.count("<b>Shelf empty") == 3
+    assert 'href="/chase?kind=tracking"' in due  # the filter still works
+    client.post(f"/chase/{oid('KEY-001')}/outbox", data={"kind": "tracking"})
+    quiet = text(client.get("/chase")).split("Chased recently")[1].split("The three rules")[0]
+    assert "<span>Alert</span>" not in quiet and 'class="badge' not in quiet
+    assert 'aria-label="Ask for tracking. Confirmed' in quiet and "Can be sent again on" in quiet
+
+
+def test_the_order_page_has_the_status_symbol_beside_the_name_and_keeps_the_warning_box(client):
+    page = text(client.get(f"/orders/{oid('PHN-001')}"))
+    head = page.split("<h2")[1].split("</h2>")[0]
+    assert head.count('class="tipbtn') == 2 and 'aria-label="In production.' in head and "<b>Shelf empty 33 days</b>" in head
+    assert 'class="badge' not in head   # no pill beside the order name any more
+    assert "Phone is empty for about 33 days" in page            # the long warning box stays, as chosen
+    hdp = text(client.get(f"/orders/{oid('HDP-001')}")).split("<h2")[1].split("</h2>")[0]
+    assert hdp.count('class="tipbtn') == 1
+
+
+def test_a_supplier_sees_the_same_symbols_but_never_the_stock_gap():
+    supplier = make_client(ACME)
+    page = text(supplier.get("/orders"))
+    rows = page.split('<div class="orow sorow link"')[1:]
+    assert rows and all(row.count('class="tipbtn') == 1 and "<b>Shelf empty" not in row for row in rows)
+    assert all('class="badge' not in row for row in rows) and 'class="wait warn"' in page   # "Waiting on" keeps its words
+    assert "Your confirmation" in page and "calendar" not in page
+    detail = text(supplier.get(f"/orders/{oid('MOU-001')}")).split("<h2")[1].split("</h2>")[0]
+    assert detail.count('class="tipbtn') == 1 and "Shelf empty" not in detail

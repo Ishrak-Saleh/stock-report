@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, order_bar, dialog_link, badge %}
+{% from "_macros.html" import order_status_tip, shelf_tip, order_bar, dialog_link %}
 {% block title %}{{ o.name }} · Stock Report{% endblock %}
 {% block content %}
 <div><a class="back" href="/orders">{{ icon("chevron-right") }} All orders</a></div>
 
 <div class="panel">
-  <h2 style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">{{ o.name }} {{ status_badge(st.status) }}</h2>
+  <h2 style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">{{ o.name }}<span class="flags">{{ order_status_tip(o, st) }}{% if staff %}{{ shelf_tip(o.product.name, empty_before) }}{% endif %}</span></h2>
   <div class="meta">{{ o.product.name }} · {{ o.supplier.name }} · created {{ r.age }} days ago</div>
   <div class="sentence mt12 takeaway">{{ takeaway }}</div>
 </div>

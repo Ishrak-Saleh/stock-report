@@ -18,6 +18,18 @@
 {{ badge(m[0], m[1], status|capitalize) }}
 {%- endmacro %}
 
+{# The status of an order as a symbol: the label and the units that arrived are in the card #}
+{% macro order_status_tip(o, st) -%}
+{% set m = {"placed": ["", "clock"], "in production": ["info", "package"], "on the way": ["info", "truck"], "partial": ["info", "truck"],
+            "received": ["good", "circle-check"], "closed": ["", "x"], "cancelled": ["", "x"]}[st.status] %}
+{{ tip_icon(m[0], m[1], st.status|capitalize, [(st.arrived|num) ~ " of " ~ (o.units|num) ~ " units have arrived."]) }}
+{%- endmacro %}
+
+{# Stock gap on an order (staff only): empty shelf days before this order lands. Nothing is drawn when there are none. #}
+{% macro shelf_tip(product, days) -%}
+{% if days %}{{ tip_icon("serious", "calendar-x", "Shelf empty " ~ days ~ (" day" if days == 1 else " days"), [product ~ " has no stock for about " ~ days ~ (" day" if days == 1 else " days") ~ " before this order lands (an estimate)."]) }}{% endif %}
+{%- endmacro %}
+
 {% macro next_step(r) -%}
 {% set s = r.step %}
 <div class="nx {{ s[0] }}">{{ icon({"warn": "triangle-alert", "serious": "triangle-alert", "ok": "circle-check", "idle": "clock"}[s[0]]) }}<div><b>{{ s[1] }}</b><div class="small">{{ s[2] }}</div></div></div>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, order_bar, dialog_link %}
+{% from "_macros.html" import order_status_tip, order_bar, dialog_link %}
 {% block title %}Your orders · Stock Report{% endblock %}
 {% block content %}
 {% set user = me(request) %}
@@ -21,11 +21,11 @@
   <div class="lhead sohead"><span>Order</span><span>Product</span><span class="ta-r">Units</span><span>Where it is</span><span>Waiting on</span><span class="ta-r">Your action</span></div>
   {% for r in rows %}{% set o = r.order %}{% set st = r.stages %}{% set w = waiting[o.id] %}
   <div class="orow sorow link" role="link" tabindex="0" data-href="/orders/{{ o.id }}">
-    <div class="cell"><a class="plain" href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a></div>
+    <div class="pname"><a class="plain" href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a><div class="flags">{{ order_status_tip(o, st) }}</div></div>
     <div class="cell"><span class="lab">Product</span>{{ o.product.name }}</div>
     <div class="cell num"><span class="lab">Units</span><span class="big">{{ o.units|num }}</span></div>
     <div class="cell"><span class="lab">Where it is</span>{{ order_bar(o, st) }}<div class="small">{{ st.status|capitalize }} · {{ st.arrived|num }} of {{ o.units|num }} arrived</div></div>
-    <div class="cell"><span class="lab">Waiting on</span>{{ badge(w[0], w[2], w[1]) }}</div>
+    <div class="cell"><span class="lab">Waiting on</span><span class="wait {{ w[0] }}">{{ icon(w[2]) }}{{ w[1] }}</span></div>
     <div class="cell act">
       {% if st.status not in ("received", "closed", "cancelled") and not st.confirmed %}
       <form method="post" action="/orders/{{ o.id }}/confirm" class="inline"><button class="btn small" type="submit">{{ icon("check") }}Confirm</button></form>

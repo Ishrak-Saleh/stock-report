@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, dialog_link, stale_banner %}
+{% from "_macros.html" import tip_icon, shelf_tip, dialog_link, stale_banner %}
 {% block title %}Chase list · Stock Report{% endblock %}
 {% block content %}
 {% set kind_icon = {"confirm": "circle-check", "tracking": "package", "where": "truck"} %}
@@ -24,15 +24,14 @@
     </span></div>
   {% if due %}
   <div class="legend hide-narrow"><span><i class="k bar" style="background:var(--s-warn)"></i>Up to a week past the limit</span><span><i class="k bar"></i>More than a week past</span><span><i class="k tick"></i>SOP limit for this alert</span></div>
-  <div class="lhead chead"><span>Order</span><span>Who and why</span><span>Days waited</span><span>Alert</span><span class="ta-r">Message</span></div>
+  <div class="lhead chead"><span>Order</span><span>Who and why</span><span>Days waited</span><span class="ta-r">Message</span></div>
   {% for c in due %}{% set r = c.row %}{% set ch = r.chase %}
   <div class="orow cr">
-    <div class="cell"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b></div>
-    <div class="cell"><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div>
-      {% if r.empty_before %}{{ badge("serious", "triangle-alert", "Shelf empty " ~ r.empty_before ~ (" day" if r.empty_before == 1 else " days")) }}{% endif %}</div>
+    <div class="pname"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b>
+      <div class="flags">{{ tip_icon("serious" if ch.over >= 8 else "warn", kind_icon[ch.kind], labels[ch.kind], [r.step[2] ~ ".", "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold ~ " (" ~ ch.over ~ " over)."]) }}{{ shelf_tip(r.order.product.name, r.empty_before) }}</div></div>
+    <div class="cell"><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div></div>
     <div class="cell"><span class="lab">Days waited</span>{{ charts.dot_plot(ch.days, ch.threshold, ch.over, "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold) }}
       <div class="small">{{ ch.days }} days · limit {{ ch.threshold }} · {{ ch.over }} over</div></div>
-    <div class="cell"><span class="lab">Alert</span>{{ badge("serious" if ch.over >= 8 else "warn", kind_icon[ch.kind], labels[ch.kind]) }}</div>
     <div class="cell act">
       {{ dialog_link("/orders/" ~ r.order.id ~ "/dialog/message?kind=" ~ ch.kind, "Preview", "btn small", "mail") }}
       <form method="post" action="/chase/{{ r.order.id }}/outbox" class="inline"><input type="hidden" name="kind" value="{{ ch.kind }}"><button class="btn small quiet" type="submit">{{ icon("inbox") }}Add to Outbox</button></form>
@@ -50,11 +49,11 @@
 {% if quiet %}
 <div class="panel">
   <div class="phead"><div><h3>Chased recently</h3><div class="sub">The reason still applies, but an alert repeats at most every 2 days</div></div></div>
-  <div class="lhead qhead"><span>Order</span><span>Alert</span><span>Last sent</span><span>Next message</span></div>
+  <div class="lhead qhead"><span>Order</span><span>Last sent</span><span>Next message</span></div>
   {% for c in quiet %}{% set r = c.row %}
   <div class="orow qr">
-    <div class="cell"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b></div>
-    <div class="cell">{{ badge("", kind_icon[r.chase.kind], labels[r.chase.kind]) }}</div>
+    <div class="pname"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b>
+      <div class="flags">{{ tip_icon("", kind_icon[r.chase.kind], labels[r.chase.kind], [r.step[2] ~ "."]) }}</div></div>
     <div class="cell num"><span class="lab">Last sent</span>{{ c.last_sent|clock }}</div>
     <div class="cell"><span class="lab">Next message</span><strong>{{ icon("clock") }} {{ c.days_left }} day{{ "s" if c.days_left != 1 }} left</strong>
       <div class="small">Can be sent again on {{ c.next_on|short_date }}. {{ r.step[2] }}.</div></div>
