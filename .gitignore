@@ -10,3 +10,5 @@ SOP of Stock Report.pdf
 *.bak
 CLAUDE.md
 TESTING.md
+.agents/
+skills-lock.json
