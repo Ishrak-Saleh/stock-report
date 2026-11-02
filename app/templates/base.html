@@ -26,12 +26,12 @@
         <a class="tab" href="/orders" {% if path.startswith("/orders") %}aria-current="page"{% endif %}>Orders</a>
         <a class="tab" href="/arrivals" {% if path.startswith("/arrivals") %}aria-current="page"{% endif %}>Arrivals</a>
         <div class="rel">
-          <button class="tab" type="button" data-pop aria-haspopup="menu" aria-expanded="false" {% if path.startswith(("/chase", "/settings", "/outbox")) %}aria-current="page"{% endif %}>More {{ icon("chevron-down") }}</button>
-          <div class="pop left" role="menu" hidden>
+          <button class="tab" type="button" data-pop aria-expanded="false" {% if path.startswith(("/chase", "/settings", "/outbox")) %}aria-current="page"{% endif %}>More {{ icon("chevron-down") }}</button>
+          <div class="pop left" hidden>
             {% set chase_due = chase_count(user) %}
-            <a role="menuitem" href="/chase">{{ icon("mail") }}Chase list{% if chase_due %} <span class="badge crit count" style="padding:0 8px">{{ chase_due }}</span>{% endif %}</a>
-            <a role="menuitem" href="/settings">{{ icon("settings") }}Settings</a>
-            <a role="menuitem" href="/outbox">{{ icon("inbox") }}Outbox</a>
+            <a href="/chase">{{ icon("mail") }}Chase list{% if chase_due %} <span class="badge crit count" style="padding:0 8px">{{ chase_due }}</span>{% endif %}</a>
+            <a href="/settings">{{ icon("settings") }}Settings</a>
+            <a href="/outbox">{{ icon("inbox") }}Outbox</a>
           </div>
         </div>
         {% else %}
@@ -46,11 +46,11 @@
         </button>
         {% if user %}
         <div class="rel">
-          <button class="avatar" type="button" data-pop aria-haspopup="menu" aria-expanded="false" aria-label="Account menu for {{ user.name }}">{{ user.name[:2]|upper }}</button>
-          <div class="pop" role="menu" hidden>
+          <button class="avatar" type="button" data-pop aria-expanded="false" aria-label="Account menu for {{ user.name }}">{{ user.name[:2]|upper }}</button>
+          <div class="pop" hidden>
             <span class="meta" style="padding:8px 12px">{{ user.name }} · {{ user.supplier + ", supplier" if user.role == "supplier" else "staff" + (", " ~ user.company if user.company else "") }}</span>
             <hr>
-            <form method="post" action="/logout"><button type="submit" role="menuitem">{{ icon("log-out") }}Sign out</button></form>
+            <form method="post" action="/logout"><button type="submit">{{ icon("log-out") }}Sign out</button></form>
           </div>
         </div>
         {% endif %}

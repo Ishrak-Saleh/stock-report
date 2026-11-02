@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import order_status_tip, shelf_tip, order_bar, dialog_link %}
+{% from "_macros.html" import tip_icon, order_status_tip, shelf_tip, order_bar, dialog_link %}
 {% block title %}{{ o.name }} · Stock Report{% endblock %}
 {% block content %}
 <div><a class="back" href="/orders">{{ icon("chevron-right") }} All orders</a></div>
@@ -22,7 +22,7 @@
 <div class="twocol">
   <div class="stack">
     <div class="panel">
-      <div class="phead"><div><h3>Where the units are</h3><div class="sub">{{ o.units|num }} units ordered</div></div></div>
+      <div class="phead"><div><h3>Where the units are{% if staff and open and st.arrived < o.units %} {{ tip_icon("", "info", "Expected arrival", ["Expected " ~ (expected|short_date) ~ ": order date plus the " ~ lead_time ~ "-day lead time. This is an estimate, because orders have no confirmed arrival date."]) }}{% endif %}</h3><div class="sub">{{ o.units|num }} units ordered</div></div></div>
       <ol class="stepper">
         {% for s in steps %}
         <li class="step {{ "done" if s.done }} {{ "cur" if s.current }}" {% if s.current %}aria-current="step"{% endif %}>
@@ -32,9 +32,6 @@
       </ol>
       <div class="mt16">{{ order_bar(o, st, 320) }}
         <div class="meta mt4">{{ st.placed|num }} placed · {{ st.in_production|num }} in production · {{ st.on_the_way|num }} on the way · {{ st.arrived|num }} arrived</div></div>
-      {% if staff and open and st.arrived < o.units %}
-      <p class="meta mt12">Expected {{ expected|short_date }}: order date plus the {{ lead_time }}-day lead time. This is an assumption, because the SOP has no expected-date field.</p>
-      {% endif %}
     </div>
 
     <div class="panel">
@@ -74,9 +71,9 @@
       <div class="phead">
         <div><h3>Next step</h3></div>
         {% if staff %}<div class="rel">
-          <button class="btn small" type="button" data-pop aria-haspopup="menu" aria-expanded="false" aria-label="More actions">{{ icon("ellipsis") }}</button>
-          <div class="pop" role="menu" hidden>
-            <button type="button" class="dng" role="menuitem" {% if o.allocations %}disabled{% endif %} hx-get="/orders/{{ o.id }}/dialog/delete" hx-target="#modal-host">Delete order</button>
+          <button class="btn small" type="button" data-pop aria-expanded="false" aria-label="More actions">{{ icon("ellipsis") }}</button>
+          <div class="pop" hidden>
+            <button type="button" class="dng"{% if o.allocations %}disabled{% endif %} hx-get="/orders/{{ o.id }}/dialog/delete" hx-target="#modal-host">Delete order</button>
             {% if o.allocations %}<span class="meta" style="padding:4px 12px 8px">Arrivals are matched to this order. Close or cancel it instead.</span>{% endif %}
           </div>
         </div>{% endif %}

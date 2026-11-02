@@ -44,7 +44,7 @@
 {# a filled password input with a lock icon and a show/hide eye; app.js flips the input between password and text #}
 {% macro password_field(id, name, placeholder, autocomplete, error=false) -%}
 <span class="ifield {{ 'err' if error }}"><span class="lead">{{ icon("lock") }}</span>
-  <input id="{{ id }}" name="{{ name }}" type="password" required maxlength="200" autocomplete="{{ autocomplete }}" placeholder="{{ placeholder }}" aria-label="{{ placeholder }}">
+  <input id="{{ id }}" name="{{ name }}" type="password" required maxlength="200" autocomplete="{{ autocomplete }}" placeholder="{{ placeholder }}" aria-label="{{ placeholder }}"{% if error %} aria-invalid="true" aria-describedby="form-error"{% endif %}>
   <button class="pwtoggle" type="button" data-toggle-password aria-pressed="false" aria-label="Show password" title="Show password"><span class="eye-on">{{ icon("eye") }}</span><span class="eye-off">{{ icon("eye-off") }}</span></button></span>
 {%- endmacro %}
 
@@ -64,7 +64,7 @@
 {# warns when the stock or sales data is old (SOP section 3) #}
 {% macro stale_banner(days) -%}
 {% if days %}
-<div class="stale" role="status">{{ icon("clock") }}<div><strong>The stock and sales data is {{ days }} days old.</strong> <span class="muted">Burn, days left and reorder dates may be behind.</span></div>
+<div class="stale" role="status">{{ icon("clock") }}<div><strong>The stock and sales data is {{ days }} days old.</strong> <span class="muted">Daily rates, days of stock and reorder dates may be behind.</span></div>
   <form method="post" action="/settings/data-updated"><button class="btn small" type="submit">Mark as updated today</button></form></div>
 {% endif %}
 {%- endmacro %}

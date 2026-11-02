@@ -137,7 +137,7 @@ def order_options(stock: int, ordered: int, f: Forecast, p: Params) -> list[Opti
     raw = [
         ("point", "Reorder point", _units_to_cover(p.lead_time + p.safety_days, burn, covered), "",
          f"Reaches the {p.lead_time + p.safety_days}-day reorder line"),
-        ("sop", "SOP suggestion", f.suggested_order, "Suggested",
+        ("sop", "Suggested order", f.suggested_order, "Suggested",
          f"Target {p.target_days} days plus {p.lead_time} days lead time. Uses warehouse stock only."),
         ("cover", "Cover 90 days", _units_to_cover(90, burn, covered), "", "Longest cover from one order"),
     ]

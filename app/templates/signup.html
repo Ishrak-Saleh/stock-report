@@ -8,7 +8,7 @@
     <span class="auth-tile">{{ icon("user-plus", 24) }}</span>
     <div class="auth-head"><h1>Create an account</h1><p>A free demo account. There is no email check.</p></div>
     {% if error %}
-    <div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>
+    <div class="error" id="form-error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>
     {% endif %}
     <div class="auth-form">
       <fieldset class="auth-seg">

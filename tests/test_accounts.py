@@ -193,8 +193,14 @@ def test_passwords_are_stored_hashed():
 PUBLIC = {"/login", "/signup"}
 
 
-def _paths():
+def _routes():
+    # newer FastAPI keeps each included router as one nested entry; the app adds no prefix
     for route in app.routes:
+        yield from getattr(getattr(route, "original_router", None), "routes", [route])
+
+
+def _paths():
+    for route in _routes():
         path = getattr(route, "path", "")
         if path.startswith("/static") or path in PUBLIC:
             continue

@@ -4,7 +4,7 @@
     {{ dialog_head("Delete " ~ o.name ~ "?") }}
     <p class="muted">This removes the order, its tracking and its history for good. To stop it counting as ordered, close or cancel it instead.</p>
     <form method="post" action="/orders/{{ o.id }}/delete">
-      <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Keep it</button><button class="btn danger" type="submit">Yes, delete</button></div></div>
+      <div class="mfoot"><span></span><div class="row"><button class="btn quiet" type="button" data-close>Keep order</button><button class="btn danger" type="submit">Delete order</button></div></div>
     </form>
   </div>
 </dialog>

@@ -23,13 +23,13 @@
       {% for k, label in labels.items() %}<a href="/chase?kind={{ k }}" {% if kind == k %}aria-current="true"{% endif %}>{{ label.replace("Ask ", "").capitalize() }} {{ counts[k] }}</a>{% endfor %}
     </span></div>
   {% if due %}
-  <div class="legend hide-narrow"><span><i class="k bar" style="background:var(--s-warn)"></i>Up to a week past the limit</span><span><i class="k bar"></i>More than a week past</span><span><i class="k tick"></i>SOP limit for this alert</span></div>
+  <div class="legend hide-narrow"><span><i class="k bar" style="background:var(--s-warn)"></i>Up to a week past the limit</span><span><i class="k bar"></i>More than a week past</span><span><i class="k tick"></i>Follow-up limit for this alert</span></div>
   <div class="lhead chead"><span>Order</span><span>Who and why</span><span>Days waited</span><span class="ta-r">Message</span></div>
   {% for c in due %}{% set r = c.row %}{% set ch = r.chase %}
   <div class="orow cr">
     <div class="pname"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b>
       <div class="flags">{{ tip_icon("serious" if ch.over >= 8 else "warn", kind_icon[ch.kind], labels[ch.kind], [r.step[2] ~ ".", "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold ~ " (" ~ ch.over ~ " over)."]) }}{{ shelf_tip(r.order.product.name, r.empty_before) }}</div></div>
-    <div class="cell"><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div></div>
+    <div class="cell"><span class="lab">Who and why</span><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div></div>
     <div class="cell"><span class="lab">Days waited</span>{{ charts.dot_plot(ch.days, ch.threshold, ch.over, "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold) }}
       <div class="small">{{ ch.days }} days · limit {{ ch.threshold }} · {{ ch.over }} over</div></div>
     <div class="cell act">
@@ -48,7 +48,7 @@
 
 {% if quiet %}
 <div class="panel">
-  <div class="phead"><div><h3>Chased recently</h3><div class="sub">The reason still applies, but an alert repeats at most every 2 days</div></div></div>
+  <div class="phead"><div><h3>Chased recently {{ tip_icon("", "info", "About this panel", ["The reason still applies. An alert repeats at most every 2 days."]) }}</h3></div></div>
   <div class="lhead qhead"><span>Order</span><span>Last sent</span><span>Next message</span></div>
   {% for c in quiet %}{% set r = c.row %}
   <div class="orow qr">
@@ -63,7 +63,7 @@
 {% endif %}
 
 <div class="panel">
-  <div class="phead"><div><h3>The three rules</h3><div class="sub">From SOP section 4, shown so nobody has to remember them</div></div></div>
+  <div class="phead"><div><h3>The three rules {{ tip_icon("", "info", "About this panel", ["These rules decide when an order needs a message."]) }}</h3></div></div>
   <div class="rule3">
     <div><span class="meta">Ask to confirm</span><span class="when">2 days</span><span class="meta">Not confirmed 2 or more days after ordering</span></div>
     <div><span class="meta">Ask for tracking</span><span class="when">10 days</span><span class="meta">Confirmed 10 or more days ago, with units still without tracking</span></div>

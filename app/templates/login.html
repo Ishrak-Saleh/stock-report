@@ -8,13 +8,13 @@
     <span class="auth-tile">{{ icon("log-in", 24) }}</span>
     <div class="auth-head"><h1>Sign in</h1><p>See what to reorder this week.</p></div>
     {% if locked %}
-    <div class="callout" role="alert">{{ icon("lock") }}<span>Too many sign-in attempts. Try again in 5 minutes.</span></div>
+    <div class="callout" id="form-error" role="alert">{{ icon("lock") }}<span>Too many sign-in attempts. Try again in 5 minutes.</span></div>
     {% elif error %}
-    <div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>
+    <div class="error" id="form-error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>
     {% endif %}
     <div class="auth-form">
       <input type="hidden" name="next" value="{{ next }}">
-      <span class="ifield {{ 'err' if error }}"><span class="lead">{{ icon("mail") }}</span><input id="email" name="email" type="email" required maxlength="200" autocomplete="username" autofocus placeholder="Email" aria-label="Email" value="{{ email }}"></span>
+      <span class="ifield {{ 'err' if error }}"><span class="lead">{{ icon("mail") }}</span><input id="email" name="email" type="email" required maxlength="200" autocomplete="username" autofocus placeholder="Email" aria-label="Email" value="{{ email }}"{% if error %} aria-invalid="true" aria-describedby="form-error"{% endif %}></span>
       {{ password_field("password", "password", "Password", "current-password", error) }}
       <button class="btn primary" type="submit">Sign in</button>
     </div>

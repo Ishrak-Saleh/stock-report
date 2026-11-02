@@ -9,6 +9,13 @@
     if (d && !d.open) d.showModal();
   }
   document.body.addEventListener("htmx:afterSwap", function (e) { if (e.target === host) openDialog(); });
+  // the order list is replaced when a filter changes: say how many orders are showing now (the status line is on the page from the start)
+  document.body.addEventListener("htmx:afterSwap", function (e) {
+    var status = document.getElementById("list-status");
+    if (!status || e.target.id !== "order-list") return;
+    var n = e.target.querySelectorAll(".orow").length;
+    status.textContent = n === 0 ? "No orders match these filters." : n + (n === 1 ? " order" : " orders") + " shown.";
+  });
 
   function closePops() {
     document.querySelectorAll(".pop").forEach(function (p) { p.hidden = true; });
@@ -23,9 +30,7 @@
     if (eye) {   // show or hide what is typed in the password field next to the button
       var field = eye.parentElement.querySelector("input"), shown = field.type === "password";
       field.type = shown ? "text" : "password";
-      eye.setAttribute("aria-pressed", shown ? "true" : "false");
-      eye.setAttribute("aria-label", shown ? "Hide password" : "Show password");
-      eye.title = shown ? "Hide password" : "Show password";
+      eye.setAttribute("aria-pressed", shown ? "true" : "false");   // the name stays "Show password"; aria-pressed says whether it is on
       return;
     }
     var close = t.closest("[data-close]");
@@ -67,7 +72,6 @@
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") { closePops(); tipHide(); }
-    if ((e.key === "Enter" || e.key === " ") && e.target.dataset && e.target.dataset.href) { e.preventDefault(); window.location = e.target.dataset.href; }
   });
 
 
@@ -121,7 +125,10 @@
   document.addEventListener("pointerover", function (e) { var b = tipBtn(e); if (b && e.pointerType === "mouse") tipShow(b, "hover"); });
   document.addEventListener("pointerout", function (e) {
     var b = tipBtn(e);
-    if (b && e.pointerType === "mouse" && !b.contains(e.relatedTarget)) tipHide();
+    if (e.pointerType !== "mouse" || !tipOpen || tipOpen.by !== "hover") return;
+    var from = b || (e.target.closest && e.target.closest(".tipcard"));
+    var to = e.relatedTarget;
+    if (from && !(to && to.closest && to.closest("[data-tip], .tipcard"))) tipHide();   // closes only when the pointer leaves both the symbol and its card
   });
   document.addEventListener("focusin", function (e) { var b = tipBtn(e); if (b) tipShow(b, "focus"); });
   document.addEventListener("focusout", function (e) { if (tipBtn(e)) tipHide(); });

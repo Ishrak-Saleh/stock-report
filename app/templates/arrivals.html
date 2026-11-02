@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import dialog_link, stale_banner %}
+{% from "_macros.html" import tip_icon, dialog_link, stale_banner %}
 {% block title %}Arrivals · Stock Report{% endblock %}
 {% block stale %}{{ stale_banner(stale) }}{% endblock %}
 {% block content %}
@@ -14,7 +14,7 @@
 {% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
 
 <div class="panel">
-  <div class="phead"><div><h3>Needs a decision</h3><div class="sub">Oldest first. Units stay in warehouse stock either way.</div></div>
+  <div class="phead"><div><h3>Needs a decision {{ tip_icon("", "info", "About this panel", ["Units stay in warehouse stock either way."]) }}</h3><div class="sub">Oldest first</div></div>
     {% if waiting %}<span class="badge warn">{{ icon("triangle-alert") }}{{ waiting|length }} to decide</span>{% endif %}</div>
   {% if waiting %}
   <div class="lhead uhead"><span>Arrived</span><span>Product</span><span class="ta-r">Units</span><span>Why it matched nothing</span><span class="ta-r">Decide</span></div>
@@ -26,7 +26,7 @@
     <div class="cell"><span class="lab">Why</span>{{ why }}</div>
     <div class="cell act">
       {% if can %}{{ dialog_link("/arrivals/" ~ a.id ~ "/match", "Match to an order", "btn small", "split") }}
-      {% else %}<button class="btn small" type="button" disabled title="No open order has room">{{ icon("split") }}Match to an order</button>{% endif %}
+      {% else %}<button class="btn small" type="button" disabled>{{ icon("split") }}Match to an order</button><span class="meta">No open order has room</span>{% endif %}
       <form method="post" action="/arrivals/{{ a.id }}/not-from-order" class="inline"><button class="btn small" type="submit">{{ icon("ban") }}Not from an order</button></form>
     </div>
   </div>

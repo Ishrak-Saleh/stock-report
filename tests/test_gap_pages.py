@@ -51,7 +51,7 @@ def test_the_stock_row_says_how_many_days_cannot_be_saved_by_ordering_today(clie
 def test_the_headline_counts_the_products_with_days_of_no_stock_and_the_page_explains_the_number(client):
     t = text(client.get("/"))
     assert "Suggested order: 1,963 units. 2 will have days with no stock." in t
-    assert "Arrival dates are an estimate" in t and "Ordering today cannot prevent them" in t
+    assert "Arrival dates are estimates" in t and "Days with no stock before a new order placed today could arrive" in t   # the card explains the symbol
 
 
 def test_the_stock_row_and_the_runway_drawer_give_the_same_number_for_every_product(client):
@@ -160,7 +160,7 @@ def test_stock_rows_show_warning_symbols_and_keep_the_details_in_a_card(client):
     for name in ("Keyboard", "Headphones", "Cable"):   # Healthy keeps a quiet check, and its card says Healthy
         row = row_of(page, name)
         assert row.count('class="tipbtn') == 1 and 'class="tipbtn good"' in row and 'aria-label="Healthy' in row
-    assert "Hover over an icon, or tap it on a phone, for details." in page
+    assert "Reading the bars" in page and "Hover over an icon" not in page   # one "i" by the title explains the bar, no hint line
 
 
 def test_the_symbol_cards_are_wired_up_for_hover_focus_and_tap():
@@ -174,7 +174,7 @@ def test_the_symbol_cards_are_wired_up_for_hover_focus_and_tap():
 
 # ---- the same symbols beside the name on every list and order page, for staff and for suppliers ----
 
-def order_row(page: str, name: str, marker: str = '<div class="orow link"') -> str:
+def order_row(page: str, name: str, marker: str = '<div class="orow lstrow link"') -> str:
     return next(chunk for chunk in page.split(marker)[1:] if f"<strong>{name}</strong>" in chunk).split("</div>\n</div>")[0]
 
 
@@ -190,7 +190,7 @@ def test_the_orders_list_shows_symbols_beside_the_order_name(client):
     assert phn.count('class="tipbtn') == 2 and 'aria-label="In production. 0 of 300 units have arrived."' in phn
     assert "<b>Shelf empty 33 days</b>" in phn and 'class="badge' not in phn
     assert hdp.count('class="tipbtn') == 1 and "Shelf empty" not in hdp      # plenty of stock, so only the status symbol
-    assert re.search(r'<strong>PHN-001</strong></a><span class="code">Phone</span>\s*<div class="flags">', phn)
+    assert re.search(r'<strong>PHN-001</strong></a>\s*<div class="flags">', phn)   # the product has its own column now
 
 
 def test_the_chase_list_has_the_alert_symbol_beside_the_order_name_and_no_alert_column(client):
@@ -217,12 +217,51 @@ def test_the_order_page_has_the_status_symbol_beside_the_name_and_keeps_the_warn
     assert hdp.count('class="tipbtn') == 1
 
 
+def test_the_explaining_text_lives_in_the_info_icons_not_on_the_page(client):
+    """Each phrase is printed twice: in the icon's aria-label and in its hidden card. Printed a third time would mean it is back on the page."""
+    def once_in_an_icon(page: str, *phrases: str):
+        for phrase in phrases:
+            assert page.count(phrase) == 2, (phrase, page.count(phrase))
+
+    once_in_an_icon(text(client.get("/")), "Each dot shows how long the order has waited.", "Arrival dates are estimates: the order date plus the lead time.")
+    client.post(f"/chase/{oid('KEY-001')}/outbox", data={"kind": "tracking"})   # the "Chased recently" panel needs one chased order
+    once_in_an_icon(text(client.get("/chase")), "An alert repeats at most every 2 days.", "These rules decide when an order needs a message.")
+    once_in_an_icon(text(client.get("/arrivals")), "Units stay in warehouse stock either way.")
+    once_in_an_icon(text(client.get("/settings")), "Used by every product that has no override of its own.", "Blank forecast numbers use the defaults above.",
+                    "Messages are sent to the email address on file.", "Warehouse stock is not changed.", "Sends an email when a product falls below its reorder line.")
+    once_in_an_icon(text(client.get(f"/products/{pid('KEY')}")), "The count is the last stock count plus the changes recorded here.",
+                    "because orders have no confirmed arrival date.")
+    once_in_an_icon(text(client.get(f"/orders/{oid('MOU-001')}")), "This is an estimate, because orders have no confirmed arrival date.")
+    once_in_an_icon(text(client.get(f"/products/{pid('KEY')}/runway?horizon=90", headers={"HX-Request": "true"})), "because orders have no confirmed arrival date.")
+    supplier = make_client(ACME, fresh=False)
+    once_in_an_icon(text(supplier.get("/orders")), "These limits are set by your account and enforced on every request.")
+
+
+def test_each_chase_row_on_stock_has_an_info_icon_with_its_days(client):
+    page = text(client.get("/"))
+    rows = page.split('<div class="crow">')[1:]
+    assert rows and all("Follow-up limit: " in row and " days over the limit." in row and " days · limit " not in row for row in rows)
+
+
+def test_no_page_mentions_the_assignment_brief(client):
+    """Staff should never read "SOP": it is the assignment's word, not theirs."""
+    client.post(f"/chase/{oid('KEY-001')}/outbox", data={"kind": "tracking"})
+    paths = ["/", "/orders", "/chase", "/arrivals", "/settings", "/outbox", f"/products/{pid('KEY')}", f"/orders/{oid('MOU-001')}",
+             f"/products/{pid('KEY')}/runway?horizon=90", f"/orders/new?product_id={pid('MOU')}"]
+    for path in paths:
+        r = client.get(path, headers={"HX-Request": "true"} if "runway" in path or "/new" in path else {})
+        assert "SOP" not in r.text, path
+    assert "SOP" not in make_client(ACME, fresh=False).get("/orders").text
+    assert "Days of stock" in text(client.get(f"/products/{pid('KEY')}")) and "days left" not in text(client.get(f"/products/{pid('KEY')}"))
+
+
 def test_a_supplier_sees_the_same_symbols_but_never_the_stock_gap():
     supplier = make_client(ACME)
     page = text(supplier.get("/orders"))
-    rows = page.split('<div class="orow sorow link"')[1:]
+    rows = page.split("What this login can do")[0].split('<div class="orow sorow link"')[1:]   # the rows only, not the panel after them
     assert rows and all(row.count('class="tipbtn') == 1 and "<b>Shelf empty" not in row for row in rows)
     assert all('class="badge' not in row for row in rows) and 'class="wait warn"' in page   # "Waiting on" keeps its words
     assert "Your confirmation" in page and "calendar" not in page
+    assert "<span>Status</span>" in page and "Where it is" not in page   # the SOP word, same as the staff list
     detail = text(supplier.get(f"/orders/{oid('MOU-001')}")).split("<h2")[1].split("</h2>")[0]
     assert detail.count('class="tipbtn') == 1 and "Shelf empty" not in detail

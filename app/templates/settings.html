@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, dialog_link, stale_banner %}
+{% from "_macros.html" import tip_icon, badge, dialog_link, stale_banner %}
 {% block title %}Settings · Stock Report{% endblock %}
 {% block stale %}{{ stale_banner(stale) }}{% endblock %}
 {% block content %}
@@ -17,7 +17,7 @@
 </span></div>
 
 <div class="panel" id="forecast">
-  <div class="phead"><div><h3>Forecast defaults</h3><div class="sub">Used by every product that has no override of its own</div></div></div>
+  <div class="phead"><div><h3>Forecast defaults {{ tip_icon("", "info", "About this panel", ["Used by every product that has no override of its own."]) }}</h3></div></div>
   <form id="defaults-form" method="post" action="/settings/defaults" data-forecast>
     <div class="grid3">
       <label class="field">Lead time, days<input name="lead_time" type="number" min="0" max="3650" required inputmode="numeric" value="{{ s.lead_time }}"><span class="hint">Days from placing an order to it arriving</span></label>
@@ -32,7 +32,7 @@
 </div>
 
 <div class="panel" id="products">
-  <div class="phead"><div><h3>Products</h3><div class="sub">Blank forecast numbers use the defaults above</div></div>
+  <div class="phead"><div><h3>Products {{ tip_icon("", "info", "About this panel", ["Blank forecast numbers use the defaults above."]) }}</h3></div>
     {{ dialog_link("/settings/products/new", "Add product", "btn small", "plus") }}</div>
   <div class="lhead phd"><span>Product</span><span>Code</span><span>Sales are matched by</span><span>Forecast</span><span>Bundles</span><span class="ta-r">Edit</span></div>
   {% for p in products %}
@@ -51,7 +51,7 @@
 </div>
 
 <div class="panel" id="suppliers">
-  <div class="phead"><div><h3>Suppliers</h3><div class="sub">Messages go to the address on file</div></div>
+  <div class="phead"><div><h3>Suppliers {{ tip_icon("", "info", "About this panel", ["Messages are sent to the email address on file."]) }}</h3></div>
     {{ dialog_link("/settings/suppliers/new", "Add supplier", "btn small", "plus") }}</div>
   <div class="lhead shd"><span>Supplier</span><span>Email</span><span>Open orders</span><span class="ta-r">Edit</span></div>
   {% for sp in suppliers %}
@@ -65,7 +65,7 @@
 </div>
 
 <div class="panel" id="sales">
-  <div class="phead"><div><h3>Sales import</h3><div class="sub">Daily sales from your shop or spreadsheet set the sales speed. Warehouse stock is not changed.</div></div>
+  <div class="phead"><div><h3>Sales import {{ tip_icon("", "info", "About this panel", ["Daily sales from your shop or spreadsheet set the sales rate. Warehouse stock is not changed."]) }}</h3></div>
     <a class="btn small" href="/settings/sales/example.csv">Example file</a></div>
   <form hx-post="/settings/sales/check" hx-target="#modal-host" hx-swap="innerHTML" hx-encoding="multipart/form-data" class="stack" style="gap:12px">
     <label class="field" style="max-width:480px">CSV file<input name="file" type="file" accept=".csv,text/csv" required>
@@ -75,7 +75,7 @@
 </div>
 
 <div class="panel" id="alerts">
-  <div class="phead"><div><h3>Alerts</h3><div class="sub">Email when a product is under its reorder line</div></div></div>
+  <div class="phead"><div><h3>Alerts {{ tip_icon("", "info", "About this panel", ["Sends an email when a product falls below its reorder line."]) }}</h3></div></div>
   <form method="post" action="/settings/alerts" class="stack" style="gap:0">
     <div class="setrow"><div><label for="alerts-on" class="strong">Send reorder alert emails</label><div class="meta">Off by default. Turn on when staff want a nudge between weekly reviews.</div></div>
       <input id="alerts-on" class="switchbox" type="checkbox" role="switch" name="enabled" value="1" {{ "checked" if s.alerts_enabled }}></div>
@@ -88,7 +88,7 @@
     <div><div class="strong">Test it</div><div class="meta">Saves the real alert for each address in the Outbox, marked as a test. Nothing is delivered.</div></div>
     <div class="row">
       <form method="post" action="/settings/alerts/test" class="inline"><button class="btn" type="submit">{{ icon("send") }}Send test</button></form>
-      <form method="post" action="/settings/alerts/send" class="inline"><button class="btn quiet" type="submit" {{ "disabled" if not s.alerts_enabled }} {% if not s.alerts_enabled %}title="Turn alerts on first"{% endif %}>{{ icon("bell") }}Send alert now</button></form>
+      <form method="post" action="/settings/alerts/send" class="inline"><button class="btn quiet" type="submit" {{ "disabled" if not s.alerts_enabled }}>{{ icon("bell") }}Send alert now</button>{% if not s.alerts_enabled %} <span class="meta">Turn alerts on first.</span>{% endif %}</form>
     </div>
   </div>
   <div class="setrow">

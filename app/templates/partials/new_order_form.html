@@ -22,7 +22,7 @@
     </label>
     {% endfor %}
   </div>
-  <div class="callout">{{ icon("triangle-alert") }}<span>The SOP's suggested size uses warehouse stock only. It does not subtract the {{ ordered|num }} units already on order, so it can overshoot when orders are on the way.</span></div>
+  <div class="callout">{{ icon("triangle-alert") }}<span>The suggested size uses warehouse stock only. It does not subtract the {{ ordered|num }} units already on order, so it can be too large when orders are on the way.</span></div>
   {% else %}
   <div class="callout info">{{ icon("circle-alert") }}<span>{{ product.name }} has no sales yet, so there is nothing to size an order against. You can still enter units below.</span></div>
   {% endif %}

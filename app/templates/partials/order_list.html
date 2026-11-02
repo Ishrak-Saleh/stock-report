@@ -1,12 +1,13 @@
-{% from "_macros.html" import order_status_tip, shelf_tip, next_step, order_bar, stage_legend, dialog_link %}
+{% from "_macros.html" import order_status_tip, shelf_tip, order_bar, stage_legend, dialog_link %}
 {{ stage_legend() }}
-<div class="lhead"><span>Order</span><span>Next step</span><span>Stages</span><span class="ta-r">Arrived</span><span class="ta-r">Age</span><span>Supplier</span></div>
+<div class="lhead lsthead"><span>Order</span><span>Product</span><span>Status</span><span class="ta-r">Units</span><span class="ta-r">Arrived</span><span class="ta-r">Age</span><span>Supplier</span></div>
 {% for r in rows %}{% set o = r.order %}{% set st = r.stages %}
-<div class="orow link" role="link" tabindex="0" data-href="/orders/{{ o.id }}">
-  <div class="pname"><a class="plain" href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a><span class="code">{{ o.product.name }}</span>
+<div class="orow lstrow link" data-href="/orders/{{ o.id }}">
+  <div class="pname"><a class="plain" href="/orders/{{ o.id }}"><strong>{{ o.name }}</strong></a>
     <div class="flags">{{ order_status_tip(o, st) }}{{ shelf_tip(o.product.name, r.empty_before) }}</div></div>
-  <div class="cell"><span class="lab">Next step</span>{{ next_step(r) }}</div>
-  <div class="cell"><span class="lab">Stages</span>{{ order_bar(o, st) }}<div class="small">{{ o.units|num }} units</div></div>
+  <div class="cell"><span class="lab">Product</span>{{ o.product.name }}</div>
+  <div class="cell"><span class="lab">Status</span><strong>{{ st.status|capitalize }}</strong>{{ order_bar(o, st) }}<div class="small">{{ r.step[1] }}<span class="vh">. {{ r.step[2] }}</span></div></div>
+  <div class="cell num"><span class="lab">Units</span><span class="big">{{ o.units|num }}</span></div>
   <div class="cell num"><span class="lab">Arrived</span>{{ st.arrived|num }} of {{ o.units|num }}</div>
   <div class="cell num"><span class="lab">Age</span>{{ r.age }}d</div>
   <div class="cell"><span class="lab">Supplier</span>{{ o.supplier.name }}</div>

@@ -23,8 +23,8 @@
     <div class="cell"><span class="lab">Wait</span>
       {% if m.id in waits %}<strong>{{ icon("clock") }} {{ waits[m.id][0] }} day{{ "s" if waits[m.id][0] != 1 }} left</strong><div class="small">until {{ waits[m.id][1]|short_date }}</div>
       {% elif m.kind == "follow-up" and m.order_id %}Can be chased now
-      {% else %}<span class="meta" title="This message has no order to wait on">-</span>{% endif %}</div>
-    <div class="cell">{{ badge("info" if m.kind == "follow-up" else "", {"follow-up": "mail", "alert": "bell", "test": "send"}.get(m.kind, "mail"), kinds.get(m.kind, "Message")) }}</div>
+      {% else %}<span class="meta" aria-hidden="true">–</span><span class="vh">No order to wait on</span>{% endif %}</div>
+    <div class="cell"><span class="lab">Kind</span>{{ badge("info" if m.kind == "follow-up" else "", {"follow-up": "mail", "alert": "bell", "test": "send"}.get(m.kind, "mail"), kinds.get(m.kind, "Message")) }}</div>
     <div class="cell act">{{ dialog_link("/outbox/" ~ m.id, "Open", "btn small quiet", "chevron-right") }}</div>
   </div>
   {% endfor %}

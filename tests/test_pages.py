@@ -47,6 +47,21 @@ def test_stock_page_tells_the_story(client):
     assert t.count('class="crow"') == 5 and "5 orders need a message" in t
 
 
+def test_stock_and_orders_use_the_sop_names(client):
+    t = text(client.get("/"))
+    for name in ("Days of stock", "Sold 7 days", "Suggested order", "sells out"):
+        assert name in t, name
+    assert "units to order" not in t and t.count("Daily sales over 40 days") >= 6   # one short line per cell, and the mini graph stays in the row
+    drawer = text(client.get(f"/products/{product_id('MOU')}/runway"))
+    for name in ("Days of stock", "With everything ordered", "Sells out on", "Reorder by", "Adjusted burn", "in production"):
+        assert name in drawer, name
+    assert "Sales, last 40 days" not in drawer and "<svg" in drawer   # the runway chart is the only chart in it
+    o = text(client.get("/orders"))
+    head = o.split('class="lhead lsthead"')[1].split("</div>")[0]
+    assert [h for h in re.findall(r"<span[^>]*>([^<]+)</span>", head)] == ["Order", "Product", "Status", "Units", "Arrived", "Age", "Supplier"]
+    assert "Partial" in o and "In production" in o
+
+
 def test_stock_filter(client):
     t = text(client.get("/?show=critical"))
     assert t.count('class="orow srow"') == 2
@@ -57,7 +72,7 @@ def test_stock_filter(client):
 def test_orders_page_ranks_by_attention(client):
     t = text(client.get("/orders"))
     assert "5 orders need a message. MON-001 is complete." in t
-    assert t.count('class="orow link"') == 6
+    assert t.count('class="orow lstrow link"') == 6
     # Orders whose product runs dry before they land come first (PHN-001, MOU-002, MOU-001), then most overdue.
     assert t.index("PHN-001") < t.index("MOU-002") < t.index("MOU-001") < t.index("HDP-001") < t.index("KEY-001")
     assert t.rindex("MON-001") > t.rindex("KEY-001")
@@ -65,10 +80,10 @@ def test_orders_page_ranks_by_attention(client):
 
 
 def test_orders_filters_and_htmx_partial(client):
-    assert text(client.get("/orders?chase=1")).count('class="orow link"') == 5
-    assert text(client.get("/orders?status=partial")).count('class="orow link"') == 1
+    assert text(client.get("/orders?chase=1")).count('class="orow lstrow link"') == 5
+    assert text(client.get("/orders?status=partial")).count('class="orow lstrow link"') == 1
     part = client.get(f"/orders?product={product_id('MOU')}", headers=HX | {"HX-Target": "order-list"})
-    assert "<html" not in part.text and part.text.count('class="orow link"') == 2
+    assert "<html" not in part.text and part.text.count('class="orow lstrow link"') == 2
     assert "No orders match" in text(client.get("/orders?status=cancelled"))
 
 
@@ -94,7 +109,7 @@ def test_order_detail_leads_with_the_next_step(client):
     t = text(client.get(f"/orders/{order_id('MOU-001')}"))
     assert "120 units shipped 14 days ago and haven't arrived. Ask Acme where it is." in t
     assert "Copy follow-up message" in t and t.count("btn primary") == 1
-    assert "Expected" in t and "assumption" in t
+    assert "Expected" in t and "estimate" in t
     t2 = text(client.get(f"/orders/{order_id('MOU-002')}"))
     assert "still not confirmed" in t2 and "Mark confirmed" in t2
     t3 = text(client.get(f"/orders/{order_id('HDP-001')}"))
@@ -130,7 +145,7 @@ def test_dialogs(client):
     assert "Add tracking" in text(client.get(f"/orders/{order_id('KEY-001')}/dialog/tracking"))
     assert client.get(f"/orders/{order_id('MON-001')}/dialog/tracking").status_code == 409
     assert "Units cannot go below 120" in text(client.get(f"/orders/{gid}/dialog/edit"))
-    assert "Yes, delete" in text(client.get(f"/orders/{gid}/dialog/delete"))
+    assert "Delete order" in text(client.get(f"/orders/{gid}/dialog/delete"))
     assert client.get(f"/orders/{gid}/dialog/nope").status_code == 404
 
 

@@ -14,21 +14,19 @@
 
 <div class="panel">
   <div class="phead">
-    <div><h3>Products</h3><div class="sub">Most urgent first</div></div>
+    <div><h3>Products {{ tip_icon("", "info", "Reading the bars", [
+        "Bar: days of stock.",
+        "White line: the reorder line, which is lead time plus safety days (" ~ settings.lead_time ~ " plus " ~ settings.safety_days ~ " by default).",
+        "Ring: days of stock once every open order has arrived.",
+        "Arrival dates are estimates: the order date plus the lead time."]) }}</h3><div class="sub">Most urgent first</div></div>
     <span class="seg" role="group" aria-label="Filter products">
       {% for key, label in [("", "All"), ("critical", "Critical"), ("reorder", "Reorder now"), ("healthy", "Healthy")] %}
       <a href="/{% if key %}?show={{ key }}{% endif %}" {% if show == key %}aria-current="true"{% endif %}>{{ label }} {{ counts[key or "all"] }}</a>
       {% endfor %}
     </span>
   </div>
-  <div class="legend hide-narrow">
-    <span><i class="k bar"></i>Days of stock left</span>
-    <span><i class="k tick"></i>Reorder line</span>
-    <span><i class="k ring"></i>Days including everything on order</span>
-    <span><i class="k st1"></i>Placed <i class="k st2"></i>In production <i class="k st3"></i>On the way</span>
-  </div>
 
-  <div class="lhead shead"><span>Product</span><span>Runway</span><span>Sales, last 40 days</span><span>Ordered</span><span class="ta-r">In stock</span><span class="ta-r">Suggested order</span><span></span></div>
+  <div class="lhead shead"><span>Product</span><span>Days of stock</span><span>Sold 7 days</span><span>In stock</span><span>Suggested order</span><span></span></div>
   {% for r in rows %}{% set f = r.forecast %}{% set p = r.product %}
   <div class="orow srow">
     <div class="pname"><a class="plain" href="/products/{{ p.id }}"><strong>{{ p.name }}</strong></a><span class="code">{{ p.code }}</span>
@@ -37,22 +35,18 @@
           "Days with no stock before a new order placed today could arrive, if every order lands on its expected date.",
           ("First order: " ~ r.gap.first_landing.name ~ ", " ~ (r.gap_lands_on|short_date) ~ " (est.)") if r.gap_lands_on else
           ("No order covers it, and a new one takes " ~ r.gap.horizon ~ " days.")]) }}{% endif %}</div></div>
-    <div class="cell"><span class="lab">Runway</span>
+    <div class="cell"><span class="lab">Days of stock</span>
       {{ charts.bullet(f.days_of_stock, f.days_with_ordered, r.flag.level, r.reorder_line,
-          (f.days_of_stock|days ~ " days left, " ~ f.days_with_ordered|days ~ " including orders, reorder line at " ~ r.reorder_line ~ " days") if f.days_of_stock is not none else "No sales, so days left cannot be worked out", w=232) }}
-      <div class="small">{% if f.days_of_stock is none %}<span class="big">No sales yet</span>{% else %}<span class="big">{{ f.days_of_stock|days }} days left</span> · out {{ f.sells_out_on|short_date }} · reorder by {{ f.reorder_by|short_date }}{% endif %}</div></div>
-    <div class="cell"><span class="lab">Sales, 40 days</span>
+          (f.days_of_stock|days ~ " days of stock, " ~ f.days_with_ordered|days ~ " with everything ordered, reorder line at " ~ r.reorder_line ~ " days, reorder by " ~ (f.reorder_by|short_date)) if f.days_of_stock is not none else "No sales, so days of stock cannot be worked out", w=232) }}
+      <div class="small">{% if f.days_of_stock is none %}<span class="big">No sales yet</span>{% else %}<span class="big">{{ f.days_of_stock|days }} days</span> · sells out {{ f.sells_out_on|short_date }}{% endif %}</div></div>
+    <div class="cell" title="Adjusted burn {{ f.adjusted_burn }} a day"><span class="lab">Sold 7 days</span>
       {{ charts.sparkline(r.spark, "Daily sales over 40 days for " ~ p.name ~ ", last 3 days highlighted", w=168, h=32) }}
-      <div class="small">{{ f.adjusted_burn }} a day {% if f.trend > 1.005 %}<span title="Trend ×{{ '%.2f'|format(f.trend) }} against the 4 days before">{{ icon("trending-up") }}</span>{% elif f.trend < 0.995 %}<span title="Trend ×{{ '%.2f'|format(f.trend) }} against the 4 days before">{{ icon("trending-down") }}</span>{% endif %}</div></div>
-    <div class="cell"><span class="lab">Ordered</span>
-      {{ charts.stage_bar([(r.placed, 1), (r.in_production, 2), (r.on_the_way, 3)], (r.ordered ~ " units on order") if r.ordered else "Nothing on order", w=208, scale_max=300) }}
-      <div class="small">{% if r.ordered %}{{ r.ordered|num }} on order{% else %}Nothing on order{% endif %}</div></div>
+      <div class="small"><span class="big">{{ f.sold_7|num }}</span> in 7 days{% if f.trend > 1.005 %} <span title="Trend ×{{ '%.2f'|format(f.trend) }} against the 4 days before">{{ icon("trending-up") }}<span class="vh">Speeding up, ×{{ '%.2f'|format(f.trend) }} against the 4 days before</span></span>{% elif f.trend < 0.995 %} <span title="Trend ×{{ '%.2f'|format(f.trend) }} against the 4 days before">{{ icon("trending-down") }}<span class="vh">Slowing down, ×{{ '%.2f'|format(f.trend) }} against the 4 days before</span></span>{% endif %}<span class="vh">. Adjusted burn {{ f.adjusted_burn }} a day</span></div></div>
     <div class="cell num"><span class="lab">In stock</span><span class="big">{{ p.stock|num }}</span>
       <div class="small" title="Sold, not shipped">{{ p.unshipped|num }} unshipped</div></div>
-    <div class="cell num"><span class="lab">Suggested order</span><span class="big">{{ f.suggested_order|num if f.suggested_order else "None" }}</span>
-      <div class="small">{{ "units to order" if f.suggested_order else "no order needed" }}</div></div>
+    <div class="cell num"><span class="lab">Suggested order</span><span class="big">{{ f.suggested_order|num if f.suggested_order else "None" }}</span></div>
     <div class="cell act">
-      <button class="btn small quiet" type="button" hx-get="/products/{{ p.id }}/runway?horizon=90" hx-target="#runway-{{ p.id }}" hx-swap="outerHTML" aria-label="Show the runway chart for {{ p.name }}">{{ icon("trending-down") }}Runway</button>
+      <button class="btn small quiet" type="button" hx-get="/products/{{ p.id }}/runway?horizon=90" hx-target="#runway-{{ p.id }}" hx-swap="outerHTML" aria-controls="runway-{{ p.id }}" aria-label="Show the runway chart for {{ p.name }}">{{ icon("trending-down") }}Runway</button>
       {{ dialog_link("/orders/new?product=" ~ p.id, "Order", "btn small") }}</div>
   </div>
   <div id="runway-{{ p.id }}"></div>
@@ -68,24 +62,25 @@
   <div class="empty">{{ icon("package", 24) }}<strong>No products match this filter</strong><a class="btn small" href="/">Show all products</a></div>
   {% endif %}
   {% endfor %}
-  <p class="meta mt12">Hover over an icon, or tap it on a phone, for details. Empty: days with no stock before a new order placed today could arrive (your lead time), if sales keep their pace and every order lands on its expected date (order date plus lead time). Ordering today cannot prevent them. Arrival dates are an estimate.</p>
 </div>
 
 <div class="panel">
   <div class="phead">
-    <div><h3>Orders to chase</h3><div class="sub">{% if chase %}{{ chase|length }} order{{ "s" if chase|length != 1 }} need a message{% else %}Nothing to chase{% endif %}</div></div>
+    <div><h3>Orders to chase {{ tip_icon("", "info", "Reading the dots", [
+        "Each dot shows how long the order has waited.",
+        "The tick marks when to follow up: after 2 days to confirm, after 10 days to ask for tracking, and after more than 10 days on the way to ask where it is."]) }}</h3><div class="sub">{% if chase %}{{ chase|length }} order{{ "s" if chase|length != 1 }} need a message{% else %}Nothing to chase{% endif %}</div></div>
     <a class="plink" href="/orders?chase=1">See them in Orders {{ icon("chevron-right") }}</a>
   </div>
   {% for r in chase %}{% set c = r.chase %}
   <div class="crow">
     <b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b>
     <div><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[1] }}. {{ r.step[2] }}</div></div>
-    {{ charts.dot_plot(c.days, c.threshold, c.over, "Waited " ~ c.days ~ " days, the limit is " ~ c.threshold, w=320) }}
+    <div class="row">{{ charts.dot_plot(c.days, c.threshold, c.over, "Waited " ~ c.days ~ " days, the limit is " ~ c.threshold, w=320) }}
+      {{ tip_icon("", "info", "Waited " ~ c.days ~ " days", ["Follow-up limit: " ~ c.threshold ~ " days.", c.over ~ " days over the limit."]) }}</div>
     {{ dialog_link("/orders/" ~ r.order.id ~ "/dialog/message?kind=" ~ c.kind, "Copy message", "btn small", "copy") }}
   </div>
   {% else %}
   <div class="empty">{{ icon("circle-check", 24) }}<strong>Nothing to chase</strong><span class="meta">Orders waiting too long for a reply, tracking or arrival would appear here.</span></div>
   {% endfor %}
-  {% if chase %}<p class="meta mt8">Each dot is how long the order has waited. The tick is the SOP limit: confirm at 2 days, send tracking at 10, and where is it once an order has been on the way more than 10.</p>{% endif %}
 </div>
 {% endblock %}

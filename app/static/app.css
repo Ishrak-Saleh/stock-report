@@ -36,9 +36,9 @@
 :root[data-theme="light"] {
   --page: #f4f5f0; --panel: #ffffff; --raised: #eceee7; --line: #d9dcd2;
   --ink: #0f0f0f; --ink2: #464843; --muted: #62645e; --danger: #b42323;
-  --accent: #1f6b1a; --accent-fill: #2a8a1e; --accent-ink: #ffffff; --ser-a: #2a8a1e; --ser-b: #c2490f;
+  --accent: #1f6b1a; --accent-fill: #3d811d; --accent-ink: #ffffff; --ser-a: #2a8a1e; --ser-b: #c2490f;
   --s-good: #1a7f1a; --s-warn: #c2490f; --s-serious: #b23a12;
-  --st1: #b9e8a0; --st2: #86d357; --st3: #4a9e23; --st4: #2b5f15;
+  --st1: #4ea625; --st2: #428c1f; --st3: #367319; --st4: #2b5b14;   /* every step is at least 3:1 against the white card */
   --scrim: oklch(0 0 0 / .4);
   color-scheme: light;
 }
@@ -124,7 +124,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 @media (hover: hover) and (pointer: fine) { .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--bg) 92%, var(--fg)); } .btn:not(.primary):not(.quiet):not(.danger):hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--accent); } }
 .field { display: flex; flex-direction: column; gap: 4px; font: var(--t-label-md); color: var(--ink2); }
 .field select, .field input, .field textarea { min-height: 40px; padding: 8px 12px; border-radius: var(--r-md); border: 0; background: var(--raised); color: var(--ink); width: 100%; font: var(--t-body-md);
-  box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow var(--d1) var(--ease); }
+  box-shadow: inset 0 0 0 1px var(--muted); transition: box-shadow var(--d1) var(--ease); }   /* the edge of a field must reach 3:1 (WCAG 1.4.11) */
 .field select:focus-visible, .field input:focus-visible, .field textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .hint { font: var(--t-body-sm); color: var(--ink2); }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
@@ -146,7 +146,8 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tipbtn[aria-expanded="true"] { background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); }
 @media (hover: hover) and (pointer: fine) { .tipbtn:hover { background: color-mix(in srgb, var(--c, var(--muted)) 16%, var(--panel)); } }
 .tipcard { position: fixed; z-index: 20; display: flex; flex-direction: column; gap: 4px; width: max-content; max-width: 280px; padding: 8px 12px;
-  background: var(--raised); box-shadow: var(--ring); border-radius: var(--r-sm); font: var(--t-body-sm); color: var(--ink); pointer-events: none; }
+  background: var(--raised); box-shadow: var(--ring); border-radius: var(--r-sm); font: var(--t-body-sm); color: var(--ink); }
+.tipcard::before { content: ""; position: absolute; inset: -6px; }   /* bridges the gap to the symbol so the pointer can move onto the card (WCAG 1.4.13) */
 .tipcard[hidden] { display: none; }
 .tipcard b { font-weight: var(--w-medium); }
 .tipcard span { color: var(--ink2); }
@@ -182,18 +183,18 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .orow, .trow, .crow { padding: 12px 0; border-bottom: 1px solid var(--line); }
 /* a table wider than its card scrolls sideways inside the card; rows stretch to their columns' minimum so the lines reach the end */
 .panel:has(.lhead, .orow, .trow, .crow) { overflow-x: auto; }
-.panel:has(.lhead, .orow, .trow, .crow) > :is(.phead, .legend) { position: sticky; left: 0; }
+.panel:has(.lhead, .orow, .trow, .crow) > :is(.phead, .legend) { position: sticky; left: 0; z-index: 3; }   /* above the rows, so a symbol card opened in the header is not painted over by them */
 .lhead, .orow, .trow, .crow { min-width: min-content; }
 .orow:last-child, .trow:last-child, .crow:last-child { border-bottom: 0; }
-.orow.srow, .lhead.shead { grid-template-columns: minmax(200px, 1.2fr) minmax(250px, 1.3fr) minmax(190px, .9fr) minmax(220px, 1fr) 104px 128px 160px; }
+.lhead.lsthead, .orow.lstrow { grid-template-columns: minmax(168px, 1.1fr) minmax(104px, .8fr) minmax(200px, 1.4fr) 64px 104px 56px minmax(96px, .8fr); }
+.orow.srow, .lhead.shead { grid-template-columns: minmax(176px, 200px) 232px 168px 88px 104px 160px; gap: 12px; justify-content: space-between; }   /* each column is as wide as its content and the spare room is shared evenly between them; about 1,000 px at the least, so a 1,366 px laptop does not scroll sideways */
 /* the data cells share one rhythm: a 48 px zone for the chart or number, then the small line, so the lines align across the row */
 .orow.srow { align-items: start; }
 .orow.srow .cell { display: grid; grid-template-rows: 48px auto; align-content: start; justify-items: start; }
 .orow.srow .cell > svg, .orow.srow .cell > .big { align-self: center; }
-.orow.srow .cell.num { justify-items: end; }
+.orow.srow .cell.num { justify-items: start; }
 .orow.srow .cell.act { display: flex; min-height: 48px; flex-wrap: nowrap; }
 .orow.link { cursor: pointer; }
-.orow.link:focus-visible { outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) { .orow.link:hover { background: color-mix(in srgb, transparent 95%, var(--ink)); } }
 .trow { display: grid; grid-template-columns: minmax(200px, 1.6fr) 72px 72px 96px 80px; gap: 12px; align-items: center; }
 .crow { display: grid; grid-template-columns: 96px minmax(200px, 1.2fr) minmax(280px, 1fr) 152px; gap: 12px; align-items: center; }
@@ -202,7 +203,8 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .pname { display: flex; flex-wrap: wrap; align-items: center; }
 .flags { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-left: 4px; }  /* the symbols sit on the name line, after the code */
 .orow.srow .pname { min-height: 48px; align-content: center; }  /* one line, centered in the same 48 px zone as the bar and the numbers */
-.cell .lab { display: none; font: var(--t-body-sm); color: var(--muted); }
+/* hidden from the eye, read by a screen reader: the column name in front of each cell's value */
+.vh, .cell .lab { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .cell .big { font-weight: var(--w-medium); font-variant-numeric: tabular-nums; }
 .cell div.small { font: var(--t-body-sm); color: var(--ink2); font-variant-numeric: tabular-nums; }
 .cell.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -235,7 +237,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
 /* Menus */
 .rel { position: relative; }
-.pop { position: absolute; z-index: 5; right: 0; top: 100%; margin-top: 4px; background: var(--raised); border-radius: var(--r-sm); box-shadow: var(--ring); padding: 4px; min-width: 220px; display: flex; flex-direction: column; }
+.pop { position: absolute; z-index: 5; right: 0; top: 100%; margin-top: 4px; background: var(--raised); border-radius: var(--r-sm); box-shadow: var(--ring); padding: 4px; min-width: 220px; display: flex; flex-direction: column; overscroll-behavior: contain; }
 .pop[hidden] { display: none; }
 .pop button { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: var(--r-xs); color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left; font: var(--t-body-md); }
 .pop button:disabled { opacity: .5; cursor: not-allowed; }
@@ -243,7 +245,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 @media (hover: hover) and (pointer: fine) { .pop button:hover:not(:disabled) { background: color-mix(in srgb, transparent 92%, var(--ink)); } }
 
 /* Dialog (native <dialog>, opened by app.js). It fades and rises in and out with CSS only; browsers without allow-discrete just show and hide it. */
-dialog.modal { background: var(--panel); color: var(--ink); border: 0; border-radius: var(--r-xl); width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 24px; overflow: auto;
+dialog.modal { background: var(--panel); color: var(--ink); border: 0; border-radius: var(--r-xl); width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 24px; overflow: auto; overscroll-behavior: contain;
   opacity: 0; transform: translateY(8px) scale(.98);
   transition: opacity var(--d3) var(--ease-decel), transform var(--d3) var(--ease-decel), overlay var(--d3) allow-discrete, display var(--d3) allow-discrete; }
 dialog.modal[open] { opacity: 1; transform: none; }
@@ -269,7 +271,7 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .code { color: var(--muted); font: var(--t-body-sm); margin-left: 4px; }
 .big { font-weight: var(--w-medium); font-variant-numeric: tabular-nums; }
 .faint { color: var(--muted); }
-.state-label { font: var(--t-label-md); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.state-label { font: var(--t-label-md); color: var(--muted); }
 .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { font: var(--t-label-md); padding: 2px 8px; border-radius: var(--r-sm); background: var(--raised); }
@@ -312,7 +314,7 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .pre .bar i { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-xs); }
 .pre .fill1 { background: var(--st2); } .pre .fill2 { background: var(--st3); } .pre .fill3 { background: var(--st4); } .pre .fillw { background: var(--s-warn); }
 .alloc { display: grid; grid-template-columns: minmax(96px, 1fr) auto; gap: 8px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.qty { display: inline-flex; align-items: stretch; border-radius: var(--r-md); background: var(--raised); overflow: hidden; }
+.qty { display: inline-flex; align-items: stretch; border-radius: var(--r-md); background: var(--raised); box-shadow: inset 0 0 0 1px var(--muted); overflow: hidden; }
 .qty button { width: 40px; border: 0; background: transparent; color: var(--ink2); cursor: pointer; display: grid; place-items: center; transition: background-color var(--d1) var(--ease); }
 .qty input { width: 64px; text-align: center; border: 0; background: transparent; font: var(--t-title-sm); padding: 4px; font-variant-numeric: tabular-nums; }
 @media (hover: hover) and (pointer: fine) { .qty button:hover { background: color-mix(in srgb, transparent 92%, var(--ink)); } }
@@ -320,8 +322,7 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .badge[hidden] { display: none; }
 
 /* drawer under a Stock row, runway and history charts */
-.drawer { background: var(--panel); border-radius: var(--r-md); box-shadow: var(--ring); padding: 16px; margin: 4px 0 12px; }
-.cwrap { position: relative; }
+.drawer { background: var(--panel); border-radius: var(--r-md); box-shadow: var(--ring); padding: 16px; margin: 4px 0 12px; }.cwrap { position: relative; }
 .cwrap svg { display: block; width: 100%; height: auto; overflow: visible; }
 .tip { position: absolute; pointer-events: none; background: var(--raised); box-shadow: var(--ring); border-radius: var(--r-sm); padding: 8px 12px; font: var(--t-body-sm); min-width: 176px; z-index: 3; top: 24px; }
 .tip[hidden] { display: none; }
@@ -364,7 +365,7 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
 .auth-form { display: flex; flex-direction: column; gap: 12px; }
 .ifield { position: relative; display: block; }
 .ifield > .lead { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; display: grid; }
-.ifield input { width: 100%; height: 48px; padding: 0 44px 0 42px; border-radius: var(--r-md); border: 0; background: var(--raised); color: var(--ink); font: var(--t-body-md); box-shadow: inset 0 0 0 1px var(--line); transition: box-shadow var(--d1) var(--ease); }
+.ifield input { width: 100%; height: 48px; padding: 0 44px 0 42px; border-radius: var(--r-md); border: 0; background: var(--raised); color: var(--ink); font: var(--t-body-md); box-shadow: inset 0 0 0 1px var(--muted); transition: box-shadow var(--d1) var(--ease); }
 .ifield input::placeholder { color: var(--muted); }
 .ifield input:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
 .ifield.err input { box-shadow: inset 0 0 0 2px var(--s-crit); }
@@ -394,7 +395,7 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
 .perm li .ic { margin-top: 2px; }
 .perm .yes .ic { color: var(--s-good); } .perm .no .ic { color: var(--muted); }
 .errpage { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 24px; }
-.errpage .code { margin: 0; letter-spacing: .06em; text-transform: uppercase; }
+.errpage .code { margin: 0; }
 
 /* Drop-down lists: the browser draws the open list, so it is square and uses the system blue unless we take it over.
    Chrome and Edge allow that (base-select). Other browsers keep their own list, with the green accent where they allow it. */
@@ -437,6 +438,20 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
   .avatar { width: 44px; height: 44px; }
   .qty button { width: 44px; }
   .btn.small { min-height: 36px; }
+}
+/* Forced colors removes box-shadow, so the 1 px rings and the inset focus rings become real outlines there. */
+@media (forced-colors: active) {
+  .panel, .pop, .tipcard, .tip, .drawer, .msgbox, .plan, .auth-card, .rule3 > div, .calc > div { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .field select:focus-visible, .field input:focus-visible, .field textarea:focus-visible, .ifield input:focus-visible { outline: 2px solid Highlight; outline-offset: 0; }
+  /* edges that were a box-shadow: buttons, fields, the stepper */
+  .btn, .field select, .field input, .field textarea, .ifield input, .qty { border: 1px solid ButtonText; }
+  /* chosen states that were a ring or a color: the current tab, the chosen filter, the chosen plan */
+  .tab[aria-current="page"], .seg a[aria-current="true"], .seg label:has(input:checked), .auth-seg label:has(input:checked), .plan:has(input:checked) { outline: 2px solid Highlight; outline-offset: -2px; }
+  /* the switch is drawn only with colors, so it takes system colors itself */
+  .switchbox { forced-color-adjust: none; background: Canvas; box-shadow: none; border: 2px solid ButtonText; }
+  .switchbox::after { background: ButtonText; }
+  .switchbox:checked { background: Highlight; border-color: Highlight; }
+  .switchbox:checked::after { background: HighlightText; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after, ::backdrop { transition: none !important; animation: none !important; }

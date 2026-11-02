@@ -1,8 +1,9 @@
+{% from "_macros.html" import tip_icon %}
 {% set page = not closable %}
 <div id="runway-{{ p.id }}" class="drawer" {% if page %}style="box-shadow:none;padding:0;background:none"{% endif %}>
   <div class="phead">
-    <div><h3>{{ p.name }} runway</h3>
-      <div class="sub">{% if rw %}Stock projected at {{ rw.row.forecast.adjusted_burn }} a day. Arrivals are assumed on order date plus the {{ rw.row.params.lead_time }}-day lead time, because the SOP has no expected-date field.{% else %}Needs sales to draw.{% endif %}</div></div>
+    <div><h3>{{ p.name }} runway{% if rw %} {{ tip_icon("", "info", "Reading the runway", ["Stock is projected at " ~ rw.row.forecast.adjusted_burn ~ " units a day.", "Arrivals are estimated as the order date plus the " ~ rw.row.params.lead_time ~ "-day lead time, because orders have no confirmed arrival date."]) }}{% endif %}</h3>
+      {% if not rw %}<div class="sub">Needs sales to draw.</div>{% endif %}</div>
     <div class="row">
       {% if rw %}
       <span class="seg" role="group" aria-label="Horizon">
@@ -12,10 +13,11 @@
       {% if closable %}<button class="btn quiet small" type="button" hx-get="/products/{{ p.id }}/runway?closed=1" hx-target="#runway-{{ p.id }}" hx-swap="outerHTML" aria-label="Close the runway chart">{{ icon("x") }}</button>{% endif %}
     </div>
   </div>
-  {% if rw %}
+  {% if rw %}{% set r = rw.row %}{% set f = r.forecast %}
+  <p class="meta mb12">Days of stock <b>{{ f.days_of_stock|days }}</b> · With everything ordered <b>{{ f.days_with_ordered|days }}</b> · Sells out on <b>{{ f.sells_out_on|short_date }}</b> · Reorder by <b>{{ f.reorder_by|short_date }}</b> · Adjusted burn <b>{{ f.adjusted_burn }}</b> a day</p>
   <div class="legend">
     <span><i class="k line a"></i>Current orders only</span>
-    {% if rw.b %}<span><i class="k line b"></i>If you order {{ rw.extra.units|num }} today (the SOP suggestion)</span>{% endif %}
+    {% if rw.b %}<span><i class="k line b"></i>If you order {{ rw.extra.units|num }} today (the suggested order)</span>{% endif %}
     <span><i class="k dot"></i>An order lands</span><span><i class="k band"></i>Out of stock</span>
   </div>
   {{ charts.step_chart(rw.series(), 0, rw.horizon, rw.today, rw.label(), markers=rw.markers(), bands=rw.a.empty|list, tick=rw.tick) }}
@@ -23,6 +25,7 @@
     <div class="tablewrap"><table class="tbl"><thead><tr><th>Date</th><th>Current orders</th>{% if rw.b %}<th>If you order {{ rw.extra.units|num }}</th>{% endif %}</tr></thead>
       <tbody>{% for when, a, b in rw.rows() %}<tr><td>{{ when }}</td><td>{{ a|num }}</td>{% if rw.b %}<td>{{ b|num }}</td>{% endif %}</tr>{% endfor %}</tbody></table></div>
   </details>
+  <p class="meta mt8">{% if r.ordered %}On order: {{ r.placed|num }} placed · {{ r.in_production|num }} in production · {{ r.on_the_way|num }} on the way.{% else %}Nothing on order.{% endif %}</p>
   <p class="meta mt8"><b>Insight.</b> {{ rw.insight }}{% if rw.window %} {{ rw.window }}{% endif %}</p>
   {% if closable %}<a class="plink" href="/products/{{ p.id }}">Open stock history {{ icon("chevron-right") }}</a>{% endif %}
   {% else %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import level_badge, dialog_link %}
+{% from "_macros.html" import tip_icon, level_badge, dialog_link %}
 {% block title %}{{ p.name }} · Stock Report{% endblock %}
 {% block content %}
 <div><a class="back" href="/">{{ icon("chevron-right") }} Stock</a></div>
@@ -15,13 +15,13 @@
 
 <div class="panel">
   <div class="phead"><div><h3>{{ p.name }} <span class="code">{{ p.code }}</span></h3>
-    <div class="sub">{{ level_badge(row.flag.level, row.flag.label) }} <span style="margin-left:4px">{% if row.forecast.days_of_stock is none %}No sales yet{% else %}{{ row.forecast.days_of_stock|days }} days left · reorder by {{ row.forecast.reorder_by|short_date }}{% endif %}</span></div></div>
+    <div class="sub">{{ level_badge(row.flag.level, row.flag.label) }} <span style="margin-left:4px">{% if row.forecast.days_of_stock is none %}No sales yet{% else %}Days of stock {{ row.forecast.days_of_stock|days }} · reorder by {{ row.forecast.reorder_by|short_date }}{% endif %}</span></div></div>
     <div class="stack" style="align-items:flex-end;gap:0"><span class="big">{{ p.stock|num }}</span><span class="meta">in the warehouse</span><span class="meta">{{ p.unshipped|num }} sold, not shipped</span></div></div>
   <div id="runway">{% with closable=False %}{% include "partials/runway.html" %}{% endwith %}</div>
 </div>
 
 <div class="panel">
-  <div class="phead"><div><h3>Warehouse stock, last 30 days</h3><div class="sub">Steps with arrivals, corrections and manual sales. The count is the last stock count plus what is recorded here. Imported daily sales set the burn and do not change it.</div></div></div>
+  <div class="phead"><div><h3>Warehouse stock, last 30 days {{ tip_icon("", "info", "About this chart", ["The line steps with arrivals, corrections and manual sales.", "The count is the last stock count plus the changes recorded here.", "Imported daily sales set the daily rate but do not change this count."]) }}</h3></div></div>
   <div class="legend"><span><i class="k line a"></i>Units in the warehouse</span><span><i class="k dot"></i>Arrival</span><span><i class="k dot b"></i>Manual change</span></div>
   {% set marks = [] %}
   {% for x, y, k in hist.markers %}{% set _ = marks.append((x, y, "ser-a" if k == "arrival" else "ser-b", "")) %}{% endfor %}
