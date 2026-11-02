@@ -9,8 +9,12 @@
 {# A warning symbol with a small card of details. app.js opens the card on hover or keyboard focus, and by tap on a phone.
    The same text is in the button's aria-label, so a screen reader never needs the card. #}
 {% macro tip_icon(level, icon_name, title, lines=[]) -%}
-<span class="tipwrap"><button type="button" class="tipbtn {{ level }}" data-tip aria-expanded="false" aria-label="{{ title }}{% if lines %}. {{ lines|join(' ') }}{% endif %}">{{ icon(icon_name) }}</button><span class="tipcard" role="tooltip" hidden><b>{{ title }}</b>{% for l in lines %}<span>{{ l }}</span>{% endfor %}</span></span>
+{# a line is text, or a pair (swatch class, text) that draws the chart mark from the legend (.k) before the text #}
+<span class="tipwrap"><button type="button" class="tipbtn {{ level }}" data-tip aria-expanded="false" aria-label="{{ title }}{% if lines %}.{% for l in lines %} {{ l if l is string else l[1] }}{% endfor %}{% endif %}">{{ icon(icon_name) }}</button><span class="tipcard" role="tooltip" hidden><b>{{ title }}</b>{% for l in lines %}{% if l is string %}<span>{{ l }}</span>{% else %}<span><i class="k {{ l[0] }}"></i>{{ l[1] }}</span>{% endif %}{% endfor %}</span></span>
 {%- endmacro %}
+
+{# the lines of the stage bar key card: a chart mark class (see .k in app.css) and what it means; used by the staff and supplier order lists #}
+{% set stage_key = [("st1", "Placed: the supplier has not confirmed."), ("st2", "In production: confirmed, not shipped yet."), ("st3", "On the way: shipped, not arrived."), ("st4", "Arrived: matched to a warehouse arrival."), "Each part is that share of the order's units."] %}
 
 {% macro status_badge(status) -%}
 {% set m = {"placed": ["", "clock"], "in production": ["info", "package"], "on the way": ["info", "truck"], "partial": ["info", "truck"],
@@ -48,9 +52,6 @@
   <button class="pwtoggle" type="button" data-toggle-password aria-pressed="false" aria-label="Show password" title="Show password"><span class="eye-on">{{ icon("eye") }}</span><span class="eye-off">{{ icon("eye-off") }}</span></button></span>
 {%- endmacro %}
 
-{% macro stage_legend() -%}
-<div class="legend hide-narrow"><span>Stage bar:</span><span><i class="k st1"></i>Placed</span><span><i class="k st2"></i>In production</span><span><i class="k st3"></i>On the way</span><span><i class="k st4"></i>Arrived</span></div>
-{%- endmacro %}
 
 {# opens a dialog: a real link first (works without JavaScript), upgraded by HTMX #}
 {% macro dialog_link(url, label, cls="btn", icon_name=None) -%}

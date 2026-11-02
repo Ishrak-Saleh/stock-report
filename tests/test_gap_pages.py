@@ -225,7 +225,7 @@ def test_the_explaining_text_lives_in_the_info_icons_not_on_the_page(client):
 
     once_in_an_icon(text(client.get("/")), "Each dot shows how long the order has waited.", "Arrival dates are estimates: the order date plus the lead time.")
     client.post(f"/chase/{oid('KEY-001')}/outbox", data={"kind": "tracking"})   # the "Chased recently" panel needs one chased order
-    once_in_an_icon(text(client.get("/chase")), "An alert repeats at most every 2 days.", "These rules decide when an order needs a message.")
+    once_in_an_icon(text(client.get("/chase")), "The same message can be sent again after 2 days, if the order still needs it.", "These rules decide when an order needs a message.")
     once_in_an_icon(text(client.get("/arrivals")), "Units stay in warehouse stock either way.")
     once_in_an_icon(text(client.get("/settings")), "Used by every product that has no override of its own.", "Blank forecast numbers use the defaults above.",
                     "Messages are sent to the email address on file.", "Warehouse stock is not changed.", "Sends an email when a product falls below its reorder line.")
@@ -241,6 +241,23 @@ def test_each_chase_row_on_stock_has_an_info_icon_with_its_days(client):
     page = text(client.get("/"))
     rows = page.split('<div class="crow">')[1:]
     assert rows and all("Follow-up limit: " in row and " days over the limit." in row and " days · limit " not in row for row in rows)
+
+
+def test_the_stage_bar_key_lives_in_an_info_icon_with_its_colors(client):
+    page = text(client.get("/orders"))
+    assert "Stage bar:" not in page and "Reading the stage bar" in page
+    for mark in ("st1", "st2", "st3", "st4"):
+        assert f'<i class="k {mark}"></i>' in page
+    assert page.index("Reading the stage bar") < page.index('name="product"') < page.index('name="chase"')   # title, then the filters at its right
+    supplier = text(make_client(ACME, fresh=False).get("/orders"))   # the supplier's list has the same key
+    assert "Reading the stage bar" in supplier and '<i class="k st3"></i>' in supplier
+
+
+def test_the_match_bar_key_lives_in_an_info_icon_with_its_colors(client):
+    page = text(client.get("/arrivals"))
+    assert 'class="legend' not in page.split("All arrivals")[1] and "Reading the match bar" in page
+    for mark in ("st2", "st3", "free", "none"):
+        assert f'<i class="k {mark}"></i>' in page
 
 
 def test_no_page_mentions_the_assignment_brief(client):

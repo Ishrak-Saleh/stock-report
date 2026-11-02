@@ -1,5 +1,4 @@
-{% from "_macros.html" import order_status_tip, shelf_tip, order_bar, stage_legend, dialog_link %}
-{{ stage_legend() }}
+{% from "_macros.html" import order_status_tip, shelf_tip, order_bar, dialog_link %}
 <div class="lhead lsthead"><span>Order</span><span>Product</span><span>Status</span><span class="ta-r">Units</span><span class="ta-r">Arrived</span><span class="ta-r">Age</span><span>Supplier</span></div>
 {% for r in rows %}{% set o = r.order %}{% set st = r.stages %}
 <div class="orow lstrow link" data-href="/orders/{{ o.id }}">

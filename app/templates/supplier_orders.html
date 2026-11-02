@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import tip_icon, order_status_tip, order_bar, dialog_link %}
+{% from "_macros.html" import tip_icon, stage_key, order_status_tip, order_bar, dialog_link %}
 {% block title %}Your orders · Stock Report{% endblock %}
 {% block content %}
 {% set user = me(request) %}
@@ -12,7 +12,7 @@
 </div>
 
 <div class="panel">
-  <div class="phead"><div><h3>Your orders</h3><div class="sub">Waiting on you first</div></div>
+  <div class="phead"><div><h3>Your orders {{ tip_icon("", "info", "Reading the stage bar", stage_key) }}</h3><div class="sub">Waiting on you first</div></div>
     <span class="seg" role="group" aria-label="Filter orders">
       <a href="/orders" {% if show == "open" %}aria-current="true"{% endif %}>Open {{ open_n }}</a>
       <a href="/orders?show=arrived" {% if show == "arrived" %}aria-current="true"{% endif %}>Finished {{ done_n }}</a>

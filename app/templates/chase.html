@@ -48,7 +48,7 @@
 
 {% if quiet %}
 <div class="panel">
-  <div class="phead"><div><h3>Chased recently {{ tip_icon("", "info", "About this panel", ["The reason still applies. An alert repeats at most every 2 days."]) }}</h3></div></div>
+  <div class="phead"><div><h3>Chased recently {{ tip_icon("", "info", "About this panel", ["These orders already had a message. The same message can be sent again after 2 days, if the order still needs it."]) }}</h3></div></div>
   <div class="lhead qhead"><span>Order</span><span>Last sent</span><span>Next message</span></div>
   {% for c in quiet %}{% set r = c.row %}
   <div class="orow qr">

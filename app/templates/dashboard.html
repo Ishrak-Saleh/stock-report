@@ -15,9 +15,9 @@
 <div class="panel">
   <div class="phead">
     <div><h3>Products {{ tip_icon("", "info", "Reading the bars", [
-        "Bar: days of stock.",
-        "White line: the reorder line, which is lead time plus safety days (" ~ settings.lead_time ~ " plus " ~ settings.safety_days ~ " by default).",
-        "Ring: days of stock once every open order has arrived.",
+        ("bar good", "Days of stock."),
+        ("tick", "The reorder line: lead time plus safety days (" ~ settings.lead_time ~ " plus " ~ settings.safety_days ~ " by default)."),
+        ("ring", "Days of stock once every open order has arrived."),
         "Arrival dates are estimates: the order date plus the lead time."]) }}</h3><div class="sub">Most urgent first</div></div>
     <span class="seg" role="group" aria-label="Filter products">
       {% for key, label in [("", "All"), ("critical", "Critical"), ("reorder", "Reorder now"), ("healthy", "Healthy")] %}

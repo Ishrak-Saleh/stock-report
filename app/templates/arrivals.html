@@ -37,13 +37,12 @@
 </div>
 
 <div class="panel">
-  <div class="phead"><div><h3>All arrivals</h3><div class="sub">Newest first</div></div>
+  <div class="phead"><div><h3>All arrivals {{ tip_icon("", "info", "Reading the match bar", [("st2", "First order: the oldest open order that still had room."), ("st3", "Next order: units that spilled over into the next order."), ("free", "Not from an order: marked by hand."), ("none", "Unmatched: no open order took these units.")]) }}</h3><div class="sub">Newest first</div></div>
     <span class="seg" role="group" aria-label="Filter arrivals">
       {% for key, label in [("", "All"), ("unmatched", "Unmatched"), ("matched", "Matched")] %}
       <a href="/arrivals{% if key %}?status={{ key }}{% endif %}" {% if status == key %}aria-current="true"{% endif %}>{{ label }} {{ counts[key or "all"] }}</a>
       {% endfor %}
     </span></div>
-  <div class="legend hide-narrow"><span><i class="k st2"></i>First order</span><span><i class="k st3"></i>Next order (spill-over)</span><span><i class="k free"></i>Marked "not from an order"</span><span><i class="k none"></i>Unmatched</span></div>
   {% if rows %}
   <div class="lhead ahead"><span>Arrived</span><span>Product</span><span class="ta-r">Units</span><span>Matched to</span><span>Logged by</span><span class="ta-r">Match</span></div>
   {% for r in rows %}{% set a = r.arrival %}

@@ -99,7 +99,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 :root:not([data-theme="light"]) .theme-moon { display: none; }
 
 /* Panels */
-.panel { background: var(--panel); border-radius: var(--r-md); box-shadow: var(--ring); padding: 24px; min-width: 0; }
+.panel { position: relative; background: var(--panel); border-radius: var(--r-md); box-shadow: var(--ring); padding: 24px; min-width: 0; }   /* relative, so the hidden column names (.vh, position: absolute) are clipped by the card and cannot make the whole page scroll sideways */
 .phead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
 .phead .sub { font: var(--t-body-sm); color: var(--ink2); }
 .plink { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font: var(--t-label-md); background: none; border: 0; cursor: pointer; padding: 4px 0; text-decoration: none; }
@@ -133,8 +133,9 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .seg a[aria-current="true"], .seg label:has(input:checked) { background: transparent; color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .seg input { position: absolute; opacity: 0; pointer-events: none; }
 .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); }
-.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
-.filters .field { min-width: 160px; }
+.ofilters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: flex-end; }   /* the Orders filters, at the right of the panel title */
+.ofields { display: flex; gap: 12px; }
+.ofields .field { min-width: 144px; }
 .error { background: color-mix(in srgb, var(--s-crit) 16%, var(--panel)); border-radius: var(--r-sm); padding: 8px 12px; display: flex; gap: 8px; }
 .error .ic { color: var(--s-crit); margin-top: 2px; }
 
@@ -151,6 +152,8 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .tipcard[hidden] { display: none; }
 .tipcard b { font-weight: var(--w-medium); }
 .tipcard span { color: var(--ink2); }
+.tipcard span:has(> .k) { display: grid; grid-template-columns: 16px 1fr; column-gap: 8px; }   /* a chart mark in its own column, centered on the first line of text */
+.tipcard .k { margin: 0; align-self: start; position: relative; top: 8px; transform: translateY(-50%); }
 
 /* What a supplier is waiting on: icon and words, no pill */
 .wait { display: inline-flex; align-items: center; gap: 4px; font: var(--t-body-md); }
@@ -175,7 +178,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .k { display: inline-block; width: 12px; height: 8px; border-radius: var(--r-xs); vertical-align: middle; margin-right: 4px; }
 .k.st1 { background: var(--st1); } .k.st2 { background: var(--st2); } .k.st3 { background: var(--st3); } .k.st4 { background: var(--st4); }
 .k.tick { width: 2px; height: 12px; background: var(--ink); } .k.ring { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--ink2); background: var(--panel); box-sizing: content-box; }
-.k.bar { width: 16px; background: var(--s-serious); }
+.k.bar { width: 16px; background: var(--s-serious); } .k.bar.good { background: var(--s-good); }
 
 /* Lists */
 .lhead, .orow { display: grid; grid-template-columns: minmax(168px, 1.2fr) minmax(188px, 1.2fr) 168px 88px 56px minmax(96px, .8fr); gap: 16px; align-items: center; }
@@ -286,7 +289,8 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .lhead.uhead, .orow.urow { grid-template-columns: 80px minmax(140px, 1fr) 64px minmax(160px, 1.4fr) auto; }
 .lhead.mhead, .orow.mrow2 { grid-template-columns: 120px 168px 72px 88px minmax(160px, 1fr) 96px; }
 .lhead.chead, .orow.cr { grid-template-columns: 148px minmax(160px, 1.3fr) 176px minmax(180px, auto); }
-.lhead.qhead, .orow.qr { grid-template-columns: 148px 140px 1fr; }
+.lhead.qhead, .orow.qr { grid-template-columns: 148px 140px minmax(280px, 1fr); column-gap: 48px; }
+.orow.qr .cell.num, .orow.arow > .cell.num:first-child, .orow.urow > .cell.num:first-child { text-align: left; }   /* a date lines up with its heading */
 .lhead.ohead, .orow.orw { grid-template-columns: 112px minmax(180px, 1.2fr) minmax(200px, 1.6fr) 140px 140px 88px; }
 .lhead.phd, .orow.prw { grid-template-columns: minmax(140px, 1.1fr) 56px minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(140px, 1.2fr) 72px; }
 .lhead.shd, .orow.srw { grid-template-columns: minmax(160px, 1.2fr) minmax(200px, 1.4fr) 120px 72px; }
@@ -399,7 +403,10 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
 
 /* Drop-down lists: the browser draws the open list, so it is square and uses the system blue unless we take it over.
    Chrome and Edge allow that (base-select). Other browsers keep their own list, with the green accent where they allow it. */
-:root { accent-color: var(--accent); }
+:root { accent-color: var(--accent); scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
+/* The other parts the browser draws: the text selection is our green (not the system blue or grey) and the caret in a field is green. */
+::selection { background: color-mix(in srgb, var(--accent) 32%, var(--panel)); color: var(--ink); }
+input, textarea { caret-color: var(--accent); }
 @supports (appearance: base-select) {
   select, ::picker(select) { appearance: base-select; }
   select::picker-icon { color: var(--muted); transition: transform var(--d2) var(--ease); }
@@ -427,13 +434,21 @@ details summary { cursor: pointer; color: var(--accent); font: var(--t-label-md)
   .hide-narrow { display: none; }
   .qty input { font-size: var(--fs-input); }
   .headline .sentence { font: var(--t-title-md); }
+  .headline > .stack.end { width: 100%; align-items: stretch; }   /* the main action fills the card width, with its note under it */
+  .headline .stack.end .btn, .headline > .btn { width: 100%; justify-content: center; }
+  .headline .stack.end form.inline { display: block; }
   .stepper { grid-template-columns: 1fr 1fr; row-gap: 12px; }
   .seg a, .seg label { padding: 0 8px; min-height: 36px; }
+  .ofilters, .ofields { width: 100%; }
+  .ofilters { justify-content: flex-start; }
+  .ofields .field { flex: 1; min-width: 0; }
+  .ofilters .seg { margin-inline: auto; }   /* the All / Needs a message switch sits in the middle under the two lists */
   input, select, textarea { font-size: var(--fs-input); }
   dialog.modal { padding: 16px; }
 }
 @media (pointer: coarse) {
   .tipbtn::after { content: ""; position: absolute; inset: -10px; }  /* a 44 px tap target around the 24 px symbol */
+  .orow a.plain, .crow a.plain, .back { display: inline-flex; align-items: center; padding: 12px 0; margin: -12px 0; }   /* a 44 px tap target for a name link, without moving the row */
   .btn, .tab, .iconbtn, .field input, .field select { min-height: 44px; }
   .avatar { width: 44px; height: 44px; }
   .qty button { width: 44px; }
