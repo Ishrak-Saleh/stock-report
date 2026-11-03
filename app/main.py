@@ -9,7 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import SECRET_KEY, SESSION_HOURS
+from app.config import COOKIE_SECURE, SECRET_KEY, SESSION_HOURS
 from app.db import SessionLocal, engine
 from app.deps import LoginRequired
 from app.migrate import ensure_columns, ensure_current_schema, link_old_follow_ups
@@ -65,7 +65,7 @@ async def guard(request: Request, call_next):
 
 app.add_middleware(GZipMiddleware, minimum_size=500)  # compresses every page, stylesheet and script
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=SESSION_HOURS * 3600, same_site="lax",
-                   session_cookie="sr_session")
+                   session_cookie="sr_session", https_only=COOKIE_SECURE)
 
 for module in (auth, dashboard, orders, arrivals, products, chase, settings):
     app.include_router(module.router)

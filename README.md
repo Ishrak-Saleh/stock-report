@@ -159,6 +159,8 @@ $env:DEMO_PASSWORD = 'P@ss123'; .venv\Scripts\python -m app.reset
 
 It keeps a copy as `stock.db.bak` and rebuilds Company 1 with the three demo accounts, all using the demo password `P@ss123`. It refuses to run while a server still has the database open.
 
+**Online (free hosting).** `render.yaml` describes a free [Render](https://render.com) web service built from this repo: in Render choose New, then Blueprint, and pick the repo. It runs the same app with the three demo accounts and the password `P@ss123` (change `DEMO_PASSWORD` in Render to use another). Two limits come with the free plan: the site sleeps after 15 minutes without visitors, so the first visit afterwards takes about a minute, and its disk is wiped on every restart, so the database is rebuilt with fresh fake data each time and anything typed in is lost.
+
 **Sign up.** Create your own account at `/signup`.
 
 - **Buy stock** makes a new company with its own products, orders and suppliers, separate from the demo's Company 1. The empty Stock page has a "Load sample data" button.

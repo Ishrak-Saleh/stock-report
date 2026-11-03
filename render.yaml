@@ -1,0 +1,21 @@
+# Render Blueprint: one free web service built from this repo. Render reads it when you create a Blueprint.
+# The free plan sleeps after 15 minutes without visitors and its disk is wiped on every restart, so the database
+# lives in /tmp and every start rebuilds Company 1 with fresh fake data (app/main.py, ensure_demo_users).
+services:
+  - type: web
+    name: stock-report
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /login
+    autoDeployTrigger: commit
+    envVars:
+      - key: SECRET_KEY        # signs the session cookie; Render makes a random one and keeps it
+        generateValue: true
+      - key: DEMO_PASSWORD     # the password of the three demo accounts (fake data only); change it here any time
+        value: P@ss123
+      - key: DATABASE_URL
+        value: sqlite:////tmp/stockreport.db
+      - key: COOKIE_SECURE     # the session cookie is only sent over https
+        value: "1"

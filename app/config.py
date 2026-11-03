@@ -9,6 +9,7 @@ DB_URL = os.getenv("DATABASE_URL", "sqlite:///stock.db")
 SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_urlsafe(32)
 DEMO_PASSWORD = os.getenv("DEMO_PASSWORD")  # None: a random one is made and printed once when the demo users are created
 SESSION_HOURS = 8
+COOKIE_SECURE = os.getenv("COOKIE_SECURE") == "1"  # on a hosted site (https) the session cookie is sent only over https
 STALE_DAYS = 2  # stock or sales data older than this gets a warning
 EMAIL_MODE = os.getenv("EMAIL_MODE", "test")  # "test" writes to the outbox and delivers nothing
 SENDER_NAME = os.getenv("SENDER_NAME", "Sam")  # signs the messages staff copy to suppliers
