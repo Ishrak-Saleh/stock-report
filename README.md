@@ -8,7 +8,7 @@
   <img alt="Python 3.12+" src="https://img.shields.io/badge/Python-3.12%2B-3776ab?logo=python&logoColor=white">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-Jinja2%20%2B%20HTMX-009688">
   <img alt="SQLite" src="https://img.shields.io/badge/Database-SQLite-003b57">
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-296%20passing-2ea44f">
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-311%20passing-2ea44f">
   <img alt="Fake data" src="https://img.shields.io/badge/Data-fake%20only-8a8a85">
 </p>
 
@@ -151,7 +151,13 @@ Open the `localhost` address the terminal prints. The demo script gives three de
 .venv\Scripts\python -u -m uvicorn app.main:app --port 8000
 ```
 
-The first start creates the accounts and prints a random password once (set `DEMO_PASSWORD` first to choose one). Do not use `--reload` on Windows: it leaves stray server processes behind. To start over on `stock.db`, stop the server and run `.venv\Scripts\python -m app.reset`. It keeps a copy as `stock.db.bak`.
+The first start creates the accounts and prints a random password once (set `DEMO_PASSWORD` first to choose one). Do not use `--reload` on Windows: it leaves stray server processes behind. To start over on `stock.db`, stop the server first, then reset it with this command in PowerShell:
+
+```powershell
+$env:DEMO_PASSWORD = 'P@ss123'; .venv\Scripts\python -m app.reset
+```
+
+It keeps a copy as `stock.db.bak` and rebuilds Company 1 with the three demo accounts, all using the demo password `P@ss123`. It refuses to run while a server still has the database open.
 
 **Sign up.** Create your own account at `/signup`.
 
