@@ -68,9 +68,12 @@
   <div class="phead">
     <div><h3>Orders to chase {{ tip_icon("", "info", "Reading the dots", [
         "Each dot shows how long the order has waited.",
-        "The tick marks when to follow up: after 2 days to confirm, after 10 days to ask for tracking, and after more than 10 days on the way to ask where it is."]) }}</h3><div class="sub">{% if chase %}{{ chase|length }} order{{ "s" if chase|length != 1 }} need a message{% else %}Nothing to chase{% endif %}</div></div>
+        ("dot warn", "Up to a week past the limit."),
+        ("dot serious", "More than a week past the limit."),
+        ("tick", "The limit: 2 days to confirm, 10 days to ask for tracking, and more than 10 days on the way to ask where it is.")]) }}</h3><div class="sub">{% if chase %}{{ chase|length }} order{{ "s" if chase|length != 1 }} need a message{% else %}Nothing to chase{% endif %}</div></div>
     <a class="plink" href="/orders?chase=1">See them in Orders {{ icon("chevron-right") }}</a>
   </div>
+  {% if chase %}<div class="lhead crhead"><span>Order</span><span>Supplier</span><span>Days waited</span><span></span></div>{% endif %}
   {% for r in chase %}{% set c = r.chase %}
   <div class="crow">
     <b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b>

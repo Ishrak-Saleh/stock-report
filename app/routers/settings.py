@@ -1,5 +1,4 @@
 from datetime import timedelta
-from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -10,6 +9,7 @@ from app.config import today
 from app.db import get_session
 from app.deps import require_staff
 from app.domain.sales_import import SalesFileError
+from app.flash import flash
 from app.models import Product, Supplier
 from app.services import chase as chase_svc
 from app.services import sales as sales_svc
@@ -18,46 +18,56 @@ from app.services.products import get_settings, params_for
 from app.templating import templates
 
 router = APIRouter()
-# The notice comes back through the address, so only these fixed sentences are ever shown.
-NOTICES = frozenset({
-    "Forecast defaults saved.", "Product added.", "Product saved.", "Supplier added.", "Supplier saved.",
-    "Alert settings saved.", "Test saved to the Outbox. Nothing was delivered.",
-    "Reorder alert saved to the Outbox. Nothing was delivered.", "Data marked as updated today.",
-    "Sales imported. The Stock page has the new numbers."})
-SALES_NOTICE = "Sales imported. The Stock page has the new numbers."
 MAX_SALES_BYTES = 500_000  # about 15,000 rows; the web server limits one form field to 1 MB
+STOCK = ("/", "See Stock")
+ORDERS = ("/orders", "Open Orders")
 
 
-def _page(request: Request, db: Session, error: str = "", notice: str = "", code: int = 200):
+def _addresses(n: int) -> str:
+    return f"{n} address" if n == 1 else f"{n} addresses"
+
+
+def _page(request: Request, db: Session, error: str = "", notice: str = "", code: int = 200, in_panel: bool = False,
+          link: tuple[str, str] | None = None):
     s = get_settings(db)
     products = db.scalars(select(Product).order_by(Product.name)).all()
     counts = svc.open_orders_by_supplier(db)
     return templates.TemplateResponse(request, "settings.html", {
         "s": s, "products": products, "suppliers": db.scalars(select(Supplier).order_by(Supplier.name)).all(),
-        "open_counts": counts, "error": error, "notice": notice, "bundles": svc.bundles_text,
+        "open_counts": counts, "error": error, "notice": notice, "notice_link": link, "in_panel": in_panel,
+        "bundles": svc.bundles_text,
         "stale": svc.stale_days(s, today()), "reorder_line": s.lead_time + s.safety_days,
         "params": {p.id: params_for(p, s) for p in products}}, status_code=code)
 
 
 @router.get("/settings", response_class=HTMLResponse)
-def settings(request: Request, notice: str = "", user: dict = Depends(require_staff), db: Session = Depends(get_session)):
-    return _page(request, db, notice=notice if notice in NOTICES else "")
+def settings(request: Request, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+    return _page(request, db)
 
 
-def _try(request: Request, db: Session, action, notice: str):
+def _try(request: Request, db: Session, action, text, to: tuple[str, str] | None = None, panel: bool = False):
+    """Run a settings action, then say what it did and where to check it. `text` is the sentence, or a function of what the
+    action returned; `to` is (address, label) of the page where the change shows. The Alerts panel (`panel`) is saved by htmx
+    and only the panel is swapped, so its answer is 200 with the message inside the panel (htmx ignores 4xx and a redirect would
+    reload the page). Everything else redirects, and the next page shows the message as a toast (app/flash.py)."""
+    in_panel = panel and bool(request.headers.get("HX-Request"))
     try:
-        action()
+        result = action()
     except (svc.SettingsError, chase_svc.ChaseError) as e:
         db.rollback()
-        return _page(request, db, error=str(e), code=400)
-    return RedirectResponse(f"/settings?notice={notice}", status_code=303)
+        return _page(request, db, error=str(e), code=200 if in_panel else 400, in_panel=in_panel)
+    message = text(result) if callable(text) else text
+    if in_panel:
+        return _page(request, db, notice=message, link=to, in_panel=True)
+    flash(request, message, *(to or ()))
+    return RedirectResponse("/settings#alerts" if panel else "/settings", status_code=303)
 
 
 @router.post("/settings/defaults")
 def defaults(request: Request, lead_time: str = Form("", max_length=8), safety_days: str = Form("", max_length=8),
              target_days: str = Form("", max_length=8), user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     return _try(request, db, lambda: svc.save_defaults(db, get_settings(db), lead_time, safety_days, target_days),
-                "Forecast defaults saved.")
+                "Forecast defaults saved. Every product's reorder line changed.", STOCK)
 
 
 # ---- products ----
@@ -85,7 +95,7 @@ def create_product(request: Request, name: str = Form("", max_length=80), code: 
     return _try(request, db, lambda: svc.add_product(
         db, name=name, code=code, identifiers=identifiers, bundles=bundles, lead=lead, safety=safety, target=target,
         unshipped=unshipped),
-        "Product added.")
+        "Product added. It is on the Stock page now.", STOCK)
 
 
 @router.post("/settings/products/{product_id}")
@@ -100,7 +110,7 @@ def update_product(request: Request, product_id: int, name: str = Form("", max_l
     return _try(request, db, lambda: svc.save_product(
         db, p, name=name, code=code, identifiers=identifiers, bundles=bundles, lead=lead, safety=safety, target=target,
         unshipped=unshipped),
-        "Product saved.")
+        "Product saved. Its numbers on Stock changed.", STOCK)
 
 
 # ---- suppliers ----
@@ -121,7 +131,8 @@ def supplier_dialog(request: Request, supplier_id: int, user: dict = Depends(req
 @router.post("/settings/suppliers")
 def create_supplier(request: Request, name: str = Form("", max_length=80), email: str = Form("", max_length=120),
                     user: dict = Depends(require_staff), db: Session = Depends(get_session)):
-    return _try(request, db, lambda: svc.add_supplier(db, name, email), "Supplier added.")
+    return _try(request, db, lambda: svc.add_supplier(db, name, email),
+                "Supplier added. You can pick it when you place an order.", ORDERS)
 
 
 @router.post("/settings/suppliers/{supplier_id}")
@@ -131,7 +142,8 @@ def update_supplier(request: Request, supplier_id: int, name: str = Form("", max
     sp = db.get(Supplier, supplier_id)
     if not sp:
         raise HTTPException(404, "Supplier not found")
-    return _try(request, db, lambda: svc.save_supplier(db, sp, name, email), "Supplier saved.")
+    return _try(request, db, lambda: svc.save_supplier(db, sp, name, email),
+                "Supplier saved. Its orders show the new details.", ORDERS)
 
 
 # ---- alerts and data freshness ----
@@ -140,24 +152,27 @@ def update_supplier(request: Request, supplier_id: int, name: str = Form("", max
 def alerts(request: Request, enabled: str = Form(""), recipients: str = Form("", max_length=300),
            user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     return _try(request, db, lambda: svc.save_alerts(db, get_settings(db), bool(enabled), recipients),
-                "Alert settings saved.")
+                "Alert settings saved.", panel=True)
 
 
 @router.post("/settings/alerts/test")
 def alerts_test(request: Request, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     return _try(request, db, lambda: chase_svc.add_reorder_alert(db, today(), test=True),
-                "Test saved to the Outbox. Nothing was delivered.")
+                lambda n: f"Test saved for {_addresses(n)}. Nothing was delivered.", ("/outbox?kind=test", "Open the Outbox"),
+                panel=True)
 
 
 @router.post("/settings/alerts/send")
 def alerts_send(request: Request, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     return _try(request, db, lambda: chase_svc.add_reorder_alert(db, today(), test=False),
-                "Reorder alert saved to the Outbox. Nothing was delivered.")
+                lambda n: f"Alert saved for {_addresses(n)}. Nothing was delivered.", ("/outbox?kind=alert", "Open the Outbox"),
+                panel=True)
 
 
 @router.post("/settings/data-updated")
 def data_updated(request: Request, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
-    return _try(request, db, lambda: svc.mark_data_updated(db, get_settings(db)), "Data marked as updated today.")
+    return _try(request, db, lambda: svc.mark_data_updated(db, get_settings(db)),
+                "Marked as updated today. The old-data warning on Stock is gone.", STOCK)
 
 
 # ---- sales import ----
@@ -198,8 +213,10 @@ def sales_check(request: Request, file: UploadFile = File(...), user: dict = Dep
 def sales_import(request: Request, data: str = Form("", max_length=MAX_SALES_BYTES), user: dict = Depends(require_staff),
                  db: Session = Depends(get_session)):
     try:
-        sales_svc.commit(db, data, today())
+        pv = sales_svc.commit(db, data, today())
     except SalesFileError as e:
         db.rollback()
         return _sales_dialog(request, error=str(e))
-    return Response(status_code=200, headers={"HX-Redirect": "/settings?notice=" + quote(SALES_NOTICE)})
+    n = len(pv.changes)
+    flash(request, f"Sales saved for {n} product{'s' if n != 1 else ''}. The daily rates on Stock changed.", *STOCK)
+    return Response(status_code=200, headers={"HX-Redirect": "/settings"})

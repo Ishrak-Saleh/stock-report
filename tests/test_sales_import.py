@@ -109,10 +109,10 @@ def test_importing_gives_a_product_with_no_sales_its_forecast():
     client = make_client()
     assert saved("CBL") == {} and "No sales yet" in client.get("/").text
     r = do_import(client, csv_for("Cable"))
-    assert r.status_code == 200 and r.headers["HX-Redirect"].startswith("/settings?notice=Sales%20imported")
+    assert r.status_code == 200 and r.headers["HX-Redirect"] == "/settings"
     assert len(saved("CBL")) == 10
+    assert "Sales saved for 1 product. The daily rates on Stock changed." in client.get(r.headers["HX-Redirect"]).text
     assert "No sales yet" not in client.get("/").text
-    assert "Sales imported. The Stock page has the new numbers." in client.get(r.headers["HX-Redirect"]).text
 
 
 def test_importing_the_same_file_twice_does_not_double_the_sales_and_a_new_file_replaces_the_day():

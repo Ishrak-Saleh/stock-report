@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.config import EMAIL_MODE, now, today
 from app.db import get_session
 from app.deps import require_staff
+from app.flash import flash
 from app.models import Order, Outbox
 from app.services import chase as svc
 from app.services.products import gap_risk, get_settings, report
@@ -85,9 +86,14 @@ def outbox_delete_dialog(request: Request, message_id: int, user: dict = Depends
 
 
 @router.post("/outbox/{message_id}/delete")
-def outbox_delete(message_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
+def outbox_delete(request: Request, message_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     m = db.get(Outbox, message_id)
     if not m:
         raise HTTPException(404, "Message not found")
+    follow_up = m.kind == "follow-up" and m.order_id is not None
     svc.delete_message(db, m, user["label"])
+    if follow_up:
+        flash(request, "Message deleted. The order's wait for a follow-up was updated.", "/chase", "Open the Chase list")
+    else:
+        flash(request, "Message deleted.")
     return RedirectResponse("/outbox", status_code=303)

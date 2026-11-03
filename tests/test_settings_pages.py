@@ -47,8 +47,8 @@ def test_the_page_states_the_reorder_line(client):
 
 def test_saving_defaults_changes_the_forecast_everywhere(client):
     r = client.post("/settings/defaults", data={"lead_time": 30, "safety_days": 10, "target_days": 50})
-    assert r.status_code == 303 and "notice=Forecast" in r.headers["location"]
-    t = text(client.get("/settings?notice=Forecast defaults saved."))
+    assert r.status_code == 303 and r.headers["location"] == "/settings"
+    t = text(client.get("/settings"))
     assert "Reorder line is 40 days." in t and "Forecast defaults saved." in t
     stock = text(client.get("/"))
     assert "lead time 30 days" in stock
@@ -134,6 +134,28 @@ def test_alert_settings_and_the_test_send(client):
         assert [m.to for m in msgs] == ["ops@example.com", "sam@example.com"] and all(m.kind == "test" for m in msgs)
         assert msgs[0].subject.startswith("Test: Reorder alert: 3 products need a reorder")
         assert "Phone" in msgs[0].body and "suggested order" in msgs[0].body
+
+
+def test_the_alerts_switch_saves_itself_and_stays_on_after_a_reload(client):
+    page = text(client.get("/settings"))
+    assert 'id="alerts-on"' in page and "data-autosubmit" in page and "checked" not in page.split('id="alerts-on"')[1].split(">")[0]
+    r = client.post("/settings/alerts", data={"enabled": "1", "recipients": ""})
+    assert r.status_code == 303 and r.headers["location"].endswith("#alerts")
+    assert "checked" in text(client.get("/settings")).split('id="alerts-on"')[1].split(">")[0]
+    client.post("/settings/alerts", data={"recipients": ""})
+    assert "checked" not in text(client.get("/settings")).split('id="alerts-on"')[1].split(">")[0]
+
+
+def test_the_alerts_panel_saves_through_htmx_without_a_redirect(client):
+    hx = {"HX-Request": "true"}
+    r = client.post("/settings/alerts", data={"enabled": "1", "recipients": "ops@example.com"}, headers=hx, follow_redirects=False)
+    page = text(r)
+    assert r.status_code == 200 and 'id="alerts"' in page and "Alert settings saved." in page
+    assert page.count("Alert settings saved.") == 1   # inside the panel only, not again at the top of the page
+    bad = client.post("/settings/alerts", data={"enabled": "1", "recipients": "nope"}, headers=hx, follow_redirects=False)
+    assert bad.status_code == 200 and "nope is not an email address." in text(bad)
+    r = client.post("/settings/alerts/test", headers=hx, follow_redirects=False)
+    assert r.status_code == 200 and "Test saved for 1 address. Nothing was delivered." in text(r)
 
 
 def test_a_real_alert_needs_alerts_turned_on(client):

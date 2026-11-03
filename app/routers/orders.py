@@ -9,6 +9,7 @@ from app.deps import is_staff, require_staff, require_user
 from app.domain import messages
 from app.domain.carriers import CARRIERS
 from app.domain.orders import expected_arrival
+from app.flash import flash
 from app.models import Order, Product, Supplier
 from app.services import orders as svc
 from app.services.products import gap_risk, get_settings, params_for, product_row, report
@@ -60,13 +61,16 @@ def _detail(request: Request, db: Session, o: Order, user: dict, error: str = ""
     return templates.TemplateResponse(request, "order_detail.html", ctx, status_code=status_code)
 
 
-def _run(request: Request, db: Session, o: Order, user: dict, action, to: str | None = None):
-    """Run an order action. Rule breaks show on the detail page instead of crashing."""
+def _run(request: Request, db: Session, o: Order, user: dict, action, to: str | None = None, say: str = ""):
+    """Run an order action. Rule breaks show on the detail page instead of crashing. `say` is the toast for an action
+    that changes numbers on the Stock page, which the order page does not show."""
     try:
         action()
     except svc.OrderError as e:
         db.rollback()
         return _detail(request, db, o, user, str(e), 400)
+    if say:
+        flash(request, say, "/", "See Stock")
     return RedirectResponse(to or f"/orders/{o.id}", status_code=303)
 
 
@@ -127,13 +131,14 @@ def new_order_form(request: Request, product: int | None = None, product_id: int
 
 
 @router.post("/orders")
-def create(product_id: int = Form(), supplier_id: int = Form(), units: int = Form(gt=0, le=UNITS_MAX),
+def create(request: Request, product_id: int = Form(), supplier_id: int = Form(), units: int = Form(gt=0, le=UNITS_MAX),
            notes: str = Form("", max_length=NOTES_MAX), user: dict = Depends(require_staff),
            db: Session = Depends(get_session)):
     product, supplier = db.get(Product, product_id), db.get(Supplier, supplier_id)
     if not product or not supplier:
         raise HTTPException(404, "Unknown product or supplier")
     order = svc.create_order(db, product, supplier.id, units, notes, user["label"])
+    flash(request, f"{order.name} placed. Stock now counts its {units:,} units as on order.", "/", "See Stock")
     return RedirectResponse(f"/orders/{order.id}", status_code=303)
 
 
@@ -217,22 +222,26 @@ def edit(request: Request, order_id: int, units: int = Form(gt=0, le=UNITS_MAX),
 @router.post("/orders/{order_id}/cancel")
 def cancel(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     o = _get(db, order_id, user)
-    return _run(request, db, o, user, lambda: svc.cancel_order(db, o, user["label"]))
+    return _run(request, db, o, user, lambda: svc.cancel_order(db, o, user["label"]),
+                say=f"{o.name} cancelled. It no longer counts as ordered.")
 
 
 @router.post("/orders/{order_id}/close")
 def close(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     o = _get(db, order_id, user)
-    return _run(request, db, o, user, lambda: svc.close_order(db, o, user["label"]))
+    return _run(request, db, o, user, lambda: svc.close_order(db, o, user["label"]),
+                say=f"{o.name} closed. Units still to come no longer count as ordered.")
 
 
 @router.post("/orders/{order_id}/reopen")
 def reopen(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     o = _get(db, order_id, user)
-    return _run(request, db, o, user, lambda: svc.reopen_order(db, o, user["label"]))
+    return _run(request, db, o, user, lambda: svc.reopen_order(db, o, user["label"]),
+                say=f"{o.name} reopened. Its units still to come count as ordered again.")
 
 
 @router.post("/orders/{order_id}/delete")
 def delete(request: Request, order_id: int, user: dict = Depends(require_staff), db: Session = Depends(get_session)):
     o = _get(db, order_id, user)
-    return _run(request, db, o, user, lambda: svc.delete_order(db, o), to="/orders")
+    return _run(request, db, o, user, lambda: svc.delete_order(db, o), to="/orders",
+                say=f"{o.name} deleted. Stock no longer counts it.")

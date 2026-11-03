@@ -17,20 +17,23 @@
 {% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
 
 <div class="panel">
-  <div class="phead"><div><h3>Due now</h3><div class="sub">Empty shelf first, then most overdue</div></div>
+  <div class="phead"><div><h3>Due now {{ tip_icon("", "info", "Reading the dots", [
+        "Each dot shows how long the order has waited.",
+        ("dot warn", "Up to a week past the limit."),
+        ("dot serious", "More than a week past the limit."),
+        ("tick", "The follow-up limit for this alert.")]) }}</h3><div class="sub">Empty shelf first, then most overdue</div></div>
     <span class="seg" role="group" aria-label="Alert type">
       <a href="/chase" {% if not kind %}aria-current="true"{% endif %}>All {{ all_due }}</a>
       {% for k, label in labels.items() %}<a href="/chase?kind={{ k }}" {% if kind == k %}aria-current="true"{% endif %}>{{ label.replace("Ask ", "").capitalize() }} {{ counts[k] }}</a>{% endfor %}
     </span></div>
   {% if due %}
-  <div class="legend hide-narrow"><span><i class="k bar" style="background:var(--s-warn)"></i>Up to a week past the limit</span><span><i class="k bar"></i>More than a week past</span><span><i class="k tick"></i>Follow-up limit for this alert</span></div>
-  <div class="lhead chead"><span>Order</span><span>Who and why</span><span>Days waited</span><span class="ta-r">Message</span></div>
+  <div class="lhead chead"><span>Order</span><span>Supplier</span><span>Days waited</span><span class="ta-r">Message</span></div>
   {% for c in due %}{% set r = c.row %}{% set ch = r.chase %}
   <div class="orow cr">
     <div class="pname"><b><a class="plain" href="/orders/{{ r.order.id }}">{{ r.order.name }}</a></b>
       <div class="flags">{{ tip_icon("serious" if ch.over >= 8 else "warn", kind_icon[ch.kind], labels[ch.kind], [r.step[2] ~ ".", "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold ~ " (" ~ ch.over ~ " over)."]) }}{{ shelf_tip(r.order.product.name, r.empty_before) }}</div></div>
-    <div class="cell"><span class="lab">Who and why</span><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div></div>
-    <div class="cell"><span class="lab">Days waited</span>{{ charts.dot_plot(ch.days, ch.threshold, ch.over, "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold) }}
+    <div class="cell"><span class="lab">Supplier</span><div>{{ r.order.supplier.name }}</div><div class="meta">{{ r.step[2] }}</div></div>
+    <div class="cell"><span class="lab">Days waited</span>{{ charts.dot_plot(ch.days, ch.threshold, ch.over, "Waited " ~ ch.days ~ " days, the limit is " ~ ch.threshold, w=280) }}
       <div class="small">{{ ch.days }} days · limit {{ ch.threshold }} · {{ ch.over }} over</div></div>
     <div class="cell act">
       {{ dialog_link("/orders/" ~ r.order.id ~ "/dialog/message?kind=" ~ ch.kind, "Preview", "btn small", "mail") }}

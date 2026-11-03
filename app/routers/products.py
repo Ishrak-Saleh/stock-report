@@ -8,6 +8,7 @@ from app.config import today
 from app.db import get_session
 from app.deps import require_staff
 from app.domain.runway import HORIZONS
+from app.flash import flash
 from app.models import Product
 from app.services import stock as svc
 from app.services.products import get_settings, product_row
@@ -67,9 +68,11 @@ def adjust(request: Request, product_id: int, kind: str = Form(), units: int = F
            day: date = Form(), variant: str = Form("", max_length=60), user: dict = Depends(require_staff),
            db: Session = Depends(get_session)):
     p = _product(db, product_id)
+    before = p.stock
     try:
         svc.log_adjustment(db, p, kind, units, note, day, user["label"], variant)
     except svc.StockError as e:
         db.rollback()
         return _page(request, db, p, error=str(e), code=400)
+    flash(request, f"{p.name} stock changed by {p.stock - before:+,}. Its days of stock and suggested order changed.", "/", "See Stock")
     return RedirectResponse(f"/products/{p.id}", status_code=303)

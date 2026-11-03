@@ -8,6 +8,7 @@ from app import charts
 from app.config import today as store_today
 from app.domain.carriers import tracking_url
 from app.domain.messages import short_name
+from app.flash import pop_flash
 from app.icons import icon
 
 templates = Jinja2Templates(directory="app/templates")
@@ -62,4 +63,5 @@ templates.env.filters.update({
     "tracking_url": lambda t: tracking_url(t.carrier, t.number),
     "num": num, "days": days, "short_date": short_date, "short_name": short_name, "clock": clock,
 })
-templates.env.globals.update(icon=icon, charts=charts, store_today=store_today, me=me, chase_count=chase_count, static_url=static_url)
+templates.env.globals.update(icon=icon, charts=charts, store_today=store_today, me=me, chase_count=chase_count, static_url=static_url,
+                            pop_flash=pop_flash)

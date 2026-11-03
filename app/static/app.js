@@ -200,6 +200,17 @@
     c.setCustomValidity(c.value && c.value !== p.value ? "The two passwords do not match." : "");
   });
 
+  /* The toast after a button (app/flash.py) stays until it is closed. */
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-toast-close]");
+    if (b) b.closest(".toast").hidden = true;
+  });
+
+  /* A switch marked data-autosubmit saves its form the moment it is flipped (the alerts switch). */
+  document.addEventListener("change", function (e) {
+    if (e.target.matches("[data-autosubmit]") && e.target.form) e.target.form.requestSubmit();
+  });
+
   /* Picking an order size fills the units box, then the box asks the server for the days of stock. */
   document.addEventListener("change", function (e) {
     var r = e.target;

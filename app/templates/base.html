@@ -62,5 +62,13 @@
     </main>
   </div>
   <div id="modal-host"></div>
+  {% set _toast = pop_flash(request) %}
+  {% if _toast %}
+  <div class="toast" role="status">
+    {{ icon("circle-check") }}<span>{{ _toast.text }}</span>
+    {% if _toast.href %}<a class="btn small" href="{{ _toast.href }}">{{ _toast.label }}</a>{% endif %}
+    <button class="iconbtn" type="button" data-toast-close aria-label="Close message">{{ icon("x") }}</button>
+  </div>
+  {% endif %}
 </body>
 </html>

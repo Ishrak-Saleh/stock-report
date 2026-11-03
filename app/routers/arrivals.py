@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import today
 from app.db import get_session
 from app.deps import require_staff
+from app.flash import flash
 from app.models import Arrival, Product
 from app.services import arrivals as svc
 from app.services.products import get_settings
@@ -88,6 +89,7 @@ def record(request: Request, product_id: int = Form(), units: int = Form(le=UNIT
     except svc.ArrivalError as e:
         db.rollback()
         return _page(request, db, error=str(e), code=400)
+    flash(request, f"{units:,} {product.name} units recorded. Stock and the orders they matched are updated.", "/", "See Stock")
     return RedirectResponse("/arrivals", status_code=303)
 
 
@@ -117,6 +119,7 @@ async def match(request: Request, arrival_id: int, user: dict = Depends(require_
     except svc.ArrivalError as e:
         db.rollback()
         return _page(request, db, error=str(e), code=400)
+    flash(request, "Match saved. The orders' Arrived counts changed.", "/orders", "Open Orders")
     return RedirectResponse("/arrivals", status_code=303)
 
 

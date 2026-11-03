@@ -10,8 +10,7 @@
     <span class="meta">Changes apply to the Stock page straight away</span>
   </div>
 </div>
-{% if error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
-{% if notice %}<div class="callout good" role="status">{{ icon("circle-check") }}<span>{{ notice }}</span></div>{% endif %}
+{% if error and not in_panel %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
 <div class="row"><span class="seg" role="group" aria-label="Jump to a section">
   <a href="#forecast">Forecast</a><a href="#products">Products {{ products|length }}</a><a href="#suppliers">Suppliers {{ suppliers|length }}</a><a href="#sales">Sales</a><a href="#alerts">Alerts</a>
 </span></div>
@@ -76,9 +75,13 @@
 
 <div class="panel" id="alerts">
   <div class="phead"><div><h3>Alerts {{ tip_icon("", "info", "About this panel", ["Sends an email when a product falls below its reorder line."]) }}</h3></div></div>
-  <form method="post" action="/settings/alerts" class="stack" style="gap:0">
+  {# the forms in this panel save through htmx and swap only the panel, so the page does not reload or jump to the top #}
+  {% if in_panel and error %}<div class="error" role="alert">{{ icon("circle-alert") }}<span>{{ error }}</span></div>{% endif %}
+  {% if in_panel and notice %}<div class="callout good" role="status">{{ icon("circle-check") }}<span>{{ notice }}</span>
+    {% if notice_link %}<a class="plink" href="{{ notice_link[0] }}">{{ notice_link[1] }} {{ icon("chevron-right") }}</a>{% endif %}</div>{% endif %}
+  <form method="post" action="/settings/alerts" class="stack" style="gap:0" hx-post="/settings/alerts" hx-target="#alerts" hx-select="#alerts" hx-swap="outerHTML">
     <div class="setrow"><div><label for="alerts-on" class="strong">Send reorder alert emails</label><div class="meta">Off by default. Turn on when staff want a nudge between weekly reviews.</div></div>
-      <input id="alerts-on" class="switchbox" type="checkbox" role="switch" name="enabled" value="1" {{ "checked" if s.alerts_enabled }}></div>
+      <input id="alerts-on" class="switchbox" type="checkbox" role="switch" name="enabled" value="1" data-autosubmit {{ "checked" if s.alerts_enabled }}></div>
     <div class="setrow" style="align-items:flex-end">
       <label class="field" style="flex:1;max-width:480px">Who gets them<input name="recipients" type="text" maxlength="300" value="{{ s.recipients }}" placeholder="ops@example.com, sam@example.com"><span class="hint">Separate addresses with commas</span></label>
       <button class="btn" type="submit">Save alert settings</button>
@@ -86,9 +89,12 @@
   </form>
   <div class="setrow">
     <div><div class="strong">Test it</div><div class="meta">Saves the real alert for each address in the Outbox, marked as a test. Nothing is delivered.</div></div>
-    <div class="row">
-      <form method="post" action="/settings/alerts/test" class="inline"><button class="btn" type="submit">{{ icon("send") }}Send test</button></form>
-      <form method="post" action="/settings/alerts/send" class="inline"><button class="btn quiet" type="submit" {{ "disabled" if not s.alerts_enabled }}>{{ icon("bell") }}Send alert now</button>{% if not s.alerts_enabled %} <span class="meta">Turn alerts on first.</span>{% endif %}</form>
+    <div class="stack end" style="gap:4px">
+      <div class="row">
+        <form method="post" action="/settings/alerts/send" class="inline" hx-post="/settings/alerts/send" hx-target="#alerts" hx-select="#alerts" hx-swap="outerHTML"><button class="btn quiet" type="submit" {{ "disabled" if not s.alerts_enabled }}>{{ icon("bell") }}Send alert now</button></form>
+        <form method="post" action="/settings/alerts/test" class="inline" hx-post="/settings/alerts/test" hx-target="#alerts" hx-select="#alerts" hx-swap="outerHTML"><button class="btn" type="submit">{{ icon("send") }}Send test</button></form>
+      </div>
+      {% if not s.alerts_enabled %}<span class="meta">Turn alerts on first.</span>{% endif %}
     </div>
   </div>
   <div class="setrow">

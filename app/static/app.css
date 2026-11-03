@@ -86,6 +86,9 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
 /* Top bar */
 .topbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: relative; }
+@media (min-width: 761px) {
+  .topbar { position: sticky; top: 0; z-index: 10; background: var(--page); padding: 8px 0; margin: -8px 0; }   /* stays on top while the page scrolls; the padding and the matching negative margin keep the layout where it was. Not on phones: a wrapped bar would cover too much of the screen */
+}
 .brand { display: inline-flex; align-items: center; gap: 8px; font: var(--t-title-md); color: var(--ink); text-decoration: none; }
 .brand .logo { width: 24px; height: 24px; border-radius: var(--r-sm); background: var(--accent-fill); color: var(--accent-ink); display: grid; place-items: center; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -105,7 +108,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .plink { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font: var(--t-label-md); background: none; border: 0; cursor: pointer; padding: 4px 0; text-decoration: none; }
 .headline { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .headline .sentence { font: var(--t-title-lg); max-width: 64ch; text-wrap: balance; }
-.headline .sentence span { color: var(--ink2); font-weight: var(--w-regular); }
+.headline .sentence span { display: block; color: var(--ink2); font-weight: var(--w-regular); }   /* the decision on the first line, the detail on the second */
 .back { display: inline-flex; align-items: center; gap: 4px; color: var(--ink2); font: var(--t-body-sm); text-decoration: none; }
 .back .ic { transform: rotate(180deg); }
 
@@ -135,6 +138,13 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .seg label:has(input:focus-visible) { outline: 2px solid var(--accent); }
 .ofilters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: flex-end; }   /* the Orders filters, at the right of the panel title */
 .ofields { display: flex; gap: 12px; }
+.phead:has(> .ofilters) { margin-bottom: 40px; }   /* more room between the title and filters and the column names */
+@media (min-width: 761px) {   /* the two lists sit in the middle of the title row and the All / Needs a message switch stays at the right */
+  .phead:has(> .ofilters) { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; }
+  .phead:has(> .ofilters) > :first-child { align-self: start; }
+  .ofilters { display: contents; }
+  .ofilters .seg { justify-self: end; }
+}
 .ofields .field { min-width: 144px; }
 .error { background: color-mix(in srgb, var(--s-crit) 16%, var(--panel)); border-radius: var(--r-sm); padding: 8px 12px; display: flex; gap: 8px; }
 .error .ic { color: var(--s-crit); margin-top: 2px; }
@@ -190,6 +200,10 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .lhead, .orow, .trow, .crow { min-width: min-content; }
 .orow:last-child, .trow:last-child, .crow:last-child { border-bottom: 0; }
 .lhead.lsthead, .orow.lstrow { grid-template-columns: minmax(168px, 1.1fr) minmax(104px, .8fr) minmax(200px, 1.4fr) 64px 104px 56px minmax(96px, .8fr); }
+@media (min-width: 761px) {   /* Units spans the Status and Units columns and is centered in them, so it sits between Status and Arrived while no other column moves */
+  .lhead.lsthead > :nth-child(3), .orow.lstrow > :nth-child(3) { grid-column: 3; grid-row: 1; }
+  .lhead.lsthead > :nth-child(4), .orow.lstrow > :nth-child(4) { grid-column: 3 / 5; grid-row: 1; margin-left: 32px; text-align: center; }
+}
 .orow.srow, .lhead.shead { grid-template-columns: minmax(176px, 200px) 232px 168px 88px 104px 160px; gap: 12px; justify-content: space-between; }   /* each column is as wide as its content and the spare room is shared evenly between them; about 1,000 px at the least, so a 1,366 px laptop does not scroll sideways */
 /* the data cells share one rhythm: a 48 px zone for the chart or number, then the small line, so the lines align across the row */
 .orow.srow { align-items: start; }
@@ -200,7 +214,10 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .orow.link { cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .orow.link:hover { background: color-mix(in srgb, transparent 95%, var(--ink)); } }
 .trow { display: grid; grid-template-columns: minmax(200px, 1.6fr) 72px 72px 96px 80px; gap: 12px; align-items: center; }
-.crow { display: grid; grid-template-columns: 96px minmax(200px, 1.2fr) minmax(280px, 1fr) 152px; gap: 12px; align-items: center; }
+.crow, .lhead.crhead { display: grid; grid-template-columns: 96px minmax(200px, 1.2fr) minmax(280px, 1fr) 152px; gap: 12px; column-gap: 48px; align-items: center; }
+.crow > :nth-child(3) { justify-content: center; }
+.lhead.crhead > :nth-child(3) { text-align: center; }   /* the heading sits over the middle of the dots */
+.crow > :nth-child(2), .lhead.crhead > :nth-child(2) { padding-left: 32px; }   /* more room after the order name, with the days-waited column left where it was */
 .pname strong { font-weight: var(--w-medium); }
 .pname .code { color: var(--muted); font: var(--t-body-sm); margin-left: 4px; }
 .pname { display: flex; flex-wrap: wrap; align-items: center; }
@@ -236,6 +253,7 @@ main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .mrow .track i { display: block; height: 12px; background: var(--st3); }
 .callout { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--c, var(--s-warn)) 14%, var(--panel)); font: var(--t-body-sm); }
 .callout .ic { color: var(--c, var(--s-warn)); }
+.callout .plink { padding: 0; }   /* a link inside a callout sits on the same line as its text */
 .callout.info { --c: var(--accent); } .callout.crit { --c: var(--s-crit); } .callout.good { --c: var(--s-good); }
 
 /* Menus */
@@ -268,6 +286,14 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .plan .title { font: var(--t-title-sm); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .plan .units { font: var(--t-title-lg); font-variant-numeric: tabular-nums; }
 .tag { font: var(--t-label-md); padding: 0 8px; border-radius: var(--r-sm); background: var(--accent-fill); color: var(--accent-ink); }
+/* Toast: what a button just did and where to check it. Shown once by the page after the redirect (app/flash.py), stays until closed. */
+.toast { position: fixed; z-index: 30; bottom: 24px; inset-inline: 16px; margin-inline: auto; width: fit-content; max-width: min(640px, calc(100vw - 32px));
+  display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-radius: var(--r-md); background: var(--raised); box-shadow: var(--ring); font: var(--t-body-md);
+  transition: opacity var(--d3) var(--ease-decel), transform var(--d3) var(--ease-decel); }
+@starting-style { .toast { opacity: 0; transform: translateY(8px); } }
+.toast > svg { color: var(--accent); flex-shrink: 0; }
+.toast > span { flex: 1; min-width: 0; }
+.toast[hidden] { display: none; }
 .msgbox { white-space: pre-wrap; background: var(--page); border-radius: var(--r-sm); padding: 12px; box-shadow: var(--ring); max-height: 240px; overflow: auto; }
 
 /* Arrivals, history, chase, settings, access */
@@ -282,19 +308,27 @@ dialog.modal[open]::backdrop { background: var(--scrim); }
 .k.free { background: var(--muted); } .k.none { border: 1px dashed var(--s-warn); }
 .k.line { width: 16px; height: 2px; border-radius: 0; } .k.line.a { background: var(--ser-a); } .k.line.b { background: var(--ser-b); }
 .k.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ser-a); border: 2px solid var(--panel); box-sizing: content-box; } .k.dot.b { background: var(--ser-b); }
+.k.dot.warn { background: var(--s-warn); } .k.dot.serious { background: var(--s-serious); }   /* the dots of the days-waited plot */
 .k.band { background: color-mix(in srgb, var(--s-crit) 30%, var(--panel)); }
 
 /* column sets: each row type names its columns once; the phone rule below stacks them */
-.lhead.ahead, .orow.arow { grid-template-columns: 80px minmax(140px, 1.2fr) 64px minmax(200px, 1.6fr) 96px 120px; }
-.lhead.uhead, .orow.urow { grid-template-columns: 80px minmax(140px, 1fr) 64px minmax(160px, 1.4fr) auto; }
+.lhead.ahead, .orow.arow { grid-template-columns: 80px 168px 224px minmax(200px, 1fr) 176px 120px; }
+.lhead.uhead, .orow.urow { grid-template-columns: 80px 168px 224px minmax(200px, 1fr) 312px; }   /* the two tables share their first four columns and their fixed tails (176 + 16 + 120 = 312), so Units sits in the same place in both, centered between Product and the next column */
+.lhead.uhead > :nth-child(3), .lhead.ahead > :nth-child(3), .orow.urow > .cell.num:nth-child(3), .orow.arow > .cell.num:nth-child(3) { text-align: center; }
 .lhead.mhead, .orow.mrow2 { grid-template-columns: 120px 168px 72px 88px minmax(160px, 1fr) 96px; }
-.lhead.chead, .orow.cr { grid-template-columns: 148px minmax(160px, 1.3fr) 176px minmax(180px, auto); }
-.lhead.qhead, .orow.qr { grid-template-columns: 148px 140px minmax(280px, 1fr); column-gap: 48px; }
+.lhead.chead, .orow.cr { grid-template-columns: 336px minmax(200px, 1fr) minmax(280px, 1fr) 248px; column-gap: 48px; }   /* supplier and days waited share the spare room; the last column is fixed for the same reason as the arrivals one */
+.lhead.qhead, .orow.qr { grid-template-columns: 336px minmax(200px, 1fr) minmax(280px, 1fr) 248px; column-gap: 48px; }   /* the same columns as Due now, so Last sent lines up with Supplier and Next message with Days waited */
+.lhead.qhead > :last-child, .orow.qr > :last-child { grid-column: 3 / -1; }
 .orow.qr .cell.num, .orow.arow > .cell.num:first-child, .orow.urow > .cell.num:first-child { text-align: left; }   /* a date lines up with its heading */
 .lhead.ohead, .orow.orw { grid-template-columns: 112px minmax(180px, 1.2fr) minmax(200px, 1.6fr) 140px 140px 88px; }
 .lhead.phd, .orow.prw { grid-template-columns: minmax(140px, 1.1fr) 56px minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(140px, 1.2fr) 72px; }
 .lhead.shd, .orow.srw { grid-template-columns: minmax(160px, 1.2fr) minmax(200px, 1.4fr) 120px 72px; }
 .lhead.sohead, .orow.sorow { grid-template-columns: 124px minmax(120px, 1fr) 64px 196px minmax(180px, 1fr) minmax(120px, auto); }
+@media (min-width: 761px) {   /* Units spans the Product and Units columns and is centered in them, so it sits between Product and Status while no other column moves */
+  .lhead.sohead > :nth-child(2), .orow.sorow > :nth-child(2) { grid-column: 2; grid-row: 1; padding-left: 48px; }   /* Product sits between Order and Units, the same way */
+  .lhead.sohead > :nth-child(3), .orow.sorow > :nth-child(3) { grid-column: 2 / 4; grid-row: 1; margin-left: 16px; padding-left: 48px; text-align: center; }   /* centered between the Product and Status headings */
+  .lhead.sohead > :nth-child(5), .orow.sorow > :nth-child(5) { margin-left: 16px; padding-left: 48px; }   /* Waiting on sits between Status and Your action */
+}
 
 /* nav menus, account */
 .pop a, .pop form button { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: var(--r-xs); color: var(--ink); background: none; border: 0; cursor: pointer; text-align: left; text-decoration: none; width: 100%; font: var(--t-body-md); }
@@ -456,7 +490,7 @@ input, textarea { caret-color: var(--accent); }
 }
 /* Forced colors removes box-shadow, so the 1 px rings and the inset focus rings become real outlines there. */
 @media (forced-colors: active) {
-  .panel, .pop, .tipcard, .tip, .drawer, .msgbox, .plan, .auth-card, .rule3 > div, .calc > div { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .panel, .pop, .tipcard, .tip, .toast, .drawer, .msgbox, .plan, .auth-card, .rule3 > div, .calc > div { outline: 1px solid CanvasText; outline-offset: -1px; }
   .field select:focus-visible, .field input:focus-visible, .field textarea:focus-visible, .ifield input:focus-visible { outline: 2px solid Highlight; outline-offset: 0; }
   /* edges that were a box-shadow: buttons, fields, the stepper */
   .btn, .field select, .field input, .field textarea, .ifield input, .qty { border: 1px solid ButtonText; }

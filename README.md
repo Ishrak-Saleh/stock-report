@@ -56,6 +56,7 @@ Shows a small product business how much stock it has, how fast each product sell
 | Chase list | Shows which orders need a message: ask to confirm (2 days), ask for tracking (10 days after confirming) and ask where it is (more than 10 days on the way). An alert repeats at most every 2 days. |
 | Settings | Edit products, suppliers and the forecast settings (lead time, safety days, target days), as defaults and per product. Turn reorder alert emails on or off, choose who gets them and send a test. |
 | Old-data warning | A banner appears when the stock or sales data is more than 2 days old. |
+| Saved messages | After a button changes something that shows on another page (placing an order, recording an arrival, sending a test alert), a message at the bottom says what happened and links to the page to check, for example the Outbox. It stays until closed. |
 | Access | Staff see and manage everything in their company. A supplier login sees only that supplier's orders and can only confirm them and add tracking. |
 | Extras | Sign up with separate companies, a sales CSV import, the stock gap, dark and light themes, and a layout that works at 390 px wide. |
 
